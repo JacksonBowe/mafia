@@ -1,42 +1,24 @@
 <template>
   <q-page class="row items-center justify-evenly">
-    <example-component
-      title="Example component"
-      active
-      :todos="todos"
-      :meta="meta"
-    ></example-component>
+    <q-btn class="discord-color"  label="Login with Discord" icon="email" @click="login"/>
   </q-page>
 </template>
 
 <script setup lang="ts">
-import { Todo, Meta } from 'components/models';
-import ExampleComponent from 'components/ExampleComponent.vue';
-import { ref } from 'vue';
+import { api } from 'boot/axios'
+import { authorizeDiscord } from 'src/lib/api/auth'
 
-const todos = ref<Todo[]>([
-  {
-    id: 1,
-    content: 'ct1'
-  },
-  {
-    id: 2,
-    content: 'ct2'
-  },
-  {
-    id: 3,
-    content: 'ct3'
-  },
-  {
-    id: 4,
-    content: 'ct4'
-  },
-  {
-    id: 5,
-    content: 'ct5'
-  }
-]);
-const meta = ref<Meta>({
-  totalCount: 1200
-});
+
+const login = async () => {
+	console.log("Redirecting to discord")
+	const r = await authorizeDiscord()
+	window.location.href = r.uri
+}
 </script>
+
+<style scoped>
+
+.discord-color {
+	background-color: #7289da;
+}
+</style>

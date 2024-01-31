@@ -1,6 +1,8 @@
 import { SSTConfig } from "sst";
 import { MLambdaLayers } from "./stacks/LambdaLayers";
 import { MApi } from "./stacks/Api";
+import { MSite } from "./stacks/Site";
+import { MStorage } from "./stacks/Storage";
 
 
 export default {
@@ -15,7 +17,7 @@ export default {
 		runtime: "python3.12",
 		});
 	
-		app.stack(MLambdaLayers).stack(MApi)
+		app.stack(MLambdaLayers).stack(MStorage).stack(MApi).stack(MSite)
 
 
   },

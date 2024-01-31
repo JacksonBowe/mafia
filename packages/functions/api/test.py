@@ -11,12 +11,13 @@ from core.utils import Config
 
 app = APIGatewayHttpResolver()
 
-@app.get('/test/discord/authorize')
+@app.get('/manual/discord/authorize')
 def auth_discord():
     print(Config.get_secret("DISCORD_OAUTH_CLIENT_ID"))
-    return { "uri": "https://discord.com/api/oauth2/authorize?client_id=1199832847012352052&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A9000%2F&scope=identify"}
+    # return { "uri": "https://discord.com/api/oauth2/authorize?client_id=1199832847012352052&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A9000%2F&scope=identify"}
+    return { "uri": "https://discord.com/api/oauth2/authorize?client_id=1199832847012352052&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A9000%2Fauth%2Fdiscord%2Fcallback&scope=identify"}
 
-@app.get('/test/discord/token')
+@app.get('/manual/discord/token')
 def auth_discord_token():
     code = app.current_event.get_query_string_value('code')
     print(code)
@@ -45,7 +46,6 @@ def auth_discord_token():
         "Authorization": f"Bearer {tokens['access_token']}"
     })
     
-    print(user_response)
     
     encoded = jwt.encode(tokens, 'secret', algorithm='HS256')
     # decoded_fail = jwt.decode(encoded, 'wrongsecret', algorithms=['HS256'])
@@ -57,6 +57,11 @@ def auth_discord_token():
     
     
     return { "uri": "https://discord.com/api/oauth2/authorize?client_id=1199832847012352052&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A9000%2F%23%2F&scope=identify"}
+
+@app.get('/users/me')
+def get_me():
+    return { "uri": "https://discord.com/api/oauth2/authorize?client_id=1199832847012352052&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A9000%2Fauth%2Fdiscord%2Fcallback&scope=identify"}
+
 
 def SSTEvent(event):
     event['path'] = event['requestContext']['http']['path']
