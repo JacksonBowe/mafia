@@ -13,6 +13,7 @@ try:
     table_name = os.environ['APP_USERS_TABLE_NAME']
 except KeyError:
     raise InternalServerError("Environment variable 'APP_USERS_TABLE_NAME' not set")
+table = ddb.Table(table_name)
 
 def update_item(pk, sk, attributes):
     try:
@@ -34,7 +35,7 @@ def update_item(pk, sk, attributes):
 def get_item(pk, sk):
     try:
         table = ddb.Table(table_name)
-        item = table.update_item(
+        item = table.get_item(
             Key={
                 'PK': pk,
                 'SK': sk

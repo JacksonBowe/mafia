@@ -3,9 +3,6 @@ import core.tables.Users as UsersTable
 
 
 def update_discord_user(user):
-    
-    
-    
     UsersTable.update_item(
         pk=user['id'],
         sk='A',

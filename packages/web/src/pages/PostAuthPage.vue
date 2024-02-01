@@ -1,17 +1,21 @@
 <template>
   <q-page class="row items-center justify-evenly">
-    Ayo you're here now
+	<q-card flat>
+      <q-card-section>
+        <div class="text-subtitle2">Beep boop, verifying...</div>
+      </q-card-section>
+    </q-card>
   </q-page>
 </template>
 
 <script setup lang="ts">
 import { api } from 'boot/axios'
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { onMounted } from 'vue';
 
 const route = useRoute()
+const router = useRouter()
 
-console.log(route)
 
 
 onMounted(async () => {
@@ -22,13 +26,11 @@ onMounted(async () => {
 		}
 	})
 
-	console.log(r)
-
 	api.defaults.headers.common = {
 		'Authorization': `Bearer ${r.data.AccessToken}`
 	}
 
-	
+	router.push('/home')
 })
 
 </script>
