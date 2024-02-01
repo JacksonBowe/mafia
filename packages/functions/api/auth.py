@@ -13,6 +13,7 @@ from urllib.parse import urlencode
 
 app = APIGatewayHttpResolver()
 
+# TODO: Make this a post
 @app.get('/auth/authorize/discord')
 def discord_authorize():
     print('User attempting to authorize vis Discord')
@@ -29,6 +30,7 @@ def discord_authorize():
     
     return { "uri": f"{discord_base_url}?{urlencode(params)}" }
 
+# TODO: Make this a post
 @app.get('/auth/token/discord')
 def discord_token():
     code = app.current_event.get_query_string_value('code')
