@@ -1,7 +1,8 @@
 <template>
 	<q-page padding>
 		<!-- content -->
-		<div v-if="isLoading">
+		<q-btn @click="refresh" label="refresh" color="primary" />
+		<div v-if="isLoading || isFetching">
 			... loading
 		</div>
 		<div v-else>
@@ -13,8 +14,13 @@
 
 <script setup lang="ts">
 import { useMe } from 'src/lib/state/me';
+import { useQueryClient } from '@tanstack/vue-query';
 
-const { data, isLoading } = useMe()
+const { data, isLoading, isFetching } = useMe()
+const queryClient = useQueryClient()
+const refresh = () => {
 
 
+	queryClient.invalidateQueries({ queryKey: ['me']})
+}
 </script>
