@@ -28,11 +28,22 @@ def discord_post_auth_create(discord_user: DiscordUser):
 def discord_post_auth_update(user: UsersTable.entities.User, discord_user: DiscordUser):
     # TODO
     
-    {
+    attrs = {
         'avatar': discord_user.avatar,
         'username': discord_user.username,
-        'lastLogin': Dynamo.timestamp()
+        'lastLogin': 'hi',
+        'test.yeet': 'hellow'
     }
+    user.test = { 'yeet': 'yaw' }
+    user.update(attrs)
+    
+    
+    print("************************")
+    print(user.updated_attributes)
+    print("************************")
+    print(user)
+    
+    return
     expr, names, vals = Dynamo.build_update_expression({
         'avatar': discord_user.avatar,
         'username': discord_user.username,

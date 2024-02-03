@@ -11,7 +11,8 @@ class Entity(BaseModel, ABC):
     id: str
     type: EntityType
     createdAt: int
-    updates: dict = None
+    updated_attributes: dict = dict()
+    test: dict = None
     
     @property
     @abstractmethod
@@ -23,9 +24,53 @@ class Entity(BaseModel, ABC):
     def SK(self) -> str:
         pass
     
-    def update(self, attributes: dict):
-        for k,v in attributes.items():
-            setattr(self, k, v)
+    # def update(self, attributes: dict):
+    #     for k,v in attributes.items():
+    #         setattr(self, k, v)
+    
+    def _update_attribute(self, current_object, attribute_parts, value):
+        """
+        Helper method to recursively update an attribute with a given value.
+
+        Args:
+            current_object: Current object being processed.
+            attribute_parts (list): List of attribute parts (nested keys).
+            value: New value for the attribute.
+        """
+        if len(attribute_parts) == 1:
+            # Reached the final part of the attribute, set the value
+            if isinstance(current_object, dict):
+                # If the current object is a dictionary, set the value using dict[key] syntax
+                current_object[attribute_parts[0]] = value
+            else:
+                # Otherwise, use setattr for class instances
+                setattr(current_object, attribute_parts[0], value)
+        else:
+            # Move deeper into the nested structure
+            nested_object = getattr(current_object, attribute_parts[0], None)
+
+            if nested_object is None:
+                # Create a new nested object if it doesn't exist
+                nested_object = {}
+                setattr(current_object, attribute_parts[0], nested_object)
+
+            # Recursively update the nested attribute
+            self._update_attribute(nested_object, attribute_parts[1:], value)
+
+    def update(self, values):
+        """
+        Update attributes with values from the given dictionary.
+
+        Args:
+            values (dict): Dictionary of attribute values.
+        """
+        for key, value in values.items():
+            attribute_parts = key.split('.')
+            # Start the recursive update from the current instance
+            self._update_attribute(self, attribute_parts, value)
+
+            # Keep track of updated attributes
+            self.updated_attributes[key] = value
         
     
     def serialize(self) -> dict:
@@ -50,7 +95,7 @@ class User(Entity):
     lobby: Optional[str] = None
     game: Optional[str] = None
     roles: Optional[List[str]] = None
-    lastLogin: Optional[int] = None
+    lastLogin: int = None
     
     @property
     def PK(self):
