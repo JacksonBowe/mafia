@@ -14,6 +14,7 @@ def update_discord_user(user):
     
 # def create_user(user)
     
-    
+
+# TODO
 def get_user_by_id(id: str) -> UsersTable.entities.User:
     UsersTable.get_item()

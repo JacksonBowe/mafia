@@ -12,6 +12,7 @@
 import { api } from 'boot/axios'
 import { useRoute, useRouter } from 'vue-router';
 import { onMounted } from 'vue';
+import { LocalStorage } from 'quasar';
 
 const route = useRoute()
 const router = useRouter()
@@ -29,6 +30,8 @@ onMounted(async () => {
 	api.defaults.headers.common = {
 		'Authorization': `Bearer ${r.data.AccessToken}`
 	}
+
+	LocalStorage.set('mtokens', r.data)
 
 	router.push('/home')
 })

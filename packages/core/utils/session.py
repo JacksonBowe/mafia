@@ -30,7 +30,7 @@ def generate_tokenset(claims: dict, expiry_days: int=7):
     
     encoded = jwt.encode(claims, _get_session_private_key(), algorithm='RS256')
     return {
-        'access_token': encoded,
+        'AccessToken': encoded,
         # 'refresh_token': 'Unknown'
     }
 

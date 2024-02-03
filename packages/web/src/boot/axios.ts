@@ -1,4 +1,5 @@
 import { boot } from 'quasar/wrappers';
+import { LocalStorage } from 'quasar'
 import axios, { AxiosInstance } from 'axios';
 
 declare module '@vue/runtime-core' {
@@ -6,6 +7,10 @@ declare module '@vue/runtime-core' {
     $axios: AxiosInstance;
     $api: AxiosInstance;
   }
+}
+
+interface Tokens {
+	AccessToken: string
 }
 
 // Be careful when using SSR for cross-request state pollution
@@ -17,15 +22,17 @@ declare module '@vue/runtime-core' {
 const api = axios.create({ baseURL: 'https://0wmubv9x94.execute-api.ap-southeast-2.amazonaws.com' });
 
 export default boot(({ app }) => {
-  // for use inside Vue files (Options API) through this.$axios and this.$api
-
-  app.config.globalProperties.$axios = axios;
-  // ^ ^ ^ this will allow you to use this.$axios (for Vue Options API form)
-  //       so you won't necessarily have to import axios in each vue file
-
-  app.config.globalProperties.$api = api;
-  // ^ ^ ^ this will allow you to use this.$api (for Vue Options API form)
-  //       so you can easily perform requests against your app's API
+	if (LocalStorage.has('mtokens')) {
+		const tokens = LocalStorage.getItem('mtokens') as Tokens
+		if (tokens && typeof tokens === 'object' && tokens.AccessToken) {
+			// Access the AccessToken property safely
+			api.defaults.headers.common = {
+			  'Authorization': `Bearer ${tokens.AccessToken}`
+			};
+		  } else {
+			console.error("Invalid tokens or AccessToken not found.");
+		  }
+	}
 });
 
 export { api };
