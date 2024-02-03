@@ -6,6 +6,7 @@ import { fetchMe } from "../api/users"
 export const useMe = () => {
 	return useQuery({
 		queryKey: ['me'],
-		queryFn: fetchMe
+		queryFn: fetchMe,
+		retry: false
 	})
 }

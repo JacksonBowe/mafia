@@ -22,6 +22,10 @@ export function MApi({ stack }: StackContext) {
 				function: new Function(stack, "Authorizer", {
 					handler: "packages/functions/api/authorizer.handler",
 					permissions: ["ssm"],
+                    bind: [usersTable],
+                    environment: {
+                        APP_USERS_TABLE_NAME: usersTable.tableName,
+                    },
 				}),
 			},
 		},
