@@ -35,7 +35,8 @@ def discord_post_auth_update(user: UsersTable.entities.User, discord_user: Disco
         'lastLogin': Dynamo.timestamp(),
         # 'test.yeet': 'hellow'
         'test': {
-            'yeet': 'hellow'
+            'yeet': 'monke',
+            'yote': 'hi'
         }
     }
     user.test = { 'yeet': 'yaw' }
@@ -51,9 +52,13 @@ def discord_post_auth_update(user: UsersTable.entities.User, discord_user: Disco
     
     # return
     expr, names, vals = Dynamo.build_update_expression(user.updated_attributes)
+    print()
     print(expr)
+    print()
     print(names)
+    print()
     print(vals)
+    print()
     try:
         update = UsersTable.table.update_item(
             Key={
