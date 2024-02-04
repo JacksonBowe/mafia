@@ -1,8 +1,10 @@
 from __future__ import annotations
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from abc import ABC, abstractmethod
 from typing import Optional, List, Self
 from enum import Enum, auto
+
+from core.utils import collapse_dict
 
 class EntityType(Enum):
     USER = auto()
@@ -13,6 +15,9 @@ class Entity(BaseModel, ABC):
     createdAt: int
     updated_attributes: dict = dict()
     test: dict = None
+    
+    class Config:
+        validate_assignment = True
     
     @property
     @abstractmethod
@@ -42,9 +47,11 @@ class Entity(BaseModel, ABC):
             if isinstance(current_object, dict):
                 # If the current object is a dictionary, set the value using dict[key] syntax
                 current_object[attribute_parts[0]] = value
-            else:
+            elif isinstance(current_object, Entity):
                 # Otherwise, use setattr for class instances
                 setattr(current_object, attribute_parts[0], value)
+            else:
+                raise Exception(f'Unsupported update type: {current_object}')
         else:
             # Move deeper into the nested structure
             nested_object = getattr(current_object, attribute_parts[0], None)
@@ -64,11 +71,11 @@ class Entity(BaseModel, ABC):
         Args:
             values (dict): Dictionary of attribute values.
         """
+        values = collapse_dict(values)
         for key, value in values.items():
             attribute_parts = key.split('.')
             # Start the recursive update from the current instance
             self._update_attribute(self, attribute_parts, value)
-
             # Keep track of updated attributes
             self.updated_attributes[key] = value
         

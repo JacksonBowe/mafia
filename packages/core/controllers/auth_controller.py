@@ -2,6 +2,7 @@ from botocore.exceptions import BotoCoreError
 from aws_lambda_powertools.event_handler.exceptions import (
     InternalServerError
 )
+from pydantic import ValidationError
 
 from core.utils import Dynamo
 from core.utils.auth import DiscordUser
@@ -31,24 +32,28 @@ def discord_post_auth_update(user: UsersTable.entities.User, discord_user: Disco
     attrs = {
         'avatar': discord_user.avatar,
         'username': discord_user.username,
-        'lastLogin': 'hi',
-        'test.yeet': 'hellow'
+        'lastLogin': Dynamo.timestamp(),
+        # 'test.yeet': 'hellow'
+        'test': {
+            'yeet': 'hellow'
+        }
     }
     user.test = { 'yeet': 'yaw' }
-    user.update(attrs)
-    
+    try:
+        user.update(attrs)
+    except ValidationError as e:
+        raise InternalServerError from e
     
     print("************************")
     print(user.updated_attributes)
     print("************************")
     print(user)
     
-    return
-    expr, names, vals = Dynamo.build_update_expression({
-        'avatar': discord_user.avatar,
-        'username': discord_user.username,
-        'lastLogin': Dynamo.timestamp()
-    })
+    # return
+    expr, names, vals = Dynamo.build_update_expression(user.updated_attributes)
+    print(expr)
+    print(names)
+    print(vals)
     try:
         update = UsersTable.table.update_item(
             Key={

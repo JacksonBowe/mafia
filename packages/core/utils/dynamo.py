@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Mapping
 
 def new_id():
     return str(uuid.uuid4())
@@ -8,7 +9,7 @@ def timestamp():
     return round(int(datetime.utcnow().timestamp() * 1000))
 
 # TODO: Add type hinting here
-def build_update_expression(params: dict):
+def build_update_expression(params: Mapping[str, str]):
     '''
     Constructs the update expression for ddb update_item()
     Input of params = { 'att1': 'val1', 'att2': 'val2' }
