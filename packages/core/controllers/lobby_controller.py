@@ -30,6 +30,14 @@ def create_lobby(name, host: UsersTable.entities.User, config: dict) -> LobbyTab
         name=name
     )
     
+    # Create LobbyUser instance from host
+    lobby_user = LobbyTable.entities.LobbyUser(
+        id=Dynamo.new_id(),
+        createdAt=Dynamo.timestamp(),
+        username=host.username,
+        lobbyId=lobby.id
+    )
+    
     # Update the host with the new lobby id
     try:
         host.update({ 'lobby': lobby.id })
@@ -45,6 +53,11 @@ def create_lobby(name, host: UsersTable.entities.User, config: dict) -> LobbyTab
                 {
                     'Put': {
                         'Item': Dynamo.serialize(lobby.serialize()),
+                        'TableName': LobbyTable.table_name
+                    },
+                },{
+                    'Put': {
+                        'Item': Dynamo.serialize(lobby_user.serialize()),
                         'TableName': LobbyTable.table_name
                     },
                 },{
@@ -79,6 +92,8 @@ def get_lobby_by_id(lobby_id: str) -> LobbyTable.entities.Lobby:
         logger.error(f"Error in DynamoDB operation: {e}")
         raise InternalServerError(f"Error in DynamoDB operation: {e}")
     
+    if not item: raise NotFoundError(f"No lobby with id '{lobby_id}'")
+    
     try:
         lobby = LobbyTable.entities.Lobby.deserialize(item)
     except ValidationError as e:
@@ -106,4 +121,23 @@ def get_lobbies() -> List[LobbyTable.entities.Lobby]:
         raise InternalServerError(str(e))
     
     return lobbies
+
+def get_lobby_users(lobby_id: str) -> List[LobbyTable.entities.LobbyUser]:
+    try:
+        items = LobbyTable.table.query(
+            KeyConditionExpression='#pk=:pk and begins_with(#sk, :sk)',
+            ExpressionAttributeNames={ '#pk': 'PK', '#sk': 'SK' },
+            ExpressionAttributeValues={ ':pk': lobby_id, ':sk': 'LU' }
+        ).get('Items', [])
+    except BotoCoreError as e:
+        logger.error(str(e))
+        raise InternalServerError(f"Error in DynamoDB operation: {e}")
+    
+    try:
+        lobby_users = [LobbyTable.entities.LobbyUser.deserialize(item) for item in items]
+    except ValidationError as e:
+        logger.error(str(e))
+        raise InternalServerError(str(e))
+    
+    return lobby_users
 

@@ -8,6 +8,7 @@ from core.utils import collapse_dict
 
 class EntityType(Enum):
     LOBBY = 'LOBBY'
+    LOBBY_USER = 'LOBBY_USER'
 
 class Entity(BaseModel, ABC):
     id: str
@@ -105,3 +106,16 @@ class Lobby(Entity):
     @property
     def SK(self):
         return 'A'
+    
+class LobbyUser(Entity):
+    username: str
+    lobbyId: str
+    type: EntityType = EntityType.LOBBY_USER
+    
+    @property
+    def PK(self):
+        return self.lobbyId
+    
+    @property
+    def SK(self):
+        return f"LU#{self.id}"

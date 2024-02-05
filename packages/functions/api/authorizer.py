@@ -31,7 +31,7 @@ ENDPOINTS = [
     # LobbyController
     ('POST', 'lobbies'),
     ('GET', 'lobbies'),
-    # ('GET', 'lobbies/*'),
+    ('GET', 'lobbies/*'),
     # ('POST', 'lobbies/*/join'),
     # ('POST', 'lobbies/leave'),
     # ('POST', 'lobbies/start'),

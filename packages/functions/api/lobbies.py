@@ -4,7 +4,7 @@ if os.getenv('IS_LOCAL'):
     import sys
     sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from typing import Optional, List
+from typing import Optional, List, Union
 
 from pydantic import BaseModel, Field
 from aws_lambda_powertools.event_handler.openapi.params import Query
@@ -45,15 +45,38 @@ def create_lobby(payload: CreateLobbyPayload) -> LobbyTable.entities.Lobby:
     
     return lobby
 
-# class LobbyWithPlayers(LobbyTable.entities.Lobby):
-#     players: List[LobbyTable.entities.Lobby] = None
+class LobbyWithUsers(LobbyTable.entities.Lobby):
+    users: List[LobbyTable.entities.LobbyUser] = None
+    
+    @classmethod
+    def from_lobby(cls, lobby: LobbyTable.entities.Lobby, users: List[LobbyTable.entities.Lobby]):
+        return cls(**{**lobby.model_dump(), 'users': users }) 
+
 @app.get('/lobbies')
 def get_lobbies(
-    players: Annotated[Optional[bool], Query()] = False
-) -> List[LobbyTable.entities.Lobby]:
+    users: Annotated[Optional[bool], Query()] = False
+) -> List[LobbyTable.entities.Lobby] | List[LobbyWithUsers]:
     lobbies = LobbyController.get_lobbies()
     
+    if users:
+        return [LobbyWithUsers.from_lobby(lobby, LobbyController.get_lobby_users(lobby.id)) for lobby in lobbies]
+
     return lobbies
+
+@app.get('/lobbies/<lobby_id>')
+def get_lobby(
+    lobby_id: str, 
+    users: Annotated[Optional[bool], Query()] = False
+) -> Union[LobbyWithUsers, LobbyTable.entities.Lobby]: # TODO: This is doing wack shit
+    lobby = LobbyController.get_lobby_by_id(lobby_id)
+    print(users)
+    if users:
+        print(LobbyController.get_lobby_users(lobby.id))
+        out = LobbyWithUsers.from_lobby(lobby, LobbyController.get_lobby_users(lobby.id))
+        print(out)
+        
+        return out
+    return lobby
 
 def handler(event, context):
     return app.resolve(Events.SSTHTTPEvent(event), context)
