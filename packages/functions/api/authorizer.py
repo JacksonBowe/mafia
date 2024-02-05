@@ -24,41 +24,25 @@ DENY_POLICY = {
     "usageIdentifierKey": "{api-key}"
 }
 
-ALLOW_POLICY = {
-    "principalId": "abc123",
-    "policyDocument": {
-        "Version": "2012-10-17",
-        "Statement": [
-            {
-                "Action": "execute-api:Invoke",
-                "Effect": "Allow",
-                "Resource": "*"
-            }
-        ]
-    },
-    "context": {},
-    "usageIdentifierKey": "{api-key}"
-}
-
 ENDPOINTS = [
     # UserController
-    ('GET', 'user'),
-    ('GET', 'user/*'),
+    ('GET', 'users'),
+    ('GET', 'users/*'),
     # LobbyController
-    ('POST', 'lobby'),
-    ('GET', 'lobby/list'),
-    ('GET', 'lobby/*'),
-    ('POST', 'lobby/*/join'),
-    ('POST', 'lobby/leave'),
-    ('POST', 'lobby/start'),
-    ('GET', 'game'),
-    ('GET', 'game/actor'),
-    ('POST', 'game/vote'),
-    ('POST', 'game/verdict'),
-    ('POST', 'game/targets'),
+    # ('POST', 'lobbies'),
+    # ('GET', 'lobbies/list'),
+    # ('GET', 'lobbies/*'),
+    # ('POST', 'lobbies/*/join'),
+    # ('POST', 'lobbies/leave'),
+    # ('POST', 'lobbies/start'),
+    # ('GET', 'games'),
+    # ('GET', 'games/actor'),
+    # ('POST', 'games/vote'),
+    # ('POST', 'games/verdict'),
+    # ('POST', 'games/targets'),
     # ChatController
-    ('POST', 'chat'),
-    ('POST', 'game/chat')
+    # ('POST', 'chat'),
+    # ('POST', 'games/chat')
 ]
 
 ADMIN_ENDPOINTS = [
@@ -77,22 +61,40 @@ def parse_headers(headers:Mapping[str, str]):
         # elif API_KEY_METHOD
         
     return
+
+def build_allow_policy(caller_id, resources):
+    ALLOW_POLICY = {
+        "principalId": "abc123",
+        "policyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Action": "execute-api:Invoke",
+                    "Effect": "Allow",
+                    "Resource": f"arn:aws:execute-api:*:*:*/*/{resource[0]}/{resource[1].replace('{userID}', caller_id)}"
+                } for resource in resources
+            ]
+
+        },
+        "context": {
+            'CallerID': caller_id
+        },
+        # "usageIdentifierKey": "{api-key}"
+    }
+    return ALLOW_POLICY
     
 
 def handler(event, context):
-    # print(json.dumps(event, indent=4))
     
     auth_type, auth_key = parse_headers(event['headers'])
     if not auth_type: return DENY_POLICY
     
     if auth_type == Session.AuthMethods.TOKEN:
-        print('yo')
         claims = Session.validate_token(auth_key)
-        print(claims)
         
+        # This is a wasted database call, but it ensures that the user is in the database
         user = UserController.get_user_by_id(claims['sub'])
+        return build_allow_policy(user.id, ENDPOINTS)
+    
+    return DENY_POLICY
         
-        print(user)
-        
-        
-    return ALLOW_POLICY

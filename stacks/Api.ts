@@ -42,8 +42,6 @@ export function MApi({ stack }: StackContext) {
 		routes: {
             "GET /auth/authorize/discord": { function: "packages/functions/api/auth.handler", authorizer: "none" },
             "POST /auth/token/discord": { function: "packages/functions/api/auth.handler", authorizer: "none" },
-			"GET /manual/discord/authorize": "packages/functions/api/test.handler",
-			"GET /manual/discord/token": "packages/functions/api/test.handler",
 			"GET /users/me": "packages/functions/api/users.handler",
 		},
 	});

@@ -90,7 +90,6 @@ class Entity(BaseModel, ABC):
     @classmethod
     def deserialize(cls, data: dict) -> Self:
         [data.pop(key) for key in ['PK', 'SK']]
-        print(data)
         return cls(**data)
     
 class User(Entity):
