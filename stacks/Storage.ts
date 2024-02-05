@@ -4,7 +4,7 @@ import { StageRemovalPolicy } from './settings'
 export function MStorage({ stack }: StackContext) {
 
     // Users
-    const usersTable = new Table(stack, 'UsersTable', {
+    const userTable = new Table(stack, 'UserTable', {
         fields: {
             PK: 'string',
             SK: 'string',
@@ -19,7 +19,7 @@ export function MStorage({ stack }: StackContext) {
     })
 
     // Lobbies
-    const lobbiesTable = new Table(stack, 'LobbiesTable', {
+    const lobbyTable = new Table(stack, 'LobbyTable', {
         fields: {
             PK: 'string',
             SK: 'string',
@@ -34,7 +34,7 @@ export function MStorage({ stack }: StackContext) {
     })
 
     return {
-        usersTable,
-        lobbiesTable
+        userTable,
+        lobbyTable
     }
 }

@@ -4,7 +4,7 @@ import { MStorage } from "./Storage";
 
 export function MApi({ stack }: StackContext) {
 	const { powertools, requests } = use(MLambdaLayers);
-	const { usersTable, lobbiesTable } = use(MStorage);
+	const { userTable, lobbyTable } = use(MStorage);
 
 	const secrets = Config.Secret.create(stack, "DISCORD_OAUTH_CLIENT_ID", "DISCORD_OAUTH_CLIENT_SECRET");
 
@@ -22,10 +22,10 @@ export function MApi({ stack }: StackContext) {
 				function: new Function(stack, "Authorizer", {
 					handler: "packages/functions/api/authorizer.handler",
 					permissions: ["ssm"],
-                    bind: [usersTable, lobbiesTable],
+                    bind: [userTable, lobbyTable],
                     environment: {
-                        APP_USERS_TABLE_NAME: usersTable.tableName,
-                        APP_LOBBIES_TABLE_NAME: lobbiesTable.tableName
+                        APP_USER_TABLE_NAME: userTable.tableName,
+                        APP_LOBBY_TABLE_NAME: lobbyTable.tableName
                     },
 				}),
 			},
@@ -35,10 +35,10 @@ export function MApi({ stack }: StackContext) {
 			function: {
 				layers: [powertools],
 				permissions: ["ssm"],
-                bind: [usersTable, lobbiesTable],
+                bind: [userTable, lobbyTable],
 				environment: {
-					APP_USERS_TABLE_NAME: usersTable.tableName,
-                    APP_LOBBIES_TABLE_NAME: lobbiesTable.tableName
+					APP_USER_TABLE_NAME: userTable.tableName,
+                    APP_LOBBY_TABLE_NAME: lobbyTable.tableName
 				},
 			},
 		},
@@ -50,7 +50,8 @@ export function MApi({ stack }: StackContext) {
 			"GET /users/me": "packages/functions/api/users.handler",
             "GET /users/{userId}": "packages/functions/api/users.handler",
             // LobbyController
-            "POST /lobby"                   : "packages/functions/lobby.handler",
+            "POST /lobbies" : "packages/functions/api/lobbies.handler",
+            "GET /lobbies" : "packages/functions/api/lobbies.handler",
 		},
 	});
 

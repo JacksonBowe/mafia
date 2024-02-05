@@ -29,8 +29,8 @@ ENDPOINTS = [
     ('GET', 'users'),
     ('GET', 'users/*'),
     # LobbyController
-    # ('POST', 'lobbies'),
-    # ('GET', 'lobbies/list'),
+    ('POST', 'lobbies'),
+    ('GET', 'lobbies'),
     # ('GET', 'lobbies/*'),
     # ('POST', 'lobbies/*/join'),
     # ('POST', 'lobbies/leave'),

@@ -2,6 +2,8 @@ import uuid
 from datetime import datetime
 from typing import Mapping
 
+from boto3.dynamodb.types import TypeSerializer
+
 def new_id():
     return str(uuid.uuid4())
 
@@ -81,3 +83,7 @@ def build_update_expression(params: Mapping[str, str]):
     
     update_expression =  "".join(set_expression)[:-1] + "  " + "".join(remove_expression)[:-1]
     return update_expression, update_names, update_values
+
+Serializer = TypeSerializer()
+def serialize(dict: dict) -> dict:
+    return { k:Serializer.serialize(v) for k,v in dict.items()}

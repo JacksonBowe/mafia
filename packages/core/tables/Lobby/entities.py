@@ -7,7 +7,7 @@ from enum import Enum
 from core.utils import collapse_dict
 
 class EntityType(Enum):
-    USER = 'USER'
+    LOBBY = 'LOBBY'
 
 class Entity(BaseModel, ABC):
     id: str
@@ -86,18 +86,18 @@ class Entity(BaseModel, ABC):
     @classmethod
     def deserialize(cls, data: dict) -> Self:
         [data.pop(key) for key in ['PK', 'SK']]
-        return cls(**data)
+        return cls(**data)   
+
+class Lobby(Entity):
+    host: LobbyHost
+    config: str
+    name: str
+    type: EntityType = EntityType.LOBBY
     
-class User(Entity):
-    type: EntityType = EntityType.USER
-    username: str
-    provider: str
-    avatar: Optional[str] = None
-    lobby: Optional[str] = None
-    game: Optional[str] = None
-    roles: Optional[List[str]] = None
-    lastLogin: int = None
-    
+    class LobbyHost(BaseModel):
+        id: str
+        username: str
+        
     @property
     def PK(self):
         return self.id
@@ -105,5 +105,3 @@ class User(Entity):
     @property
     def SK(self):
         return 'A'
-    
-    
