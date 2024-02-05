@@ -1,20 +1,20 @@
 import json
 
 from botocore.exceptions import BotoCoreError, ClientError
+from aws_lambda_powertools import Logger
 from aws_lambda_powertools.event_handler.exceptions import (
     NotFoundError,
     InternalServerError
 )
 import boto3
-from boto3.dynamodb.types import TypeSerializer
 from pydantic import ValidationError
 
 from core.utils import Dynamo
 from core.tables import UsersTable, LobbyTable
 
 ddb_client = boto3.client('dynamodb')
-
-def create_lobby(name, host: UsersTable.entities.User, config: dict):
+logger = Logger()
+def create_lobby(name, host: UsersTable.entities.User, config: dict) -> LobbyTable.entities.Lobby:
     # Need to create a new lobby records, and update the User.host value
     
     # Create Lobby instance
@@ -36,44 +36,34 @@ def create_lobby(name, host: UsersTable.entities.User, config: dict):
         raise InternalServerError(f"Error updating user. {str(e)}") from e
     
     host_expr, host_names, host_vals = Dynamo.build_update_expression(host._updated_attributes)
-    
-    print()
-    print(host_expr)
-    print()
-    print(host_names)
-    print()
-    print(host_vals)
-    print()
-    print(TypeSerializer().serialize(host_names))
-    print(TypeSerializer().serialize(host_vals))
-    
-    
-    Serializer = TypeSerializer()
-    
-    test_vals = { k:Serializer.serialize(v) for k,v in host_vals.items()}
-    print(test_vals)
-    # Transaction to put lobby and update user
-    transaction = ddb_client.transact_write_items(
-        TransactItems=[
-            {
-                'Put': {
-                    'Item': Dynamo.serialize(lobby.serialize()),
-                    'TableName': LobbyTable.table_name
-                },
-            },{
-                'Update': {
-                    'Key': Dynamo.serialize({
-                        'PK': host.PK,
-                        'SK': host.SK
-                    }),
-                    'UpdateExpression': host_expr,
-                    'ExpressionAttributeNames': host_names,
-                    'ExpressionAttributeValues': Dynamo.serialize(host_vals),
-                    'TableName': UsersTable.table_name
+
+    try:
+        # Transaction to put lobby and update user
+        transaction = ddb_client.transact_write_items(
+            TransactItems=[
+                {
+                    'Put': {
+                        'Item': Dynamo.serialize(lobby.serialize()),
+                        'TableName': LobbyTable.table_name
+                    },
+                },{
+                    'Update': {
+                        'Key': Dynamo.serialize({
+                            'PK': host.PK,
+                            'SK': host.SK
+                        }),
+                        'UpdateExpression': host_expr,
+                        'ExpressionAttributeNames': host_names,
+                        'ExpressionAttributeValues': Dynamo.serialize(host_vals),
+                        'TableName': UsersTable.table_name
+                    }
                 }
-            }
-        ]
-    )
+            ]
+        )
+    except ddb_client.exceptions.TransactionCanceledException as e:
+        logger.exception(f"Host lobby failed transaction. {e.response['CancellationReasons']}")
+        raise InternalServerError(f"Host lobby failed transaction. {e.response['CancellationReasons']}")
     
-    print(transaction)
+    return lobby
     
+# def get_lobby_by_id    

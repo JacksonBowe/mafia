@@ -84,6 +84,33 @@ def build_update_expression(params: Mapping[str, str]):
     update_expression =  "".join(set_expression)[:-1] + "  " + "".join(remove_expression)[:-1]
     return update_expression, update_names, update_values
 
-Serializer = TypeSerializer()
-def serialize(dict: dict) -> dict:
-    return { k:Serializer.serialize(v) for k,v in dict.items()}
+def serialize(input_dict: dict) -> dict:
+    """
+    Serialize a Python dictionary using Boto3's TypeSerializer.
+
+    Parameters:
+    - input_dict (dict): The input Python dictionary to be serialized.
+
+    Returns:
+    - dict: The serialized dictionary with DynamoDB AttributeValues.
+
+    Raises:
+    - TypeError: If the input is not a dictionary or if serialization fails.
+
+    Example:
+    >>> input_dict = {'example_key': 'example_value'}
+    >>> serialize(input_dict)
+    {'example_key': {'S': 'example_value'}}
+    """
+    try:
+        # Create an instance of Boto3's TypeSerializer
+        serializer = TypeSerializer()
+
+        # Use TypeSerializer to serialize each key-value pair in the input dictionary
+        serialized_dict = {k: serializer.serialize(v) for k, v in input_dict.items()}
+
+        return serialized_dict
+
+    except Exception as e:
+        # Handle serialization errors
+        raise TypeError(f"Failed to serialize dictionary: {str(e)}")
