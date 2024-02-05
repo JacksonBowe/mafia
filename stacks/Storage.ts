@@ -26,6 +26,9 @@ export function MStorage({ stack }: StackContext) {
             type: 'string'
         },
         primaryIndex: { partitionKey: 'PK', sortKey: 'SK'},
+        globalIndexes: {
+            itemsByType: { partitionKey: 'type' }
+        },
         cdk: {
             table: {
                 removalPolicy: StageRemovalPolicy(stack.stage)

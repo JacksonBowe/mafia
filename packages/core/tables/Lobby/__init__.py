@@ -1,5 +1,6 @@
 import os
 import boto3
+from enum import Enum
 
 from aws_lambda_powertools.event_handler.exceptions import (
     InternalServerError
@@ -13,3 +14,6 @@ try:
     table = ddb.Table(table_name)
 except KeyError:
     raise InternalServerError("Environment variable 'APP_LOBBY_TABLE_NAME' not set")
+
+class Indexes(Enum):
+    ITEMS_BY_TYPE = 'itemsByType'

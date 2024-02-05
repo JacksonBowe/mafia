@@ -4,9 +4,11 @@ if os.getenv('IS_LOCAL'):
     import sys
     sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from typing import Optional
+from typing import Optional, List
 
 from pydantic import BaseModel, Field
+from aws_lambda_powertools.event_handler.openapi.params import Query
+from aws_lambda_powertools.shared.types import Annotated
 from aws_lambda_powertools.event_handler import APIGatewayHttpResolver
 from aws_lambda_powertools.event_handler.exceptions import (
     BadRequestError
@@ -42,6 +44,16 @@ def create_lobby(payload: CreateLobbyPayload) -> LobbyTable.entities.Lobby:
     )
     
     return lobby
+
+# class LobbyWithPlayers(LobbyTable.entities.Lobby):
+#     players: List[LobbyTable.entities.Lobby] = None
+@app.get('/lobbies')
+def get_lobbies(
+    players: Annotated[Optional[bool], Query()] = False
+) -> List[LobbyTable.entities.Lobby]:
+    lobbies = LobbyController.get_lobbies()
+    
+    return lobbies
 
 def handler(event, context):
     return app.resolve(Events.SSTHTTPEvent(event), context)

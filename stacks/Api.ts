@@ -44,14 +44,19 @@ export function MApi({ stack }: StackContext) {
 		},
 		routes: {
             // AuthController
-            "GET /auth/authorize/discord": { function: "packages/functions/api/auth.handler", authorizer: "none" },
-            "POST /auth/token/discord": { function: "packages/functions/api/auth.handler", authorizer: "none" },
+            "GET /auth/authorize/discord"       : { function: "packages/functions/api/auth.handler", authorizer: "none" },
+            "POST /auth/token/discord"          : { function: "packages/functions/api/auth.handler", authorizer: "none" },
             // UserController
-			"GET /users/me": "packages/functions/api/users.handler",
-            "GET /users/{userId}": "packages/functions/api/users.handler",
+			"GET /users/me"                     : "packages/functions/api/users.handler",
+            "GET /users/{userId}"               : "packages/functions/api/users.handler",
             // LobbyController
-            "POST /lobbies" : "packages/functions/api/lobbies.handler",
-            "GET /lobbies" : "packages/functions/api/lobbies.handler",
+            "POST /lobbies"                     : "packages/functions/api/lobbies.handler",
+            "GET /lobbies"                      : "packages/functions/api/lobbies.handler",
+            "GET /lobbies/{lobbyId}"            : "packages/functions/api/lobbies.handler",
+            "POST /lobbies/{lobbyId}/join"      : "packages/functions/api/lobbies.handler",
+            "POST /lobbies/{lobbyId}/terminate" : "packages/functions/api/lobbies.handler",
+            "POST /lobbies/leave"               : "packages/functions/api/lobbies.handler",
+            "POST /lobbies/start"               : "packages/functions/api/lobbies.handler",
 		},
 	});
 

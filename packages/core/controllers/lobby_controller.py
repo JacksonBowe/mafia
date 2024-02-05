@@ -1,4 +1,5 @@
 import json
+from typing import List
 
 from botocore.exceptions import BotoCoreError, ClientError
 from aws_lambda_powertools import Logger
@@ -66,4 +67,43 @@ def create_lobby(name, host: UsersTable.entities.User, config: dict) -> LobbyTab
     
     return lobby
     
-# def get_lobby_by_id    
+def get_lobby_by_id(lobby_id: str) -> LobbyTable.entities.Lobby:
+    try:
+        item = LobbyTable.table.get_item(
+            Key={
+                'PK': lobby_id,
+                'SK': 'A'
+            }
+        ).get('Item')
+    except BotoCoreError as e:
+        logger.error(f"Error in DynamoDB operation: {e}")
+        raise InternalServerError(f"Error in DynamoDB operation: {e}")
+    
+    try:
+        lobby = LobbyTable.entities.Lobby.deserialize(item)
+    except ValidationError as e:
+        logger.error(str(e))
+        raise InternalServerError(str(e))
+    
+    return lobby
+
+def get_lobbies() -> List[LobbyTable.entities.Lobby]:
+    try:
+        items = LobbyTable.table.query(
+            IndexName=LobbyTable.Indexes.ITEMS_BY_TYPE.value,
+            KeyConditionExpression='#t=:t',
+            ExpressionAttributeNames={ '#t': 'type' },
+            ExpressionAttributeValues={ ':t': LobbyTable.entities.EntityType.LOBBY.value }
+        ).get('Items', [])
+    except BotoCoreError as e:
+        logger.error(str(e))
+        raise InternalServerError(f"Error in DynamoDB operation: {e}")
+    
+    try:
+        lobbies = [LobbyTable.entities.Lobby.deserialize(item) for item in items]
+    except ValidationError as e:
+        logger.error(str(e))
+        raise InternalServerError(str(e))
+    
+    return lobbies
+
