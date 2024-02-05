@@ -13,8 +13,7 @@ class Entity(BaseModel, ABC):
     id: str
     type: EntityType
     createdAt: int
-    updated_attributes: dict = dict()
-    test: dict = None
+    _updated_attributes: dict = dict()
     
     class Config:
         validate_assignment = True
@@ -47,7 +46,7 @@ class Entity(BaseModel, ABC):
             if isinstance(current_object, dict):
                 # If the current object is a dictionary, set the value using dict[key] syntax
                 current_object[attribute_parts[0]] = value
-            elif isinstance(current_object, Entity):
+            elif isinstance(current_object, BaseModel):
                 # Otherwise, use setattr for class instances
                 setattr(current_object, attribute_parts[0], value)
             else:
@@ -77,7 +76,7 @@ class Entity(BaseModel, ABC):
             # Start the recursive update from the current instance
             self._update_attribute(self, attribute_parts, value)
             # Keep track of updated attributes
-            self.updated_attributes[key] = value
+            self._updated_attributes[key] = value
         
     
     def serialize(self) -> dict:

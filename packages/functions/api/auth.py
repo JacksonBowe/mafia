@@ -3,18 +3,20 @@ if os.getenv('IS_LOCAL'):
     import sys
     sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-import requests
-from jose import jwt
+from aws_lambda_powertools.event_handler.openapi.params import Query
+from aws_lambda_powertools.shared.types import Annotated
 from aws_lambda_powertools.event_handler import APIGatewayHttpResolver
 from aws_lambda_powertools.event_handler.exceptions import (
     NotFoundError
 )
 
+from pydantic import BaseModel
+
 from core.utils import Config, Session, Events
 from core.utils.auth import DiscordAdapter
 from core.controllers import UserController, AuthController
 
-app = APIGatewayHttpResolver()
+app = APIGatewayHttpResolver(enable_validation=True)
 
 # TODO: Make this a post
 @app.get('/auth/authorize/discord')
@@ -25,10 +27,11 @@ def discord_authorize():
     
     return { "uri": DiscordAdapter().authorize_url }
 
+class DiscordTokenResponse(BaseModel):
+    AccessToken: str
 # TODO: Make this a post
-@app.get('/auth/token/discord')
-def discord_token():
-    code = app.current_event.get_query_string_value('code')
+@app.post('/auth/token/discord')
+def discord_token(code: Annotated[str, Query()]) -> DiscordTokenResponse:
     
     Discord = DiscordAdapter()
     tokens = Discord.tokens(code)
@@ -36,9 +39,7 @@ def discord_token():
     
     try:
         user = UserController.get_user_by_id(discord_user.id)
-        
         AuthController.discord_post_auth_update(user, discord_user)
-        
     except NotFoundError:
         AuthController.discord_post_auth_create(discord_user)
                 
@@ -53,5 +54,4 @@ def discord_token():
 
 
 def handler(event, context):
-    print('here')
     return app.resolve(Events.SSTHTTPEvent(event), context)

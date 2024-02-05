@@ -33,32 +33,14 @@ def discord_post_auth_update(user: UsersTable.entities.User, discord_user: Disco
         'avatar': discord_user.avatar,
         'username': discord_user.username,
         'lastLogin': Dynamo.timestamp(),
-        # 'test.yeet': 'hellow'
-        'test': {
-            'yeet': 'monke',
-            'yote': 'hi'
-        }
     }
-    user.test = { 'yeet': 'yaw' }
     try:
         user.update(attrs)
     except ValidationError as e:
-        raise InternalServerError from e
-    
-    print("************************")
-    print(user.updated_attributes)
-    print("************************")
-    print(user)
-    
-    # return
-    expr, names, vals = Dynamo.build_update_expression(user.updated_attributes)
-    print()
-    print(expr)
-    print()
-    print(names)
-    print()
-    print(vals)
-    print()
+        raise InternalServerError(f"Error updating user. {str(e)}") from e
+
+    expr, names, vals = Dynamo.build_update_expression(user._updated_attributes)
+
     try:
         update = UsersTable.table.update_item(
             Key={

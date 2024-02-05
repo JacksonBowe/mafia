@@ -20,20 +20,20 @@ const router = useRouter()
 
 
 onMounted(async () => {
-	console.log('fetching tokens')
-	const r = await api.get('/auth/token/discord', {
-		params: {
-			code: route.query.code
-		}
-	})
+	// console.log('fetching tokens')
+	// const r = await api.get('/auth/token/discord', {
+	// 	params: {
+	// 		code: route.query.code
+	// 	}
+	// })
 
-	api.defaults.headers.common = {
-		'Authorization': `Bearer ${r.data.AccessToken}`
-	}
+	// api.defaults.headers.common = {
+	// 	'Authorization': `Bearer ${r.data.AccessToken}`
+	// }
 
-	LocalStorage.set('mtokens', r.data)
+	// LocalStorage.set('mtokens', r.data)
 
-	router.push('/home')
+	// router.push('/home')
 })
 
 </script>
