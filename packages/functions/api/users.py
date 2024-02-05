@@ -16,13 +16,19 @@ app = APIGatewayHttpResolver(enable_validation=True)
 
 
 @app.get('/users/me')
-def get_me():
+def get_me() -> UsersTable.entities.User:
     try:
         user_id = app.current_event.request_context.authorizer.get_lambda['CallerID']
     except KeyError as e:
         raise BadRequestError(f"Missing CallerID")
     
     
+    user = UserController.get_user_by_id(user_id)
+    return user
+
+
+@app.get('/user/<user_id>')
+def get_user(user_id: str) -> UsersTable.entities.User:
     user = UserController.get_user_by_id(user_id)
     return user
 

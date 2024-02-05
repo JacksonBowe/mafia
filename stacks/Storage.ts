@@ -18,7 +18,23 @@ export function MStorage({ stack }: StackContext) {
         }
     })
 
+    // Lobbies
+    const lobbiesTable = new Table(stack, 'LobbiesTable', {
+        fields: {
+            PK: 'string',
+            SK: 'string',
+            type: 'string'
+        },
+        primaryIndex: { partitionKey: 'PK', sortKey: 'SK'},
+        cdk: {
+            table: {
+                removalPolicy: StageRemovalPolicy(stack.stage)
+            }
+        }
+    })
+
     return {
-        usersTable
+        usersTable,
+        lobbiesTable
     }
 }

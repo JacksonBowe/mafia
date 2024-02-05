@@ -4,7 +4,7 @@ import { MStorage } from "./Storage";
 
 export function MApi({ stack }: StackContext) {
 	const { powertools, requests } = use(MLambdaLayers);
-	const { usersTable } = use(MStorage);
+	const { usersTable, lobbiesTable } = use(MStorage);
 
 	const secrets = Config.Secret.create(stack, "DISCORD_OAUTH_CLIENT_ID", "DISCORD_OAUTH_CLIENT_SECRET");
 
@@ -22,9 +22,10 @@ export function MApi({ stack }: StackContext) {
 				function: new Function(stack, "Authorizer", {
 					handler: "packages/functions/api/authorizer.handler",
 					permissions: ["ssm"],
-                    bind: [usersTable],
+                    bind: [usersTable, lobbiesTable],
                     environment: {
                         APP_USERS_TABLE_NAME: usersTable.tableName,
+                        APP_LOBBIES_TABLE_NAME: lobbiesTable.tableName
                     },
 				}),
 			},
@@ -33,16 +34,23 @@ export function MApi({ stack }: StackContext) {
 			authorizer: "token",
 			function: {
 				layers: [powertools],
-				permissions: ["ssm", usersTable],
+				permissions: ["ssm"],
+                bind: [usersTable, lobbiesTable],
 				environment: {
 					APP_USERS_TABLE_NAME: usersTable.tableName,
+                    APP_LOBBIES_TABLE_NAME: lobbiesTable.tableName
 				},
 			},
 		},
 		routes: {
+            // AuthController
             "GET /auth/authorize/discord": { function: "packages/functions/api/auth.handler", authorizer: "none" },
             "POST /auth/token/discord": { function: "packages/functions/api/auth.handler", authorizer: "none" },
+            // UserController
 			"GET /users/me": "packages/functions/api/users.handler",
+            "GET /users/{userId}": "packages/functions/api/users.handler",
+            // LobbyController
+            "POST /lobby"                   : "packages/functions/lobby.handler",
 		},
 	});
 
