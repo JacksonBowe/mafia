@@ -11,7 +11,8 @@ class DiscordUser(BaseModel):
     provider: str = "discord"
 
 class DiscordAdapter():
-    def __init__(self) -> None:
+    def __init__(self, test=False) -> None:
+        self.redirect_uri = 'http://localhost:9000/auth/discord/callback' if not test else 'http://localhost:9000'
         pass
         
     @property
@@ -20,7 +21,7 @@ class DiscordAdapter():
         params = {
             'client_id': Config.get_secret("DISCORD_OAUTH_CLIENT_ID"),
             'response_type': 'code',
-            'redirect_uri': 'http://localhost:9000/auth/discord/callback',
+            'redirect_uri': self.redirect_uri,
             'scope': 'identify',
         }
         
@@ -32,7 +33,7 @@ class DiscordAdapter():
             "client_secret": Config.get_secret("DISCORD_OAUTH_CLIENT_SECRET"),
             "grant_type": "authorization_code",
             "code": code,
-            "redirect_uri": "http://localhost:9000/auth/discord/callback"
+            "redirect_uri": self.redirect_uri
         }
         
         headers = {
