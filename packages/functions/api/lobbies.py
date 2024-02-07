@@ -69,13 +69,9 @@ def get_lobby(
     users: Annotated[Optional[bool], Query()] = False
 ) -> Union[LobbyWithUsers, LobbyTable.entities.Lobby]: # TODO: This is doing wack shit
     lobby = LobbyController.get_lobby_by_id(lobby_id)
-    print(users)
     if users:
-        print(LobbyController.get_lobby_users(lobby.id))
-        out = LobbyWithUsers.from_lobby(lobby, LobbyController.get_lobby_users(lobby.id))
-        print(out)
+        return LobbyWithUsers.from_lobby(lobby, LobbyController.get_lobby_users(lobby.id))
         
-        return out
     return lobby
 
 def handler(event, context):
