@@ -16,20 +16,11 @@ from core.tables import UsersTable, LobbyTable
 from core.tables.Users.entities import User
 from core.tables.Lobby.entities import Lobby, LobbyUser
 
-from core.events import event
+from core.events import Event
 from pydantic import BaseModel
 
 ddb_client = boto3.client('dynamodb')
 logger = Logger()
-
-class UserLeaveEventValidator(BaseModel):
-    user_id: str
-    
-class Events():
-    UserLeave = event('lobby.user_leave', {
-        'user_id': str 
-    })
-
 
 class LobbyWithUsers(Lobby):
     users: List[LobbyUser] = None
@@ -37,8 +28,16 @@ class LobbyWithUsers(Lobby):
     @classmethod
     def from_lobby(cls, lobby: Lobby, users: List[Lobby]):
         return cls(**{**lobby.model_dump(), 'users': users }) 
-    
-    
+   
+   
+class Events:
+    class UserLeave(Event):
+        event_name = 'lobby.user_leave'
+        class Properties(BaseModel):
+            user_id: str
+            lobby: Lobby
+
+ 
 
 def create_lobby(name, host: User, config: dict) -> Lobby:
     # Need to create a new lobby records, and update the User.host value
@@ -151,19 +150,6 @@ def get_lobbies(with_users: bool=False) -> List[Lobby]:
     if with_users:
         return [LobbyWithUsers.from_lobby(lobby, get_lobby_users(lobby.id)) for lobby in lobbies]
     
-    # eb = boto3.client('events')
-    # eb.put_events(
-    #     Entries=[{
-    #         'Source': __name__,
-    #         'DetailType': 'lobby.user_leave',
-    #         'Detail': json.dumps({ 'user_id': 'test' }),
-    #         'EventBusName': os.environ['EVENT_BUS_NAME']
-    #     }]
-    # )
-    
-    print(Events.UserLeave.validator())
-    print(Events.UserLeave.publish({ 'user_id': 1234 }))
-    
     return lobbies
 
 def get_lobby_users(lobby_id: str) -> List[LobbyUser]:
@@ -207,7 +193,7 @@ def get_lobby_user(lobby_id: str, user_id: str) -> LobbyUser:
 
     return lobby_user
 
-def close_lobby(lobby: Lobby):
+def delete_lobby(lobby: Lobby):
     try:
         LobbyTable.table.delete_item(
             Key={
@@ -223,6 +209,9 @@ def close_lobby(lobby: Lobby):
 #     for user in lobby.users:
 #         remove_user_from_lobby(User.from_lobby_user(user), lobby)
     
+def grant_host(lobby: Lobby, user: LobbyUser) -> None:
+    pass
+
 def remove_user_from_lobby(user: User, lobby: Lobby):
     try:
         user.update({ 'lobby': None })
@@ -265,16 +254,10 @@ def remove_user_from_lobby(user: User, lobby: Lobby):
         raise InternalServerError(f"Leave lobby failed transaction. {e.response['CancellationReasons']}")
     
     # Raise user leave event
-    eb = boto3.client('events')
-    
-    eb.put_events(
-        Entries=[{
-            'Source': 'lobby.user_leave',
-            'DetailType': 'lobby.user_leave',
-            'Detail': json.dumps({ 'user_id': user.id }),
-            'EventBusName': os.environ['EVENT_BUS_NAME']
-        }]
-    )
+    Events.UserLeave.publish({
+        'user_id': user.id,
+        'lobby': lobby
+    })
     
     return lobby
 

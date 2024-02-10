@@ -13,7 +13,9 @@ try:
     table_name = os.environ['APP_LOBBY_TABLE_NAME']
     table = ddb.Table(table_name)
 except KeyError:
-    raise InternalServerError("Environment variable 'APP_LOBBY_TABLE_NAME' not set")
+    pass
+    # TODO: Figure this shit out
+    # raise InternalServerError("Environment variable 'APP_LOBBY_TABLE_NAME' not set")
 
 class Indexes(Enum):
     ITEMS_BY_TYPE = 'itemsByType'

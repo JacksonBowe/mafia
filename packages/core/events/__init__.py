@@ -1,40 +1,37 @@
 import os
 import json
 
+import inspect
+from pathlib import Path
+
 import boto3
 
 from aws_lambda_powertools import Logger
-from typing import Type, Dict
 from pydantic import BaseModel, ValidationError
 
 logger = Logger()
 eb = boto3.client('events')
 
 class Event:
-    def __init__(self, event_name: str, validator: Type[BaseModel]):
-        self.event_name = event_name
-        self.validator = validator
+    event_name: str
+    class Properties(BaseModel):
+        pass
 
-    def publish(self, data: dict):
+    @classmethod
+    def publish(cls, data: dict):
         try:
-            eb.put_events(
+            validated_data = cls.Properties(**data).model_dump_json()
+            return eb.put_events(
                 Entries=[
                     {
-                        'Source': __name__,
-                        'DetailType': self.event_name,
-                        'Detail': self.validator(**data).model_dump_json(),
+                        'Source': Path(inspect.stack()[1][1]).__str__(), # Resolves to the file that triggered the event
+                        'DetailType': cls.event_name,
+                        'Detail': validated_data,
                         'EventBusName': os.environ['EVENT_BUS_NAME']
                     }
                 ]
             )
         except ValidationError as e:
+            print(e)
             logger.exception(e)
-        
-def _create_validator(fields: Dict[str, type]):
-    class Validator(BaseModel):
-        __annotations__ = fields
-    return Validator
-        
-def event(event_name, fields: Dict[str, type]):
-    validator = _create_validator(fields)
-    return Event(event_name, validator)
+            raise e
