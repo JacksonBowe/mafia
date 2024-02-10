@@ -1,7 +1,7 @@
-import { StackContext, Table, use } from 'sst/constructs'
+import { StackContext, Table } from 'sst/constructs'
 import { StageRemovalPolicy } from './settings'
 
-export function MStorage({ stack }: StackContext) {
+export function Storage({ stack }: StackContext) {
 
     // Users
     const userTable = new Table(stack, 'UserTable', {

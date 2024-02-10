@@ -1,10 +1,12 @@
 import { StackContext, Api, Auth, Config, Function, use } from "sst/constructs";
-import { MLambdaLayers } from "./LambdaLayers";
-import { MStorage } from "./Storage";
+import { LambdaLayers } from "./LambdaLayers";
+import { Storage } from "./Storage";
+import { Events } from "./Events";
 
-export function MApi({ stack }: StackContext) {
-	const { powertools, requests } = use(MLambdaLayers);
-	const { userTable, lobbyTable } = use(MStorage);
+export function API({ stack }: StackContext) {
+	const { powertools, requests } = use(LambdaLayers);
+	const { userTable, lobbyTable } = use(Storage);
+    const { bus } = use(Events)
 
 	const secrets = Config.Secret.create(stack, "DISCORD_OAUTH_CLIENT_ID", "DISCORD_OAUTH_CLIENT_SECRET");
 
@@ -25,7 +27,8 @@ export function MApi({ stack }: StackContext) {
                     bind: [userTable, lobbyTable],
                     environment: {
                         APP_USER_TABLE_NAME: userTable.tableName,
-                        APP_LOBBY_TABLE_NAME: lobbyTable.tableName
+                        APP_LOBBY_TABLE_NAME: lobbyTable.tableName,
+                        EVENT_BUS_NAME: bus.eventBusName
                     },
 				}),
 			},
@@ -35,10 +38,11 @@ export function MApi({ stack }: StackContext) {
 			function: {
 				layers: [powertools],
 				permissions: ["ssm"],
-                bind: [userTable, lobbyTable],
+                bind: [userTable, lobbyTable, bus],
 				environment: {
 					APP_USER_TABLE_NAME: userTable.tableName,
-                    APP_LOBBY_TABLE_NAME: lobbyTable.tableName
+                    APP_LOBBY_TABLE_NAME: lobbyTable.tableName,
+                    EVENT_BUS_NAME: bus.eventBusName
 				},
 			},
 		},

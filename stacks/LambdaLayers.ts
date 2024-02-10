@@ -1,7 +1,7 @@
 import { StackContext } from "sst/constructs";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 
-export function MLambdaLayers({ stack }: StackContext) {
+export function LambdaLayers({ stack }: StackContext) {
     const powertools = lambda.LayerVersion.fromLayerVersionArn(
         stack, "lambda-powertools", 
         `arn:aws:lambda:${stack.region}:017000801446:layer:AWSLambdaPowertoolsPythonV2:60`)

@@ -7,18 +7,22 @@ if os.getenv('IS_LOCAL'):
 from typing import Optional, List, Union
 
 from pydantic import BaseModel, Field
+from aws_lambda_powertools import Logger
 from aws_lambda_powertools.event_handler.openapi.params import Query
 from aws_lambda_powertools.shared.types import Annotated
 from aws_lambda_powertools.event_handler import APIGatewayHttpResolver
 from aws_lambda_powertools.event_handler.exceptions import (
-    BadRequestError
+    BadRequestError,
+    InternalServerError
 )
 from core.utils import Events
 from core.utils.game import DEFAULT_GAME_CONFIG
 from core.tables import LobbyTable
 from core.controllers import UserController, LobbyController
 
+logger = Logger()
 app = APIGatewayHttpResolver(enable_validation=True)
+
 
 class CreateLobbyPayload(BaseModel):
     lobby_name: str = Field(alias='lobbyName')
@@ -45,34 +49,40 @@ def create_lobby(payload: CreateLobbyPayload) -> LobbyTable.entities.Lobby:
     
     return lobby
 
-class LobbyWithUsers(LobbyTable.entities.Lobby):
-    users: List[LobbyTable.entities.LobbyUser] = None
-    
-    @classmethod
-    def from_lobby(cls, lobby: LobbyTable.entities.Lobby, users: List[LobbyTable.entities.Lobby]):
-        return cls(**{**lobby.model_dump(), 'users': users }) 
+
 
 @app.get('/lobbies')
 def get_lobbies(
     users: Annotated[Optional[bool], Query()] = False
-) -> List[LobbyTable.entities.Lobby] | List[LobbyWithUsers]:
-    lobbies = LobbyController.get_lobbies()
-    
-    if users:
-        return [LobbyWithUsers.from_lobby(lobby, LobbyController.get_lobby_users(lobby.id)) for lobby in lobbies]
-
+) -> List[LobbyTable.entities.Lobby] | List[LobbyController.LobbyWithUsers]:
+    lobbies = LobbyController.get_lobbies(with_users=users)
     return lobbies
 
 @app.get('/lobbies/<lobby_id>')
 def get_lobby(
     lobby_id: str, 
     users: Annotated[Optional[bool], Query()] = False
-) -> Union[LobbyWithUsers, LobbyTable.entities.Lobby]: # TODO: This is doing wack shit
-    lobby = LobbyController.get_lobby_by_id(lobby_id)
-    if users:
-        return LobbyWithUsers.from_lobby(lobby, LobbyController.get_lobby_users(lobby.id))
-        
+) -> Union[LobbyController.LobbyWithUsers, LobbyTable.entities.Lobby]: # TODO: This is doing wack shit
+    lobby = LobbyController.get_lobby_by_id(lobby_id, with_users=users)
     return lobby
+
+@app.post('/lobbies/leave')
+def leave_lobby():
+    # Verify User
+    user_id = app.current_event.request_context.authorizer.get_lambda['CallerId']
+    user = UserController.get_user_by_id(user_id)
+    if not user.lobby:
+        raise BadRequestError('User is not in a lobby')
+    
+    # Verify Lobby
+    lobby = LobbyController.get_lobby_by_id(user.lobby)
+    if not lobby: 
+        logger.error("User record contains lobbyId for Lobby that does not exist. Attempting to fix")
+        # Attempt to fix
+        UserController.clear_lobby(user)
+        raise InternalServerError("User record contains lobbyId for Lobby that does not exist. Attempting to fix")
+    
+    return LobbyController.remove_user_from_lobby(user, lobby)
 
 def handler(event, context):
     return app.resolve(Events.SSTHTTPEvent(event), context)

@@ -1,9 +1,9 @@
 import { StackContext, StaticSite, use } from "sst/constructs";
 import { RemovalPolicy } from "aws-cdk-lib";
-import { MApi } from "./Api";
+import { API } from "./Api";
 
-export function MSite({ stack }: StackContext) {
-    const { api } = use(MApi)
+export function Site({ stack }: StackContext) {
+    const { api } = use(API)
 
     const site = new StaticSite(stack, 'site', {
         path: 'packages/web/',

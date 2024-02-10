@@ -91,6 +91,7 @@ def handler(event, context):
     
     if auth_type == Session.AuthMethods.TOKEN:
         claims = Session.validate_token(auth_key)
+        if not claims: return DENY_POLICY
         
         # This is a wasted database call, but it ensures that the user is in the database
         user = UserController.get_user_by_id(claims['sub'])

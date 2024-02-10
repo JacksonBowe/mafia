@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "auth": "aws sso login --profile mafia-dev",
     "dev": "sst dev --profile mafia-dev",
     "build": "sst build",
     "deploy": "sst deploy",

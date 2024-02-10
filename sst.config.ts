@@ -1,8 +1,9 @@
 import { SSTConfig } from "sst";
-import { MLambdaLayers } from "./stacks/LambdaLayers";
-import { MApi } from "./stacks/Api";
-import { MSite } from "./stacks/Site";
-import { MStorage } from "./stacks/Storage";
+import { LambdaLayers } from "./stacks/LambdaLayers";
+import { API } from "./stacks/Api";
+import { Site } from "./stacks/Site";
+import { Storage } from "./stacks/Storage";
+import { Events } from "./stacks/Events";
 
 
 export default {
@@ -17,7 +18,7 @@ export default {
 		runtime: "python3.12",
 		});
 	
-		app.stack(MLambdaLayers).stack(MStorage).stack(MApi).stack(MSite)
+		app.stack(LambdaLayers).stack(Storage).stack(Events).stack(API).stack(Site)
 
 
   },
