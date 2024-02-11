@@ -7,7 +7,7 @@ from aws_lambda_powertools.event_handler import APIGatewayHttpResolver
 from aws_lambda_powertools.event_handler.exceptions import (
     BadRequestError
 )
-from core.utils import Events
+
 from core.tables import UsersTable
 from core.controllers import UserController
 
@@ -32,5 +32,4 @@ def get_user(user_id: str) -> UsersTable.entities.User:
     return user
 
 def handler(event, context):
-    print('here')
-    return app.resolve(Events.SSTHTTPEvent(event), context)
+    return app.resolve(event, context)

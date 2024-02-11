@@ -10,7 +10,7 @@ from core.utils import Dynamo
 
 ddb = boto3.resource('dynamodb')
 try:
-    table_name = os.environ['APP_USER_TABLE_NAME']
+    table_name = os.environ['SST_TABLE_TABLENAME_USERTABLE']
     table = ddb.Table(table_name)
 except KeyError:
     # TODO: Figure this shit out

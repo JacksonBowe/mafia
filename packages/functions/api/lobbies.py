@@ -15,7 +15,6 @@ from aws_lambda_powertools.event_handler.exceptions import (
     BadRequestError,
     InternalServerError
 )
-from core.utils import Events
 from core.utils.game import DEFAULT_GAME_CONFIG
 from core.tables import LobbyTable
 from core.controllers import UserController, LobbyController
@@ -83,7 +82,8 @@ def leave_lobby():
         UserController.clear_lobby(user)
         raise InternalServerError("User record contains lobbyId for Lobby that does not exist. Attempting to fix")
     
-    return LobbyController.remove_user_from_lobby(user, lobby)
+    LobbyController.remove_user_from_lobby(user, lobby)
+    return 
 
 @app.post('/lobbies/<lobby_id>/terminate')
 def terminate_lobby(lobby_id: str) -> None:
@@ -95,6 +95,5 @@ def terminate_lobby(lobby_id: str) -> None:
         )
     
     
-
 def handler(event, context):
-    return app.resolve(Events.SSTHTTPEvent(event), context)
+    return app.resolve(event, context)

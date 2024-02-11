@@ -13,10 +13,8 @@ try:
     table_name = os.environ['SST_TABLE_TABLENAME_LOBBYTABLE']
     table = ddb.Table(table_name)
 except KeyError:
-    print("Table not bound")
-    pass
-    # TODO: Figure this shit out
-    # raise InternalServerError("Environment variable 'APP_LOBBY_TABLE_NAME' not set")
+    print("LobbyTable not bound")
+    raise InternalServerError("LobbyTable not bound")
 
 class Indexes(Enum):
     ITEMS_BY_TYPE = 'itemsByType'

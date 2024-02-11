@@ -14,7 +14,7 @@ from aws_lambda_powertools.event_handler.exceptions import (
 
 from pydantic import BaseModel
 
-from core.utils import Config, Session, Events
+from core.utils import Config, Session
 from core.utils.auth import DiscordAdapter
 from core.controllers import UserController, AuthController
 
@@ -61,4 +61,4 @@ def discord_token(
 
 
 def handler(event, context):
-    return app.resolve(Events.SSTHTTPEvent(event), context)
+    return app.resolve(event, context)
