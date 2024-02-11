@@ -4,6 +4,7 @@ import { API } from "./stacks/Api";
 import { Site } from "./stacks/Site";
 import { Storage } from "./stacks/Storage";
 import { Events } from "./stacks/Events";
+import { Spikes } from "./stacks/Spikes";
 
 
 export default {
@@ -20,6 +21,6 @@ export default {
 	
 		app.stack(LambdaLayers).stack(Storage).stack(Events).stack(API).stack(Site)
 
-
+        app.stack(Spikes)
   },
 } satisfies SSTConfig;

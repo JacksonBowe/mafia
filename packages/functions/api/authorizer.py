@@ -33,7 +33,7 @@ ENDPOINTS = [
     ('GET', 'lobbies'),
     ('GET', 'lobbies/*'),
     # ('POST', 'lobbies/*/join'),
-    # ('POST', 'lobbies/leave'),
+    ('POST', 'lobbies/leave'),
     # ('POST', 'lobbies/start'),
     # ('GET', 'games'),
     # ('GET', 'games/actor'),

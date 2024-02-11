@@ -56,7 +56,7 @@ def create_lobby(name, host: User, config: dict) -> Lobby:
     
     # Create LobbyUser instance from host
     lobby_user = LobbyUser(
-        id=Dynamo.new_id(),
+        id=host.id,
         createdAt=Dynamo.timestamp(),
         username=host.username,
         lobbyId=lobby.id
@@ -204,13 +204,9 @@ def delete_lobby(lobby: Lobby):
     except ClientError as e:
         logger.error(f"Error in DynamoDB operation: {e}")
         raise InternalServerError(f"Error in DynamoDB operation: {e}")
-
-# def terminate_lobby(lobby: LobbyWithUsers):
-#     for user in lobby.users:
-#         remove_user_from_lobby(User.from_lobby_user(user), lobby)
     
-def grant_host(lobby: Lobby, user: LobbyUser) -> None:
-    pass
+# def grant_host(lobby: Lobby, user: LobbyUser) -> None:
+#     pass
 
 def remove_user_from_lobby(user: User, lobby: Lobby):
     try:
@@ -219,6 +215,7 @@ def remove_user_from_lobby(user: User, lobby: Lobby):
         raise InternalServerError(f"Error updating user. {str(e)}") from e
     
     lobby_user = get_lobby_user(lobby.id, user.id)
+    
     
     # Update the User
     expr, names, vals = Dynamo.build_update_expression(user._updated_attributes)

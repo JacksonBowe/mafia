@@ -14,9 +14,11 @@ def handler(event: EventBridgeEvent, context):
     
     print(f'User {details.user_id} removed from lobby {details.lobby.id}')
     
+    # TODO: IoT Publish
+    
     lobby_users = LobbyController.get_lobby_users(details.lobby.id)
     
     if not lobby_users:
-        LobbyController.delete_lobby(details.lobby)
-        
+        return LobbyController.delete_lobby(details.lobby)
     
+    return 

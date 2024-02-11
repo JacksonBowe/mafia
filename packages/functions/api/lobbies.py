@@ -69,7 +69,8 @@ def get_lobby(
 @app.post('/lobbies/leave')
 def leave_lobby():
     # Verify User
-    user_id = app.current_event.request_context.authorizer.get_lambda['CallerId']
+    print(app.current_event.request_context.authorizer)
+    user_id = app.current_event.request_context.authorizer.get_lambda['CallerID']
     user = UserController.get_user_by_id(user_id)
     if not user.lobby:
         raise BadRequestError('User is not in a lobby')
@@ -83,6 +84,17 @@ def leave_lobby():
         raise InternalServerError("User record contains lobbyId for Lobby that does not exist. Attempting to fix")
     
     return LobbyController.remove_user_from_lobby(user, lobby)
+
+@app.post('/lobbies/<lobby_id>/terminate')
+def terminate_lobby(lobby_id: str) -> None:
+    lobby = LobbyController.get_lobby_by_id(lobby_id, with_users=True)
+    for user in lobby.users:
+        LobbyController.remove_user_from_lobby(
+            UserController.get_user_by_id(user.id),
+            lobby
+        )
+    
+    
 
 def handler(event, context):
     return app.resolve(Events.SSTHTTPEvent(event), context)
