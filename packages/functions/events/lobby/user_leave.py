@@ -8,17 +8,21 @@ from aws_lambda_powertools.utilities.data_classes import event_source, EventBrid
 
 from core.controllers import LobbyController
 
+
 @event_source(data_class=EventBridgeEvent)
 def handler(event: EventBridgeEvent, context):
     details = LobbyController.Events.UserLeave.Properties(**event.detail)
-    
-    print(f'User {details.user_id} removed from lobby {details.lobby.id}')
+
     
     # TODO: IoT Publish
+    print(f'User {details.user_id} removed from lobby {details.lobby.id}')
+    
     
     lobby_users = LobbyController.get_lobby_users(details.lobby.id)
     
+    
     if not lobby_users:
-        return LobbyController.delete_lobby(details.lobby)
+        LobbyController.delete_lobby(details.lobby)
+        print(f'Lobby {details.lobby.id} deleted')
     
     return 

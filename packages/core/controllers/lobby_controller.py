@@ -176,7 +176,7 @@ def get_lobby_user(lobby_id: str, user_id: str) -> LobbyUser:
         item = LobbyTable.table.get_item(
             Key={
                 'PK': lobby_id,
-                'SK': f"LU{user_id}"
+                'SK': f"LU#{user_id}"
             }
         ).get('Item')
     except BotoCoreError as e:
@@ -219,7 +219,7 @@ def remove_user_from_lobby(user: User, lobby: Lobby):
     
     # Update the User
     expr, names, vals = Dynamo.build_update_expression(user._updated_attributes)
-
+    print(expr, names, vals)
     try:
         # Transaction to delete LobbyUser and update User
         transaction = ddb_client.transact_write_items(
@@ -240,7 +240,6 @@ def remove_user_from_lobby(user: User, lobby: Lobby):
                         }),
                         'UpdateExpression': expr,
                         'ExpressionAttributeNames': names,
-                        'ExpressionAttributeValues': Dynamo.serialize(vals),
                         'TableName': UsersTable.table_name
                     }
                 }
@@ -249,6 +248,9 @@ def remove_user_from_lobby(user: User, lobby: Lobby):
     except ddb_client.exceptions.TransactionCanceledException as e:
         logger.exception(f"Leave lobby failed transaction. {e.response['CancellationReasons']}")
         raise InternalServerError(f"Leave lobby failed transaction. {e.response['CancellationReasons']}")
+    except ClientError as e:
+        logger.error(f"Error in DynamoDB operation: {e}")
+        raise InternalServerError(f"Error in DynamoDB operation: {e}")
     
     # Raise user leave event
     Events.UserLeave.publish({
