@@ -8,7 +8,7 @@ from aws_lambda_powertools.event_handler.exceptions import (
     BadRequestError
 )
 
-from core.tables import UsersTable
+from core.tables import Users as UsersTable
 from core.controllers import UserController
 
 app = APIGatewayHttpResolver(enable_validation=True)

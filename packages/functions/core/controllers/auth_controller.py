@@ -6,7 +6,7 @@ from pydantic import ValidationError
 
 from core.utils import Dynamo
 from core.utils.auth import DiscordUser
-from core.tables import UsersTable
+from core.tables import Users as UsersTable
 
 def discord_post_auth_create(discord_user: DiscordUser):
     # TODO

@@ -13,9 +13,8 @@ try:
     table_name = os.environ['SST_TABLE_TABLENAME_USERTABLE']
     table = ddb.Table(table_name)
 except KeyError:
-    # TODO: Figure this shit out
-    pass
-    # raise InternalServerError("Environment variable 'APP_USERS_TABLE_NAME' not set")
+    print("UsersTable not bound")
+    raise EnvironmentError("UsersTable not bound")
 
 def update_item(pk, sk, attributes):
     try:

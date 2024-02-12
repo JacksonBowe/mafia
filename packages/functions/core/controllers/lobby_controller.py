@@ -12,8 +12,11 @@ import boto3
 from pydantic import ValidationError
 
 from core.utils import Dynamo
-from core.tables import UsersTable, LobbyTable
+
+from core.tables import Users as UsersTable
 from core.tables.Users.entities import User
+
+from core.tables import Lobby as LobbyTable
 from core.tables.Lobby.entities import Lobby, LobbyUser
 
 from core.events import Event

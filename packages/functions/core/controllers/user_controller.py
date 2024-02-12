@@ -9,7 +9,7 @@ from aws_lambda_powertools.event_handler.exceptions import (
 from core.utils import Config, Dynamo
 from core.utils.auth import DiscordUser
 
-from core.tables import UsersTable
+from core.tables import Users as UsersTable
 
 logger = Logger()
  

@@ -8,13 +8,14 @@ export function Spikes({ stack }: StackContext) {
     const { userTable, lobbyTable } = use(Storage)
     const { bus } = use(Events)
 
-    // const seedUsers = new Function(stack, "SeedLobbies", {
-    //     handler: "packages/functions/spikes/seed_lobbies.handler",
-    // })
+    const seedUsers = new Function(stack, "SeedUsers", {
+        handler: "packages/functions/spikes/seed_users.handler",
+        bind: [userTable]
+    })
 
     const seedLobbies = new Function(stack, "SeedLobbies", {
         handler: "packages/functions/spikes/seed_lobbies.handler",
-        permissions: [lobbyTable]
+        bind: [lobbyTable]
     })
 
 }
