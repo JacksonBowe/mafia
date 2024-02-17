@@ -12,7 +12,7 @@ export function API({ stack }: StackContext) {
 
 	const auth = new Auth(stack, "auth", {
 		authenticator: {
-			handler: "packages/functions/api/auth.handler",
+			handler: "packages/functions/rest/auth.handler",
             // prefix: "stub"
 		},
 	});
@@ -22,7 +22,7 @@ export function API({ stack }: StackContext) {
 			token: {
 				type: "lambda",
 				function: new Function(stack, "Authorizer", {
-					handler: "packages/functions/api/authorizer.handler",
+					handler: "packages/functions/rest/authorizer.handler",
 					permissions: ["ssm"],
                     bind: [userTable, lobbyTable],
                     environment: {
@@ -48,19 +48,19 @@ export function API({ stack }: StackContext) {
 		},
 		routes: {
             // AuthController
-            "GET /auth/authorize/discord"       : { function: "packages/functions/api/auth.handler", authorizer: "none" },
-            "POST /auth/token/discord"          : { function: "packages/functions/api/auth.handler", authorizer: "none" },
+            "GET /auth/authorize/discord"       : { function: "packages/functions/rest/auth.handler", authorizer: "none" },
+            "POST /auth/token/discord"          : { function: "packages/functions/rest/auth.handler", authorizer: "none" },
             // UserController
-			"GET /users/me"                     : "packages/functions/api/users.handler",
-            "GET /users/{userId}"               : "packages/functions/api/users.handler",
+			"GET /users/me"                     : "packages/functions/rest/users.handler",
+            "GET /users/{userId}"               : "packages/functions/rest/users.handler",
             // LobbyController
-            "POST /lobbies"                     : "packages/functions/api/lobbies.handler",
-            "GET /lobbies"                      : "packages/functions/api/lobbies.handler",
-            "GET /lobbies/{lobbyId}"            : "packages/functions/api/lobbies.handler",
-            "POST /lobbies/{lobbyId}/join"      : "packages/functions/api/lobbies.handler",
-            "POST /lobbies/{lobbyId}/terminate" : "packages/functions/api/lobbies.handler",
-            "POST /lobbies/leave"               : "packages/functions/api/lobbies.handler",
-            "POST /lobbies/start"               : "packages/functions/api/lobbies.handler",
+            "POST /lobbies"                     : "packages/functions/rest/lobbies.handler",
+            "GET /lobbies"                      : "packages/functions/rest/lobbies.handler",
+            "GET /lobbies/{lobbyId}"            : "packages/functions/rest/lobbies.handler",
+            "POST /lobbies/{lobbyId}/join"      : "packages/functions/rest/lobbies.handler",
+            "POST /lobbies/{lobbyId}/terminate" : "packages/functions/rest/lobbies.handler",
+            "POST /lobbies/leave"               : "packages/functions/rest/lobbies.handler",
+            "POST /lobbies/start"               : "packages/functions/rest/lobbies.handler",
 		},
 	});
 

@@ -21,13 +21,13 @@ def get_me() -> UsersTable.entities.User:
     except KeyError as e:
         raise BadRequestError(f"Missing CallerID")
     
-    
     user = UserController.get_user_by_id(user_id)
     return user
 
 
-@app.get('/user/<user_id>')
+@app.get('/users/<user_id>')
 def get_user(user_id: str) -> UsersTable.entities.User:
+    
     user = UserController.get_user_by_id(user_id)
     return user
 
