@@ -4,7 +4,7 @@ import { Storage } from "./Storage";
 import { Events } from "./Events";
 
 export function API({ stack }: StackContext) {
-	const { powertools, requests } = use(LambdaLayers);
+	const { powertools, pydantic } = use(LambdaLayers);
 	const { userTable, lobbyTable } = use(Storage);
     const { bus } = use(Events)
 
@@ -36,7 +36,7 @@ export function API({ stack }: StackContext) {
 		defaults: {
 			authorizer: "token",
 			function: {
-				layers: [powertools],
+				layers: [powertools, pydantic],
 				permissions: ["ssm"],
                 bind: [userTable, lobbyTable, bus],
 				environment: {
