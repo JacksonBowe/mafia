@@ -1,7 +1,7 @@
 import { StackContext } from "sst/constructs";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 
-export function LambdaLayers({ stack }: StackContext) {
+export function LambdaLayers({ app, stack }: StackContext) {
 
     // aws-lambda-powertools
     const powertools = lambda.LayerVersion.fromLayerVersionArn(
@@ -20,7 +20,8 @@ export function LambdaLayers({ stack }: StackContext) {
 		code: lambda.Code.fromAsset("packages/functions/layers/pydantic"),
 	});
 
-
+    app.addDefaultFunctionLayers([powertools, pydantic])
+    
     return {
         powertools,
         requests,

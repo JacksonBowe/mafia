@@ -12,6 +12,7 @@ node_modules
 # misc
 .DS_Store
 *.pyc
+__pycache__
 
 # local env files
 .env*.local

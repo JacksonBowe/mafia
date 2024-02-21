@@ -1,0 +1,2 @@
+[run]
+omit = packages/functions/tests/*, packages/functions/layers/*

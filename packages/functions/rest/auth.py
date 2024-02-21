@@ -2,6 +2,7 @@ import os
 if os.getenv('IS_LOCAL'):
     import sys
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    # os.environ['POWERTOOLS_DEV'] = 1
 
 from typing import Optional
 
@@ -18,6 +19,8 @@ from core.utils import Config, Session
 from core.utils.auth import DiscordAdapter
 from core.controllers import UserController, AuthController
 
+os.environ['POWERTOOLS_SERVICE_NAME'] = 'auth'
+
 app = APIGatewayHttpResolver(enable_validation=True)
 
 # TODO: Make this a post
@@ -25,7 +28,7 @@ app = APIGatewayHttpResolver(enable_validation=True)
 def discord_authorize(
     test: Annotated[Optional[bool], Query()] = False
 ):
-    print('User attempting to authorize vis Discord')
+    print('User attempting to authorize via Discord')
     print('Returning redirect URI')
     
     
@@ -46,9 +49,9 @@ def discord_token(
     
     try:
         user = UserController.get_user_by_id(discord_user.id)
-        AuthController.discord_post_auth_update(user, discord_user)
+        UserController.discord_post_auth_update_user(user, discord_user)
     except NotFoundError:
-        AuthController.discord_post_auth_create(discord_user)
+        UserController.discord_post_auth_create_user(discord_user)
                 
     session = Session.generate_tokenset(claims={
         'sub': discord_user.id,

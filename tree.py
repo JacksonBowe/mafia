@@ -102,7 +102,7 @@ def get_gitignore_patterns():
     return gitignore_patterns
 
 def criteria(path):
-    gitignore_patterns = get_gitignore_patterns() + args.exclude.replace(' ','').split(',')
+    gitignore_patterns = get_gitignore_patterns() + args.exclude.replace(' ','').split(',') if args.exclude else []
     for pattern in gitignore_patterns:
         if pattern.startswith("/"):  # Match absolute paths from the root of the repository
             if path.match(pattern[1:]):

@@ -5,3 +5,4 @@ requests==2.31.0
 pydantic==2.5.3
 python-jose==3.3.0
 moto==5.0.1
+pytest==8.0.1

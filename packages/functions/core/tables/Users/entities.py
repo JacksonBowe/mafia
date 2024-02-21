@@ -15,7 +15,7 @@ class Entity(BaseModel, ABC):
     createdAt: int
     _updated_attributes: dict = dict()
     
-    class Config:
+    class ConfigDict:
         validate_assignment = True
     
     @property
