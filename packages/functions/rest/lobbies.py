@@ -16,7 +16,7 @@ from aws_lambda_powertools.event_handler.exceptions import (
     InternalServerError
 )
 from core.utils.game import DEFAULT_GAME_CONFIG
-from core.tables import LobbyTable
+import core.tables.Lobby as LobbyTable
 from core.controllers import UserController, LobbyController
 
 logger = Logger()

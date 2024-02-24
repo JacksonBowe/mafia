@@ -6,6 +6,8 @@
   "scripts": {
     "auth": "aws sso login --profile mafia-dev",
     "dev": "sst dev --profile mafia-dev",
+    "test": "pytest",
+    "coverage": "pytest --cov=packages/functions --cov-report=html",
     "build": "sst build",
     "deploy": "sst deploy",
     "remove": "sst remove",
