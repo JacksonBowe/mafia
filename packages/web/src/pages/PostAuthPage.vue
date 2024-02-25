@@ -1,38 +1,43 @@
 <template>
   <q-page class="row items-center justify-evenly">
-	<q-card flat>
-      <q-card-section>
-        <div class="text-subtitle2">Beep boop, verifying...</div>
-      </q-card-section>
-    </q-card>
+	<!-- <q-card flat> -->
+      <!-- <q-card-section> -->
+        <!-- <div class="text-subtitle2">Verifying...</div> -->
+      <!-- </q-card-section> -->
+    <!-- </q-card> -->
   </q-page>
 </template>
 
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router';
 import { onMounted } from 'vue';
-import { LocalStorage } from 'quasar';
+import { fetchTokensDiscord } from 'src/lib/api/auth'
+import { useAuthStore } from 'src/stores/auth';
+import { useQuasar, QSpinnerGears } from 'quasar';
 
+const q = useQuasar()
 const route = useRoute()
 const router = useRouter()
 
-
+const aStore = useAuthStore()
 
 onMounted(async () => {
-	// console.log('fetching tokens')
-	// const r = await api.get('/auth/token/discord', {
-	// 	params: {
-	// 		code: route.query.code
-	// 	}
-	// })
+	q.loading.show({
+		message: 'Loading profile...',
+		spinner: QSpinnerGears,
+	})
 
-	// api.defaults.headers.common = {
-	// 	'Authorization': `Bearer ${r.data.AccessToken}`
-	// }
+	try {
+		const tokens = await fetchTokensDiscord(route.query.code as string);
+		aStore.authenticate(tokens)
+		router.push('/home')
 
-	// LocalStorage.set('mtokens', r.data)
+	} catch (error) {
+		console.log('RETURNING TO AUTH')
+		router.push('/auth')
+	}
 
-	// router.push('/home')
+	q.loading.hide()
 })
 
 </script>

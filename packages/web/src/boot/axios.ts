@@ -1,5 +1,5 @@
 import { boot } from 'quasar/wrappers';
-import { LocalStorage } from 'quasar'
+import { LocalStorage, Notify } from 'quasar'
 import axios, { AxiosInstance } from 'axios';
 
 declare module '@vue/runtime-core' {
@@ -21,6 +21,51 @@ interface Tokens {
 // for each client)
 console.log(import.meta.env.VITE_API_URL)
 const api = axios.create({ baseURL: import.meta.env.VITE_API_URL });
+
+api.interceptors.response.use(
+	(response) => {
+		return response;
+	},
+	(error) => {
+		// const origionalRequest = error.config;
+
+		// Unauthenticated
+		if (error.response.status === 401) {
+			Notify.create({
+				message: 'You are not authenticated.',
+				color: 'negative',
+				timeout: 2000
+			});
+
+		}
+
+		// TODO: Forbidden
+
+		// TODO: Unauthorized
+
+		// TODO: MalformedRequest
+
+		// BadRequest
+		if (error.response.status === 400) {
+			Notify.create({
+				message: error.response.data.message,
+				color: 'warning',
+				timeout: 2000
+			});
+		}
+
+		// InternalServerError
+		if (error.response.status === 500) {
+			Notify.create({
+				message: error.response.data.message,
+				color: 'negative',
+				timeout: 2000
+			});
+		}
+
+		return Promise.reject(error);
+	}
+);
 
 export default boot(() => {
 	if (LocalStorage.has('mtokens')) {

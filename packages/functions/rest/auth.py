@@ -10,6 +10,7 @@ from aws_lambda_powertools.event_handler.openapi.params import Query
 from aws_lambda_powertools.shared.types import Annotated
 from aws_lambda_powertools.event_handler import APIGatewayHttpResolver
 from aws_lambda_powertools.event_handler.exceptions import (
+    BadRequestError,
     NotFoundError
 )
 
@@ -44,7 +45,11 @@ def discord_token(
 ) -> DiscordTokenResponse:
     Discord = DiscordAdapter(test=test)
     tokens = Discord.tokens(code)
+    
     print(tokens)
+    if 'error' in tokens:
+        raise BadRequestError('Code is expired or invalid')
+    
     discord_user = Discord.user(tokens['access_token'])
     
     try:
