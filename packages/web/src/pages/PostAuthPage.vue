@@ -9,7 +9,6 @@
 </template>
 
 <script setup lang="ts">
-import { api } from 'boot/axios'
 import { useRoute, useRouter } from 'vue-router';
 import { onMounted } from 'vue';
 import { LocalStorage } from 'quasar';
