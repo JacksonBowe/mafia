@@ -11,7 +11,7 @@ export function Site({ stack }: StackContext) {
         buildCommand: 'npm ci && npm run build',
         errorPage: 'index.html',
         environment: {
-            VITE_API_ENDPOINT: api.url
+            VITE_API_URL: api.url
         },
         cdk: {
             bucket: {

@@ -19,9 +19,10 @@ interface Tokens {
 // good idea to move this instance creation inside of the
 // "export default () => {}" function below (which runs individually
 // for each client)
-const api = axios.create({ baseURL: 'https://0wmubv9x94.execute-api.ap-southeast-2.amazonaws.com' });
+console.log(import.meta.env.VITE_API_URL)
+const api = axios.create({ baseURL: import.meta.env.VITE_API_URL });
 
-export default boot(({ app }) => {
+export default boot(() => {
 	if (LocalStorage.has('mtokens')) {
 		const tokens = LocalStorage.getItem('mtokens') as Tokens
 		if (tokens && typeof tokens === 'object' && tokens.AccessToken) {
@@ -30,7 +31,7 @@ export default boot(({ app }) => {
 			  'Authorization': `Bearer ${tokens.AccessToken}`
 			};
 		  } else {
-			console.error("Invalid tokens or AccessToken not found.");
+			console.error('Invalid tokens or AccessToken not found.');
 		  }
 	}
 });

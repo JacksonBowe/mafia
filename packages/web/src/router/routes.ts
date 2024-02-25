@@ -5,8 +5,8 @@ const routes: RouteRecordRaw[] = [
     path: '/auth',
     component: () => import('layouts/AuthLayout.vue'),
     children: [
-		{ path: '', component: () => import('pages/IndexPage.vue') },
-		{ path: 'discord/callback', component: () => import('pages/PostAuthPage.vue') },
+		{ path: '', component: () => import('pages/AuthPage.vue'), meta: { requiresAuth: false } },
+		{ path: 'discord/callback', component: () => import('pages/PostAuthPage.vue'), meta: { requiresAuth: false } },
 	],
   },
   {

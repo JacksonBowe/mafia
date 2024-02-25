@@ -27,7 +27,7 @@ module.exports = configure(function (/* ctx */) {
 		// app boot file (/src/boot)
 		// --> boot files are part of "main.js"
 		// https://v2.quasar.dev/quasar-cli-vite/boot-files
-		boot: ['vue-query', 'axios'],
+		boot: ['vue-query', 'axios', 'authenticated'],
 
 		// https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#css
 		css: ['app.scss'],
@@ -36,7 +36,7 @@ module.exports = configure(function (/* ctx */) {
 		extras: [
 			// 'ionicons-v4',
 			// 'mdi-v5',
-			// 'fontawesome-v6',
+			'fontawesome-v6',
 			// 'eva-icons',
 			// 'themify',
 			// 'line-awesome',
@@ -93,7 +93,7 @@ module.exports = configure(function (/* ctx */) {
 		framework: {
 			config: {},
 
-			// iconSet: 'material-icons', // Quasar icon set
+			iconSet: 'fontawesome-v6', // Quasar icon set
 			// lang: 'en-US', // Quasar language pack
 
 			// For special cases outside of where the auto-import strategy can have an impact

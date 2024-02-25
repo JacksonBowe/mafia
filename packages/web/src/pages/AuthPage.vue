@@ -1,0 +1,39 @@
+<template>
+	<q-page class="row justify-center content-center">
+		<q-btn
+		  class="discord-color custom-shadow"
+		  label="Login with Discord"
+		  icon="fa-brands fa-discord"
+		  @click="login"
+		  push
+		  glossy
+		/>
+	</q-page>
+</template>
+
+<script setup lang="ts">
+import { authorizeDiscord } from 'src/lib/api/auth'
+
+
+const login = async () => {
+	console.log('Redirecting to discord')
+	const r = await authorizeDiscord()
+	window.location.href = r.uri
+}
+</script>
+
+<style scoped>
+
+.discord-color {
+	background-color: #7289da;
+}
+
+.custom-shadow {
+	box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.3);
+}
+
+.gradient-bg {
+	background-image: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(17, 19, 34, 0.7), rgba(17, 19, 34, 0.8), rgba(17, 19, 34, 0.9), rgba(17, 19, 34, 1));
+}
+
+</style>
