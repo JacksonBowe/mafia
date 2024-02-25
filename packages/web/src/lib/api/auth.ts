@@ -10,6 +10,7 @@ export const authorizeDiscord = async () => {
 
 export interface AccessTokenResponse {
     AccessToken: string;
+	RefreshToken: string;
 }
 
 export const fetchTokensDiscord = async (code: string): Promise<AccessTokenResponse> => {

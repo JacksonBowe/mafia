@@ -26,17 +26,21 @@ def _get_session_public_key():
     )
     return parameter["Parameter"]["Value"]
 
-def generate_tokenset(claims: dict, expiry_days: int=7):
+def generate_tokenset(claims: dict, access_expiry_days: int=7, refresh_expiry_days: int=28):
     '''
         Generate a JWT tokenset
     '''
-    expiration_time = datetime.utcnow() + timedelta(days=expiry_days)
-    claims['exp'] = expiration_time
+    access_expiration_time = datetime.utcnow() + timedelta(days=access_expiry_days)
+    claims['exp'] = access_expiration_time
+    access_encoded = jwt.encode(claims, _get_session_private_key(), algorithm='RS256')
     
-    encoded = jwt.encode(claims, _get_session_private_key(), algorithm='RS256')
+    refresh_expiration_time = datetime.utcnow() + timedelta(days=refresh_expiry_days)
+    claims['exp'] = refresh_expiration_time
+    refresh_encoded = jwt.encode(claims, _get_session_private_key(), algorithm='RS256')
+    
     return {
-        'AccessToken': encoded,
-        # 'refresh_token': 'Unknown'
+        'AccessToken': access_encoded,
+        'RefreshToken': refresh_encoded
     }
 
 

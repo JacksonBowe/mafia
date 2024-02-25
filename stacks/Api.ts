@@ -50,6 +50,7 @@ export function API({ stack }: StackContext) {
             // AuthController
             "GET /auth/authorize/discord"       : { function: "packages/functions/rest/auth.handler", authorizer: "none" },
             "POST /auth/token/discord"          : { function: "packages/functions/rest/auth.handler", authorizer: "none" },
+            "POST /auth/token/refresh"          : { function: "packages/functions/rest/auth.handler", authorizer: "none" },
             // UserController
 			"GET /users/me"                     : "packages/functions/rest/users.handler",
             "GET /users/{userId}"               : "packages/functions/rest/users.handler",

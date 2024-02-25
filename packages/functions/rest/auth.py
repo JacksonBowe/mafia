@@ -35,14 +35,15 @@ def discord_authorize(
     
     return { "uri": DiscordAdapter(test=test).authorize_url }
 
-class DiscordTokenResponse(BaseModel):
+class TokensetResponse(BaseModel):
     AccessToken: str
+    RefreshToken: str
 # TODO: Make this a post
 @app.post('/auth/token/discord')
 def discord_token(
     code: Annotated[str, Query()],
     test: Annotated[Optional[bool], Query()] = False
-) -> DiscordTokenResponse:
+) -> TokensetResponse:
     Discord = DiscordAdapter(test=test)
     tokens = Discord.tokens(code)
     
@@ -62,10 +63,21 @@ def discord_token(
         'sub': discord_user.id,
         'iss': discord_user.provider,
         },
-        expiry_days=7
+        access_expiry_days=7
     )
     
     return session
+
+@app.post('/auth/token/refresh')
+def refresh_token(
+    refresh_token: Annotated[str, Query()]
+) -> TokensetResponse:
+    claims = Session.validate_token(refresh_token)
+    
+    if not claims:
+        raise BadRequestError('Invalid refresh token')
+    
+    return Session.generate_tokenset(claims)
 
 
 def handler(event, context):

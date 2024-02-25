@@ -14,6 +14,13 @@ export const useAuthStore = defineStore('auth', {
 			} else {
 				return null
 			}
+		},
+		refreshToken () {
+			if (LocalStorage.has('mtokens')) {
+				return (LocalStorage.getItem('mtokens') as AccessTokenResponse).RefreshToken;
+			} else {
+				return null
+			}
 		}
 	},
 
@@ -25,6 +32,6 @@ export const useAuthStore = defineStore('auth', {
 			console.log('TOKIES', tokens)
 			LocalStorage.set('mtokens', tokens);
 			this.setAuthenticated();
-		}
+		},
 	}
 });
