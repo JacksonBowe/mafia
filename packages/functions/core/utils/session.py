@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from enum import Enum, auto
 
 import boto3
@@ -6,6 +6,8 @@ import os
 
 from jose import jwt
 from jose.exceptions import JWTError
+
+from core.tables.Session import SessionTable, SessionTableEntities
 
 SST_APP = os.getenv("SST_APP")
 SST_STAGE = os.getenv("SST_STAGE")
@@ -30,13 +32,25 @@ def generate_tokenset(claims: dict, access_expiry_days: int=7, refresh_expiry_da
     '''
         Generate a JWT tokenset
     '''
-    access_expiration_time = datetime.utcnow() + timedelta(days=access_expiry_days)
+    # Generate the tokens
+    access_expiration_time = round((datetime.now(UTC) + timedelta(days=access_expiry_days)).timestamp() * 1000)
     claims['exp'] = access_expiration_time
     access_encoded = jwt.encode(claims, _get_session_private_key(), algorithm='RS256')
     
-    refresh_expiration_time = datetime.utcnow() + timedelta(days=refresh_expiry_days)
+    refresh_expiration_time = round((datetime.now(UTC) + timedelta(days=refresh_expiry_days)).timestamp() * 1000)
+    print(refresh_expiration_time)
     claims['exp'] = refresh_expiration_time
     refresh_encoded = jwt.encode(claims, _get_session_private_key(), algorithm='RS256')
+    
+    # Store them in the database
+    SessionTable.put_session(
+        SessionTableEntities.Session(
+            userId=claims['sub'],
+            accessToken=access_encoded,
+            refreshToken=refresh_encoded,
+            expiresAt=refresh_expiration_time
+        )
+    )
     
     return {
         'AccessToken': access_encoded,

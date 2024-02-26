@@ -1,56 +1,53 @@
-from botocore.exceptions import BotoCoreError
-from aws_lambda_powertools.event_handler.exceptions import (
-    InternalServerError
-)
-from pydantic import ValidationError
+import os
+from enum import Enum, auto
+from datetime import datetime, timedelta, UTC
 
-from core.utils import Dynamo
-from core.utils.auth import DiscordUser
-from core.tables import Users as UsersTable
+import boto3
 
-# def discord_post_auth_create(discord_user: DiscordUser):
-#     # TODO
-#     user = UsersTable.entities.User(
-#         id=discord_user.id,
-#         createdAt=Dynamo.timestamp(),
-#         username=discord_user.username,
-#         provider=discord_user.provider,
-#         avatar=discord_user.avatar,
-#         lastLogin=Dynamo.timestamp()
-#     )
+from jose import jwt
+from jose.exceptions import JWTError
+from aws_lambda_powertools.utilities import parameters
+
+from core.tables import SessionTable
+
+SST_APP = os.getenv("SST_APP")
+SST_STAGE = os.getenv("SST_STAGE")
+
+ssm = boto3.client("ssm")
+
+class AuthMethods(Enum):
+    TOKEN = auto()
     
-#     try:
-#         create = UsersTable.table.put_item(
-#             Item=user.serialize()
-#         )
-#     except BotoCoreError as e:
-#         raise InternalServerError(f"Error in DybnamoDB operation: {e}")
+def _auth_private_key():
+    return parameters.get_parameter(f"/sst/{SST_APP}/{SST_STAGE}/Auth/auth/privateKey", decrypt=True)
 
-# def discord_post_auth_update(user: UsersTable.entities.User, discord_user: DiscordUser):
-#     # TODO
+def _auth_public_key():
+    return parameters.get_parameter(f"/sst/{SST_APP}/{SST_STAGE}/Auth/auth/publicKey", decrypt=True)
+
+def generate_tokenset(claims: dict, access_expiry_days: int=7, refresh_expiry_days: int=28):
+    '''
+        Generate a JWT tokenset
+    '''
+    # Generate the tokens
+    access_expiration_time = round((datetime.now(UTC) + timedelta(days=access_expiry_days)).timestamp() * 1000)
+    claims['exp'] = access_expiration_time
+    access_encoded = jwt.encode(claims, _auth_private_key(), algorithm='RS256')
     
-#     attrs = {
-#         'avatar': discord_user.avatar,
-#         'username': discord_user.username,
-#         'lastLogin': Dynamo.timestamp(),
-#     }
-#     try:
-#         user.update(attrs)
-#     except ValidationError as e:
-#         raise InternalServerError(f"Error updating user. {str(e)}") from e
-
-#     expr, names, vals = Dynamo.build_update_expression(user._updated_attributes)
-
-#     try:
-#         update = UsersTable.table.update_item(
-#             Key={
-#                 'PK': discord_user.id,
-#                 'SK': 'A'
-#             },
-#             UpdateExpression=expr,
-#             ExpressionAttributeNames=names,
-#             ExpressionAttributeValues=vals
-#         )
-#         return
-#     except BotoCoreError as e:
-#         raise InternalServerError(f"Error in DybnamoDB operation: {e}")
+    refresh_expiration_time = round((datetime.now(UTC) + timedelta(days=refresh_expiry_days)).timestamp() * 1000)
+    claims['exp'] = refresh_expiration_time
+    refresh_encoded = jwt.encode(claims, _auth_private_key(), algorithm='RS256')
+    
+    # Store them in the database
+    SessionTable().table.put_item(
+        SessionTable.Entities.Session(
+            userId=claims['sub'],
+            accessToken=access_encoded,
+            refreshToken=refresh_encoded,
+            expiresAt=refresh_expiration_time
+        ).serialize()
+    )
+    
+    return {
+        'AccessToken': access_encoded,
+        'RefreshToken': refresh_encoded
+    }

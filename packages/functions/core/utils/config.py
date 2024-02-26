@@ -11,3 +11,4 @@ def get_secret(name):
         Name=f"/sst/{SST_APP}/{SST_STAGE}/Secret/{name}/value", WithDecryption=True
     )
     return parameter["Parameter"]["Value"]
+

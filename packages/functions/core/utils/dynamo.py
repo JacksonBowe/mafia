@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Mapping
 
 from boto3.dynamodb.types import TypeSerializer
@@ -8,7 +8,13 @@ def new_id():
     return str(uuid.uuid4())
 
 def timestamp():
-    return round(int(datetime.utcnow().timestamp() * 1000))
+    """
+    Get the current UTC time as a timestamp in milliseconds.
+
+    Returns:
+        int: Current UTC time in milliseconds since the epoch.
+    """
+    return round(int(datetime.now(UTC).timestamp() * 1000))
 
 # TODO: Add type hinting here
 # def build_update_expression(params: Mapping[str, str]):

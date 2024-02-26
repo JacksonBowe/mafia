@@ -1,21 +1,14 @@
-import { StackContext, Api, Auth, Config, Function, use } from "sst/constructs";
+import { StackContext, Api, Function, use } from "sst/constructs";
 import { LambdaLayers } from "./LambdaLayers";
 import { Storage } from "./Storage";
 import { Events } from "./Events";
+import { Auth } from "./Auth";
 
 export function API({ stack }: StackContext) {
-	const { powertools, pydantic } = use(LambdaLayers);
+	const { requests } = use(LambdaLayers);
 	const { userTable, lobbyTable } = use(Storage);
     const { bus } = use(Events)
-
-	const secrets = Config.Secret.create(stack, "DISCORD_OAUTH_CLIENT_ID", "DISCORD_OAUTH_CLIENT_SECRET");
-
-	const auth = new Auth(stack, "auth", {
-		authenticator: {
-			handler: "packages/functions/rest/auth.handler",
-            // prefix: "stub"
-		},
-	});
+    const { sessionTable } = use(Auth)
 
 	const api = new Api(stack, "api", {
 		authorizers: {
@@ -24,7 +17,8 @@ export function API({ stack }: StackContext) {
 				function: new Function(stack, "Authorizer", {
 					handler: "packages/functions/rest/authorizer.handler",
 					permissions: ["ssm"],
-                    bind: [userTable, lobbyTable],
+                    layers: [requests],
+                    bind: [userTable, lobbyTable, sessionTable],
                     environment: {
                         APP_USER_TABLE_NAME: userTable.tableName,
                         APP_LOBBY_TABLE_NAME: lobbyTable.tableName,
@@ -36,9 +30,8 @@ export function API({ stack }: StackContext) {
 		defaults: {
 			authorizer: "token",
 			function: {
-				layers: [powertools, pydantic],
 				permissions: ["ssm"],
-                bind: [userTable, lobbyTable, bus],
+                bind: [userTable, lobbyTable, bus, sessionTable],
 				environment: {
 					APP_USER_TABLE_NAME: userTable.tableName,
                     APP_LOBBY_TABLE_NAME: lobbyTable.tableName,
@@ -64,11 +57,6 @@ export function API({ stack }: StackContext) {
             "POST /lobbies/start"               : "packages/functions/rest/lobbies.handler",
 		},
 	});
-
-	// auth.attach(stack, {
-	// 	api,
-    //     prefix: "/junk"
-	// });
 
 	stack.addOutputs({
 		ApiEndpoint: api.url,
