@@ -1,8 +1,12 @@
 import uuid
 from datetime import datetime, UTC
 from typing import Mapping
+from enum import Enum
 
+import boto3
 from boto3.dynamodb.types import TypeSerializer
+
+ddb = boto3.resource('dynamodb')
 
 def new_id():
     return str(uuid.uuid4())
@@ -15,39 +19,6 @@ def timestamp():
         int: Current UTC time in milliseconds since the epoch.
     """
     return round(int(datetime.now(UTC).timestamp() * 1000))
-
-# TODO: Add type hinting here
-# def build_update_expression(params: Mapping[str, str]):
-#     '''
-#     Constructs the update expression for ddb update_item()
-#     Input of params = { 'att1': 'val1', 'att2': 'val2' }
-#     becomes ->
-#         update_expression = set #att1=#att1, #att2=:att2
-#         update_names = { '#att1': 'att1', '#att2': 'att2' }
-#         update_values = { ':att1': 'val1', ':att2': 'val2}
-        
-#     returned as (update_expression, update_names, update_values)
-#     '''
-#     set_expression = []
-#     remove_expression = []
-#     update_names = dict()
-#     update_values = dict()
-#     for key, val in params.items():
-#         update_names[f'#{key}'] = key # To avoid 'reserved word' conflicts
-        
-#         if val is not None:
-#             # SET new values
-#             if not set_expression: set_expression.append('set ')
-#             set_expression.append(f' #{key}=:{key},')
-#             update_values[f':{key}'] = val # To avoid 'reserved word' conflicts
-            
-#         elif val is None:
-#             # REMOVE values
-#             if not remove_expression: remove_expression.append('remove ')
-#             remove_expression.append(f' #{key},')
-    
-#     update_expression =  "".join(set_expression)[:-1] + "  " + "".join(remove_expression)[:-1]
-#     return update_expression, update_names, update_values
 
 def build_update_expression(params: Mapping[str, str]):
     '''
@@ -120,3 +91,15 @@ def serialize(input_dict: dict) -> dict:
     except Exception as e:
         # Handle serialization errors
         raise TypeError(f"Failed to serialize dictionary: {str(e)}")
+    
+# Baseclass for all DynamoDB tables
+class Table:
+    def __init__(self, table_name: str):
+        self.table_name = table_name
+        self.table = ddb.Table(self.table_name)
+        
+    class Indexes(Enum):
+        pass
+        
+    class Entities:
+        pass

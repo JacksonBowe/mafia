@@ -1,6 +1,7 @@
 import os
 from enum import Enum, auto
 from datetime import datetime, timedelta, UTC
+from typing import Literal
 
 import boto3
 
@@ -39,7 +40,7 @@ def generate_tokenset(claims: dict, access_expiry_days: int=7, refresh_expiry_da
     
     # Store them in the database
     SessionTable().table.put_item(
-        SessionTable.Entities.Session(
+        Item=SessionTable.Entities.Session(
             userId=claims['sub'],
             accessToken=access_encoded,
             refreshToken=refresh_encoded,
@@ -51,3 +52,66 @@ def generate_tokenset(claims: dict, access_expiry_days: int=7, refresh_expiry_da
         'AccessToken': access_encoded,
         'RefreshToken': refresh_encoded
     }
+    
+def validate_token(token: str, token_type: Literal['accessToken', 'refreshToken'] = 'accessToken'):
+    '''
+    Validate a JWT token
+    '''
+    try:
+        claims = jwt.decode(token, _auth_public_key(), algorithms=['RS256'])
+        # Check if 'exp' claim is present
+        if 'exp' not in claims or not isinstance(claims['exp'], int):
+            # TODO: Raise an error here
+            print("Token does not have a valid expiration time.")
+            return None
+
+        # Check the token's expiration time
+        current_time = datetime.utcnow().timestamp()
+        if current_time > claims['exp']:
+            # TODO: Raise an error here
+            print("Token has expired.")
+            return None
+        
+        # Ensure that session is active
+        session = get_session(claims['sub'])
+        if not session or session[token_type] != token:
+            # TODO: Raise an error here
+            print("Token is revoked")
+            print('Session', session['accessToken'])
+            print('Token', token)
+            print('Token type', token_type)
+            return None
+
+        return claims
+    except JWTError as e:
+        # Handle token validation error
+        # TODO: Raise an error here
+        print(f"Token validation error: {e}")
+        return None
+    
+# def validate_access_token(token: str):
+#     '''
+#     Validate an access token
+#     '''
+#     claims = validate_token(token)
+
+#     # Ensure that session exists in database
+#     session = get_session(claims['sub'])
+#     if not session or session['accessToken'] != token:
+#         # TODO: Raise an error here
+#         print("Token is revoked")
+#         return None
+    
+#     print(session)
+    
+        
+    
+def get_session(user_id: str):
+    '''
+    Get a session from the database
+    '''
+    return SessionTable().table.get_item(
+        Key={
+            'userId': user_id
+        }
+    ).get('Item')

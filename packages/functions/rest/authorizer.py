@@ -5,8 +5,8 @@ if os.getenv('IS_LOCAL'):
     
 from typing import Mapping
 import json
-from core.controllers import UserController
-from core.utils import Session
+from core.controllers import AuthController, UserController
+# from core.utils import Session
     
 DENY_POLICY = {
     "principalId": "abc123",
@@ -57,7 +57,7 @@ def parse_headers(headers:Mapping[str, str]):
     '''
     for h, v in headers.items():
         if h == 'authorization' and v.split(' ')[0] == 'Bearer' and len(v.split(' ')) == 2:
-            return Session.AuthMethods.TOKEN, v.split(' ')[1] # Return the access token
+            return AuthController.AuthMethods.TOKEN, v.split(' ')[1] # Return the access token
         # elif API_KEY_METHOD
         
     return
@@ -87,10 +87,11 @@ def build_allow_policy(caller_id, resources):
 def handler(event, context):
     
     auth_type, auth_key = parse_headers(event['headers'])
+    print('auth_key', auth_key)
     if not auth_type: return DENY_POLICY
     
-    if auth_type == Session.AuthMethods.TOKEN:
-        claims = Session.validate_token(auth_key)
+    if auth_type == AuthController.AuthMethods.TOKEN:
+        claims = AuthController.validate_token(auth_key)
         if not claims: return DENY_POLICY
         
         # This is a wasted database call, but it ensures that the user is in the database

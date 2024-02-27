@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { LocalStorage } from 'quasar';
+import { api } from 'src/boot/axios';
 import type { AccessTokenResponse } from '../lib/api/auth';
 
 export const useAuthStore = defineStore('auth', {
@@ -32,6 +33,11 @@ export const useAuthStore = defineStore('auth', {
 			console.log('TOKIES', tokens)
 			LocalStorage.set('mtokens', tokens);
 			this.setAuthenticated();
+
+			// Set the default headers
+			api.defaults.headers.common = {
+				'Authorization': `Bearer ${tokens.AccessToken}`
+			};
 		},
 	}
 });

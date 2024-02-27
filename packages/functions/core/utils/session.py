@@ -7,7 +7,6 @@ import os
 from jose import jwt
 from jose.exceptions import JWTError
 
-from core.tables.Session import SessionTable, SessionTableEntities
 
 SST_APP = os.getenv("SST_APP")
 SST_STAGE = os.getenv("SST_STAGE")
@@ -43,14 +42,14 @@ def generate_tokenset(claims: dict, access_expiry_days: int=7, refresh_expiry_da
     refresh_encoded = jwt.encode(claims, _get_session_private_key(), algorithm='RS256')
     
     # Store them in the database
-    SessionTable.put_session(
-        SessionTableEntities.Session(
-            userId=claims['sub'],
-            accessToken=access_encoded,
-            refreshToken=refresh_encoded,
-            expiresAt=refresh_expiration_time
-        )
-    )
+    # SessionTable.put_session(
+    #     SessionTableEntities.Session(
+    #         userId=claims['sub'],
+    #         accessToken=access_encoded,
+    #         refreshToken=refresh_encoded,
+    #         expiresAt=refresh_expiration_time
+    #     )
+    # )
     
     return {
         'AccessToken': access_encoded,

@@ -16,7 +16,6 @@ from aws_lambda_powertools.event_handler.exceptions import (
 
 from pydantic import BaseModel
 
-from core.utils import Config, Session
 from core.utils.auth import DiscordAdapter
 from core.controllers import UserController, AuthController
 
@@ -47,7 +46,7 @@ def discord_token(
     Discord = DiscordAdapter(test=test)
     tokens = Discord.tokens(code)
     
-    print(tokens)
+    print('Discord tokens', tokens)
     if 'error' in tokens:
         raise BadRequestError('Code is expired or invalid')
     
@@ -59,7 +58,7 @@ def discord_token(
     except NotFoundError:
         UserController.discord_post_auth_create_user(discord_user)
                 
-    session = Session.generate_tokenset(claims={
+    session = AuthController.generate_tokenset(claims={
         'sub': discord_user.id,
         'iss': discord_user.provider,
         },
@@ -77,7 +76,7 @@ def refresh_token(
     if not claims:
         raise BadRequestError('Invalid refresh token')
     
-    return Session.generate_tokenset(claims)
+    return AuthController.generate_tokenset(claims)
 
 
 def handler(event, context):

@@ -4,9 +4,7 @@ from typing import Self
 from enum import Enum
 from aws_lambda_powertools.utilities.parser import BaseModel
 
-from core.tables import Table
-
-
+from core.utils.dynamo import Table
 
 class SessionTable(Table):
     def __init__(self):
@@ -32,5 +30,3 @@ class SessionTable(Table):
             accessToken: str
             refreshToken: str
             expiresAt: int
-        
-SessionTable = SessionTable()
