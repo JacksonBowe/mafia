@@ -1,20 +1,31 @@
 import { boot } from 'quasar/wrappers'
+import { Notify } from 'quasar'
 import { useAuthStore } from 'src/stores/auth'
+import { refreshSession } from 'src/lib/api/auth';
 
 export default boot(async ({ router }) => {
 	const aStore = useAuthStore();
 
-	router.beforeEach((to, from, next) => {
-		console.log('From', from)
-		console.log('To', to)
+	router.beforeEach(async (to, from, next) => {
 
-		if (from.path === '/') {
+		if (from.path === '/' && aStore.refreshToken) {
 			console.log('Attempting to refresh')
-			aStore.accessToken;
+			try {
+				const tokens = await refreshSession(aStore.refreshToken);
+				aStore.authenticate(tokens);
+				next()
+			} catch (refreshError) {
+				console.error('Error refreshing session:', refreshError);
+				Notify.create({
+					message: 'Error refreshing session. Please log in again.',
+					color: 'negative',
+					timeout: 2000
+				});
+				next('/auth');
+			}
 		}
 		if (!(to.meta.requiresAuth===false) && !aStore.isAuthenticated) {
 			console.log('Not authenticated')
-			console.log(to)
 			next('/auth');
 		} else {
 			next();

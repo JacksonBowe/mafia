@@ -1,5 +1,5 @@
 import { boot } from 'quasar/wrappers';
-import { LocalStorage, Notify } from 'quasar'
+import { Notify } from 'quasar'
 import axios, { AxiosInstance } from 'axios';
 import { useAuthStore } from 'src/stores/auth';
 import { refreshSession } from 'src/lib/api/auth';

@@ -30,7 +30,6 @@ export const useAuthStore = defineStore('auth', {
 			this.isAuthenticated = true;
 		},
 		authenticate (tokens: AccessTokenResponse) {
-			console.log('TOKIES', tokens)
 			LocalStorage.set('mtokens', tokens);
 			this.setAuthenticated();
 
