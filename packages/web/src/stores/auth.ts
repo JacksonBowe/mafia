@@ -27,7 +27,7 @@ export const useAuthStore = defineStore('auth', {
 
 	actions: {
 		setAuthenticated () {
-		this.isAuthenticated = true;
+			this.isAuthenticated = true;
 		},
 		authenticate (tokens: AccessTokenResponse) {
 			console.log('TOKIES', tokens)
@@ -39,5 +39,6 @@ export const useAuthStore = defineStore('auth', {
 				'Authorization': `Bearer ${tokens.AccessToken}`
 			};
 		},
+
 	}
 });

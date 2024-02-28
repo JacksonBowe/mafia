@@ -5,8 +5,9 @@ export default boot(async ({ router }) => {
 	const aStore = useAuthStore();
 
 	router.beforeEach((to, from, next) => {
-		console.log(to)
-		console.log(from)
+		console.log('From', from)
+		console.log('To', to)
+
 		if (from.path === '/') {
 			console.log('Attempting to refresh')
 			aStore.accessToken;

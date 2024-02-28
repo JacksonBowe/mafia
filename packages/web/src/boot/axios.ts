@@ -1,16 +1,13 @@
 import { boot } from 'quasar/wrappers';
 import { LocalStorage, Notify } from 'quasar'
 import axios, { AxiosInstance } from 'axios';
+import { useAuthStore } from 'src/stores/auth';
 
 declare module '@vue/runtime-core' {
   interface ComponentCustomProperties {
     $axios: AxiosInstance;
     $api: AxiosInstance;
   }
-}
-
-interface Tokens {
-	AccessToken: string
 }
 
 // Be careful when using SSR for cross-request state pollution
@@ -29,7 +26,7 @@ api.interceptors.response.use(
 	(error) => {
 		// const origionalRequest = error.config;
 
-		// Unauthenticated
+		// 401 Unauthorized
 		if (error.response.status === 401) {
 			Notify.create({
 				message: 'You are not authenticated.',
@@ -39,11 +36,13 @@ api.interceptors.response.use(
 
 		}
 
-		// TODO: Forbidden
+		// TODO: 403 Forbidden
+		if (error.response.status === 403) {
+			
+		}
 
-		// TODO: Unauthorized
 
-		// TODO: MalformedRequest
+		// TODO: 422 MalformedRequest
 
 		// BadRequest
 		if (error.response.status === 400) {
@@ -68,16 +67,12 @@ api.interceptors.response.use(
 );
 
 export default boot(() => {
-	if (LocalStorage.has('mtokens')) {
-		const tokens = LocalStorage.getItem('mtokens') as Tokens
-		if (tokens && typeof tokens === 'object' && tokens.AccessToken) {
-			// Access the AccessToken property safely
-			api.defaults.headers.common = {
-			  'Authorization': `Bearer ${tokens.AccessToken}`
-			};
-		  } else {
-			console.error('Invalid tokens or AccessToken not found.');
-		  }
+	const aStore = useAuthStore();
+
+	if (aStore.accessToken) {
+		api.defaults.headers.common = {
+			'Authorization': `Bearer ${aStore.accessToken}`
+		};
 	}
 });
 

@@ -62,7 +62,7 @@ def discord_token(
         'sub': discord_user.id,
         'iss': discord_user.provider,
         },
-        access_expiry_days=7
+        access_expiry_days=-7
     )
     
     return session

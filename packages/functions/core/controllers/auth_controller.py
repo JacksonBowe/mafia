@@ -18,7 +18,7 @@ ssm = boto3.client("ssm")
 
 class AuthMethods(Enum):
     TOKEN = auto()
-    
+
 def _auth_private_key():
     return parameters.get_parameter(f"/sst/{SST_APP}/{SST_STAGE}/Auth/auth/privateKey", decrypt=True)
 
@@ -33,11 +33,11 @@ def generate_tokenset(claims: dict, access_expiry_days: int=7, refresh_expiry_da
     access_expiration_time = round((datetime.now(UTC) + timedelta(days=access_expiry_days)).timestamp() * 1000)
     claims['exp'] = access_expiration_time
     access_encoded = jwt.encode(claims, _auth_private_key(), algorithm='RS256')
-    
+
     refresh_expiration_time = round((datetime.now(UTC) + timedelta(days=refresh_expiry_days)).timestamp() * 1000)
     claims['exp'] = refresh_expiration_time
     refresh_encoded = jwt.encode(claims, _auth_private_key(), algorithm='RS256')
-    
+
     # Store them in the database
     SessionTable().table.put_item(
         Item=SessionTable.Entities.Session(
@@ -47,12 +47,12 @@ def generate_tokenset(claims: dict, access_expiry_days: int=7, refresh_expiry_da
             expiresAt=refresh_expiration_time
         ).serialize()
     )
-    
+
     return {
         'AccessToken': access_encoded,
         'RefreshToken': refresh_encoded
     }
-    
+
 def validate_token(token: str, token_type: Literal['accessToken', 'refreshToken'] = 'accessToken'):
     '''
     Validate a JWT token
@@ -66,12 +66,15 @@ def validate_token(token: str, token_type: Literal['accessToken', 'refreshToken'
             return None
 
         # Check the token's expiration time
-        current_time = datetime.utcnow().timestamp()
+        current_time = datetime.now(UTC).timestamp() * 1000
+        print('Current time', current_time)
+        print('Expiration time', claims['exp'])
+        print('Difference', current_time - claims['exp'])
         if current_time > claims['exp']:
             # TODO: Raise an error here
             print("Token has expired.")
             return None
-        
+
         # Ensure that session is active
         session = get_session(claims['sub'])
         if not session or session[token_type] != token:
@@ -88,7 +91,7 @@ def validate_token(token: str, token_type: Literal['accessToken', 'refreshToken'
         # TODO: Raise an error here
         print(f"Token validation error: {e}")
         return None
-    
+
 # def validate_access_token(token: str):
 #     '''
 #     Validate an access token
@@ -101,11 +104,11 @@ def validate_token(token: str, token_type: Literal['accessToken', 'refreshToken'
 #         # TODO: Raise an error here
 #         print("Token is revoked")
 #         return None
-    
+
 #     print(session)
-    
-        
-    
+
+
+
 def get_session(user_id: str):
     '''
     Get a session from the database

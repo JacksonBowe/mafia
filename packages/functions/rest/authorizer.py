@@ -3,8 +3,17 @@ if os.getenv('IS_LOCAL'):
     import sys
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     
-from typing import Mapping
+from typing import Mapping, Tuple
 import json
+from aws_lambda_powertools.utilities.data_classes import event_source
+from aws_lambda_powertools.event_handler.exceptions import (
+    InternalServerError
+)
+from aws_lambda_powertools.utilities.data_classes.api_gateway_authorizer_event import (
+    DENY_ALL_RESPONSE,
+    APIGatewayAuthorizerRequestEvent,
+    APIGatewayAuthorizerResponse,
+)
 from core.controllers import AuthController, UserController
 # from core.utils import Session
     
@@ -23,6 +32,8 @@ DENY_POLICY = {
     "context": {},
     "usageIdentifierKey": "{api-key}"
 }
+
+UNAUTHORIZED = "Unauthorized"
 
 ENDPOINTS = [
     # UserController
@@ -51,52 +62,53 @@ ADMIN_ENDPOINTS = [
     ('POST', 'lobby/*/terminate')
 ]
 
-def parse_headers(headers:Mapping[str, str]):
+def extract_authentication_credentials(event: APIGatewayAuthorizerRequestEvent) -> Tuple[str, str]:
     '''
-    Ensure that the event contains valid Auth token
+    Ensure that the event contains valid Auth token or API key
     '''
-    for h, v in headers.items():
-        if h == 'authorization' and v.split(' ')[0] == 'Bearer' and len(v.split(' ')) == 2:
-            return AuthController.AuthMethods.TOKEN, v.split(' ')[1] # Return the access token
-        # elif API_KEY_METHOD
-        
-    return
+    authorization_header = event.get_header_value('Authorization')
+    if authorization_header:
+        auth_parts = authorization_header.split(' ')
+        if len(auth_parts) == 2 and auth_parts[0] == 'Bearer':
+            return AuthController.AuthMethods.TOKEN, auth_parts[1]
 
-def build_allow_policy(caller_id, resources):
-    ALLOW_POLICY = {
-        "principalId": "abc123",
-        "policyDocument": {
-            "Version": "2012-10-17",
-            "Statement": [
-                {
-                    "Action": "execute-api:Invoke",
-                    "Effect": "Allow",
-                    "Resource": f"arn:aws:execute-api:*:*:*/*/{resource[0]}/{resource[1].replace('{userID}', caller_id)}"
-                } for resource in resources
-            ]
+    api_key_header = event.get_header_value('X-API-KEY')
+    if api_key_header:
+        return AuthController.AuthMethods.API_KEY, api_key_header
 
-        },
-        "context": {
-            'CallerID': caller_id
-        },
-        # "usageIdentifierKey": "{api-key}"
-    }
-    return ALLOW_POLICY
+    return None, None
     
-
-def handler(event, context):
+@event_source(data_class=APIGatewayAuthorizerRequestEvent)
+def handler(event: APIGatewayAuthorizerRequestEvent, context):
+    arn = event.parsed_arn
     
-    auth_type, auth_key = parse_headers(event['headers'])
-    print('auth_key', auth_key)
-    if not auth_type: return DENY_POLICY
+    # Determine the authentication method
+    auth_type, auth_key = extract_authentication_credentials(event)
+    if not auth_type: raise Exception("Unauthorized")
     
     if auth_type == AuthController.AuthMethods.TOKEN:
+        # Token-based authentication
         claims = AuthController.validate_token(auth_key)
-        if not claims: return DENY_POLICY
+        if not claims: raise Exception("Unauthorized")
         
-        # This is a wasted database call, but it ensures that the user is in the database
-        user = UserController.get_user_by_id(claims['sub'])
-        return build_allow_policy(user.id, ENDPOINTS)
+        # Ensure that user exists in database
+        # user = UserController.get_user_by_id(claims['sub'])
+        # if not user: raise InternalServerError("User no longer exists in database")
+        
+        policy = APIGatewayAuthorizerResponse(
+            principal_id=claims['sub'],
+            context={ 'CallerID': claims['sub'] },
+            region=arn.region,
+            aws_account_id=arn.aws_account_id,
+            api_id=arn.api_id,
+            stage=arn.stage,
+        )
+        
+        # Construct the policy
+        for method, resource in ENDPOINTS:
+            policy.allow_route(method, resource)
+            
+        return policy.asdict()
     
-    return DENY_POLICY
+    raise Exception("Unauthorized")
         
