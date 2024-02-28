@@ -2,6 +2,7 @@ import { boot } from 'quasar/wrappers';
 import { LocalStorage, Notify } from 'quasar'
 import axios, { AxiosInstance } from 'axios';
 import { useAuthStore } from 'src/stores/auth';
+import { refreshSession } from 'src/lib/api/auth';
 
 declare module '@vue/runtime-core' {
   interface ComponentCustomProperties {
@@ -10,35 +11,48 @@ declare module '@vue/runtime-core' {
   }
 }
 
-// Be careful when using SSR for cross-request state pollution
-// due to creating a Singleton instance here;
-// If any client changes this (global) instance, it might be a
-// good idea to move this instance creation inside of the
-// "export default () => {}" function below (which runs individually
-// for each client)
-console.log(import.meta.env.VITE_API_URL)
 const api = axios.create({ baseURL: import.meta.env.VITE_API_URL });
 
 api.interceptors.response.use(
 	(response) => {
 		return response;
 	},
-	(error) => {
-		// const origionalRequest = error.config;
+	async (error) => {
+		const originalRequest = error.config;
+		const aStore = useAuthStore();
 
 		// 401 Unauthorized
 		if (error.response.status === 401) {
-			Notify.create({
-				message: 'You are not authenticated.',
-				color: 'negative',
-				timeout: 2000
-			});
+			if (!originalRequest._retry && aStore.refreshToken) {
+				console.log('Unauthorized, attempting to refresh');
+				originalRequest._retry = true;
+				try {
+					const tokens = await refreshSession(aStore.refreshToken);
+					aStore.authenticate(tokens);
 
+					// Update the headers of the original request and retry
+					originalRequest.headers['Authorization'] = `Bearer ${tokens.AccessToken}`;
+					return api(originalRequest);
+				} catch (refreshError) {
+					console.error('Error refreshing session:', refreshError);
+					Notify.create({
+						message: 'Error refreshing session. Please log in again.',
+						color: 'negative',
+						timeout: 2000
+					});
+				}
+			}
+			console.log('Unauthorized')
+			aStore.doLogout();
 		}
 
 		// TODO: 403 Forbidden
 		if (error.response.status === 403) {
-			
+			Notify.create({
+				message: 'Access denied',
+				color: 'negative',
+				timeout: 2000
+			});
 		}
 
 

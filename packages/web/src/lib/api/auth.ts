@@ -35,3 +35,23 @@ export const fetchTokensDiscord = async (code: string): Promise<AccessTokenRespo
     }
 };
 
+export const refreshSession = async (refreshToken: string): Promise<AccessTokenResponse> => {
+	try {
+		const response = await api.post('/auth/token/refresh', null, { params: { refresh_token: refreshToken } });
+		return response.data;
+	} catch (error) {
+		if (error instanceof AxiosError) {
+			if (error.response) {
+				console.error('Request failed with status code', error.response.status);
+				console.error('Response data:', error.response.data);
+			} else if (error.request) {
+				console.error('No response received:', error.request);
+			} else {
+				console.error('Error setting up the request:', error.message);
+			}
+		} else {
+			console.error('Non-Axios error occurred:', (error as Error).message);
+		}
+		throw error;
+	}
+}

@@ -62,7 +62,7 @@ def discord_token(
         'sub': discord_user.id,
         'iss': discord_user.provider,
         },
-        access_expiry_days=-7
+        access_expiry_days=7
     )
     
     return session
@@ -71,7 +71,7 @@ def discord_token(
 def refresh_token(
     refresh_token: Annotated[str, Query()]
 ) -> TokensetResponse:
-    claims = Session.validate_token(refresh_token)
+    claims = AuthController.validate_token(refresh_token, 'refreshToken')
     
     if not claims:
         raise BadRequestError('Invalid refresh token')

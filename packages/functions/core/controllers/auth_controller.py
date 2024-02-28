@@ -33,6 +33,7 @@ def generate_tokenset(claims: dict, access_expiry_days: int=7, refresh_expiry_da
     access_expiration_time = round((datetime.now(UTC) + timedelta(days=access_expiry_days)).timestamp() * 1000)
     claims['exp'] = access_expiration_time
     access_encoded = jwt.encode(claims, _auth_private_key(), algorithm='RS256')
+    print('Access', access_encoded)
 
     refresh_expiration_time = round((datetime.now(UTC) + timedelta(days=refresh_expiry_days)).timestamp() * 1000)
     claims['exp'] = refresh_expiration_time
@@ -58,6 +59,7 @@ def validate_token(token: str, token_type: Literal['accessToken', 'refreshToken'
     Validate a JWT token
     '''
     try:
+        print('Token', token)
         claims = jwt.decode(token, _auth_public_key(), algorithms=['RS256'])
         # Check if 'exp' claim is present
         if 'exp' not in claims or not isinstance(claims['exp'], int):
@@ -67,10 +69,10 @@ def validate_token(token: str, token_type: Literal['accessToken', 'refreshToken'
 
         # Check the token's expiration time
         current_time = datetime.now(UTC).timestamp() * 1000
-        print('Current time', current_time)
-        print('Expiration time', claims['exp'])
-        print('Difference', current_time - claims['exp'])
         if current_time > claims['exp']:
+            print('current_time', claims['exp'])
+            print('exp', claims['exp'])
+            print('difference', current_time - claims['exp'])
             # TODO: Raise an error here
             print("Token has expired.")
             return None
@@ -80,9 +82,6 @@ def validate_token(token: str, token_type: Literal['accessToken', 'refreshToken'
         if not session or session[token_type] != token:
             # TODO: Raise an error here
             print("Token is revoked")
-            print('Session', session['accessToken'])
-            print('Token', token)
-            print('Token type', token_type)
             return None
 
         return claims
@@ -91,23 +90,6 @@ def validate_token(token: str, token_type: Literal['accessToken', 'refreshToken'
         # TODO: Raise an error here
         print(f"Token validation error: {e}")
         return None
-
-# def validate_access_token(token: str):
-#     '''
-#     Validate an access token
-#     '''
-#     claims = validate_token(token)
-
-#     # Ensure that session exists in database
-#     session = get_session(claims['sub'])
-#     if not session or session['accessToken'] != token:
-#         # TODO: Raise an error here
-#         print("Token is revoked")
-#         return None
-
-#     print(session)
-
-
 
 def get_session(user_id: str):
     '''
