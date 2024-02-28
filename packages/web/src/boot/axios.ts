@@ -46,7 +46,7 @@ api.interceptors.response.use(
 			aStore.doLogout();
 		}
 
-		// TODO: 403 Forbidden
+		// 403 Forbidden
 		if (error.response.status === 403) {
 			Notify.create({
 				message: 'Access denied',
@@ -56,7 +56,19 @@ api.interceptors.response.use(
 		}
 
 
-		// TODO: 422 MalformedRequest
+		// 422 MalformedRequest
+		if (error.response.status === 422) {
+			// Handle the 422 error here, for example, display a notification
+			Notify.create({
+				message: 'Api request is munted',
+				caption: 'Please report this so it can be fixed',
+				color: 'negative',
+				timeout: 0,
+				actions: [
+					{ label: 'Copy Error', class: 'q-ml-md', color: 'white', dense: true, handler: () => { navigator.clipboard.writeText(JSON.stringify(error.response.data, null, 2)) } },
+			  ]
+			});
+		  }
 
 		// BadRequest
 		if (error.response.status === 400) {
