@@ -13,7 +13,7 @@
 
 </script>
 
-<style>
+<style scoped>
 
 .bg-splash {
     position: fixed;

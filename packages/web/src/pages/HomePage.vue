@@ -8,7 +8,11 @@
 		<div v-else>
 			{{  data }}
 		</div>
-
+		<q-card>
+			<q-card-section>
+				Some Text
+			</q-card-section>
+		</q-card>
 	</q-page>
 </template>
 

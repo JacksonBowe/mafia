@@ -23,3 +23,30 @@ $positive  : #21BA45;
 $negative  : #C10015;
 $info      : #31CCEC;
 $warning   : #F2C037;
+
+:root {
+	--town: #00FF00;
+	--mafia: #FF0000;
+	--neutral: #F5DEB3;
+	--cult: purple;
+	--role: #00BFFF;
+
+	--player-1: red;
+	--player-2: royalblue;
+	--player-3: deepSkyblue;
+	--player-4: indigo;
+	--player-5: yellow;
+	--player-6: orange;
+	--player-7: darkGreen;
+	--player-8: plum;
+	--player-9: fuchsia;
+	--player-10: lime;
+	--player-11: wheat;
+	--player-12: sienna;
+	--player-13: paleGreen;
+	--player-14: darkSlateGrey;
+	--player-15: deepPink;
+
+	--animate-duration: 1000ms;
+  	--animate-delay: 0.0s;
+}
