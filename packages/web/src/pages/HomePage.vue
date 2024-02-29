@@ -1,30 +1,42 @@
 <template>
-	<q-page padding>
-		<!-- content -->
-		<q-btn @click="refresh" label="refresh" color="primary" />
-		<div v-if="isLoading || isFetching">
-			... loading
+	<q-page padding class="column">
+		<div class="col row justify-evenly">
+			<div class="col-5 column">
+				<q-card class="fit justify-center flex content-center">
+					<q-card-section>
+						Lobby Card
+					</q-card-section>
+				</q-card>
+			</div>
+
+			<div class="col-6 column">
+				<div class="col column justify-between">
+					<div class="col-6">
+						<q-card class="fit justify-center flex content-center">
+							<q-card-section>
+								Game Details
+							</q-card-section>
+						</q-card>
+					</div>
+
+					<div class="col-5">
+						<q-card class="fit justify-center flex content-center">
+							<q-card-section class="">
+								Chat Card
+							</q-card-section>
+						</q-card>
+					</div>
+
+				</div>
+
+			</div>
 		</div>
-		<div v-else>
-			{{  data }}
-		</div>
-		<q-card>
-			<q-card-section>
-				Some Text
-			</q-card-section>
-		</q-card>
+
+
 	</q-page>
 </template>
 
 <script setup lang="ts">
-import { useMe } from 'src/lib/state/me';
-import { useQueryClient } from '@tanstack/vue-query';
-
-const { data, isLoading, isFetching } = useMe()
-const queryClient = useQueryClient()
-const refresh = () => {
 
 
-	queryClient.invalidateQueries({ queryKey: ['me']})
-}
 </script>
