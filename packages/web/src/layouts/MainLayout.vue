@@ -35,9 +35,9 @@
 }
 
 .toolbar {
-    background: rgba(255, 255, 255, 0.01); /* Light semi-transparent color */
-    backdrop-filter: blur(10px); /* Add blur effect */
-    -webkit-backdrop-filter: blur(10px); /* For Safari */
+    background: rgba(4, 6, 17, 0.6); /* Light semi-transparent color */
+    backdrop-filter: blur(5px); /* Add blur effect */
+    -webkit-backdrop-filter: blur(5px); /* For Safari */
 }
 
 .toolbar::after {
@@ -47,7 +47,7 @@
     left: -10px;
     right: -10px;
     bottom: 0px;
-    box-shadow: 0 0 10px 10px rgba(0, 0, 0, 0.5); /* Adjust glow color and intensity */
+    box-shadow: 0 0 10px 10px rgba(4, 6, 17, 0.6); /* Adjust glow color and intensity */
     z-index: -1;
 }
 </style>
