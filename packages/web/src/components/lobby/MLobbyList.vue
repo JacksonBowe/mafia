@@ -2,11 +2,7 @@
 	<MCard class="full-height">
 		<q-scroll-area class="full-height">
 			<q-list class="">
-				<m-lobby-item v-for="lobby in lobbies" :key="lobby.id" :lobby="lobby" dense>
-					<q-item-section>
-						{{ lobby.id }}
-					</q-item-section>
-				</m-lobby-item>
+				<m-lobby-item v-for="lobby, index in lobbies" :key="lobby.id" class="q-my-xs" :lobby="lobby" :index="index" dense clickable />
 			</q-list>
 		</q-scroll-area>
 	</MCard>
@@ -19,28 +15,36 @@ import MLobbyItem from './MLobbyItem.vue';
 import type { Lobby } from 'src/lib/api/lobby';
 
 // TODO: Replace with actual lobbies
-const lobbies = ref<Lobby[]>([
-  {
-    id: '1',
-    type: 'type1',
-    createdAt: Date.now(),
-    host: { id: 'host1', username: 'Host 1' },
-    config: 'config1',
-  },
-  {
-    id: '1',
-    type: 'type1',
-    createdAt: Date.now(),
-    host: { id: 'host1', username: 'Host 1' },
-    config: 'config1',
-  },
-  {
-    id: '1',
-    type: 'type1',
-    createdAt: Date.now(),
-    host: { id: 'host1', username: 'Host 1' },
-    config: 'config1',
-  },
-  // ... repeat for 7 more lobbies
-]);
+const lobbies = ref<Lobby[]>(generateLobbies(20));
+
+// TODO <DEPR>: Remove this function and replace with actual lobbies
+function generateLobbies(n: number): Lobby[] {
+  const lobbies: Lobby[] = [];
+
+
+
+  for (let i = 0; i < n; i++) {
+	let users = []
+	for (let j = 0; j < i+1 && j < 15; j++) {
+		users.push({
+			id: `user${j + 1}`,
+			createdAt: Date.now(),
+			type: 'LOBBY_USER',
+			username: `User ${j + 1}`,
+			lobbyId: `lobby${i + 1}`
+		})
+  	}
+    lobbies.push({
+      id: `lobby${i + 1}`,
+      type: 'LOBBY',
+      createdAt: Date.now(),
+	  name: `Lobby ${i + 1}`,
+      host: { id: `host${i + 1}`, username: `Host ${i + 1}` },
+      config: `config${i + 1}`,
+	  users: users,
+    });
+  }
+
+  return lobbies;
+}
 </script>
