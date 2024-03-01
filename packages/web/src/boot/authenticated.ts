@@ -13,7 +13,7 @@ export default boot(async ({ router }) => {
 			try {
 				const tokens = await refreshSession(aStore.refreshToken);
 				aStore.authenticate(tokens);
-				next()
+				return next()
 			} catch (refreshError) {
 				console.error('Error refreshing session:', refreshError);
 				Notify.create({
@@ -21,7 +21,7 @@ export default boot(async ({ router }) => {
 					color: 'negative',
 					timeout: 2000
 				});
-				next('/auth');
+				return next('/auth');
 			}
 		}
 		if (!(to.meta.requiresAuth===false) && !aStore.isAuthenticated) {

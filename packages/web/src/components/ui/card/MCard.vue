@@ -7,9 +7,9 @@
 <script setup lang="ts">
 
 // Define your default props
-const props = defineProps<{
-  	class: string
-}>();
+const props = withDefaults(defineProps<{
+  	class?: string
+}>(), {});
 
 </script>
 

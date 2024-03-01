@@ -9,10 +9,9 @@
 <script setup lang="ts">
 
 const props = withDefaults(defineProps<{
-	class: string,
+	class?: string,
 	dense: boolean,
 }>() , {
-	class: '',
 	dense: false
 });
 
