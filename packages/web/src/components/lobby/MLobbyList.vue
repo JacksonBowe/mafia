@@ -2,7 +2,7 @@
 	<MCard class="full-height">
 		<q-scroll-area class="full-height">
 			<q-list class="">
-				<m-lobby-item v-for="lobby, index in lobbies" :key="lobby.id" class="q-my-xs" :lobby="lobby" :index="index" dense clickable />
+				<m-lobby-item v-for="lobby, index in lobbies" :key="lobby.id" class="q-ma-xs" :lobby="lobby" :index="index" dense clickable />
 			</q-list>
 		</q-scroll-area>
 	</MCard>
@@ -12,7 +12,7 @@
 import { ref } from 'vue';
 import { MCard } from '../ui/card';
 import MLobbyItem from './MLobbyItem.vue';
-import type { Lobby } from 'src/lib/api/lobby';
+import type { Lobby, LobbyUser } from 'src/lib/api/lobby';
 
 // TODO: Replace with actual lobbies
 const lobbies = ref<Lobby[]>(generateLobbies(20));
@@ -22,9 +22,8 @@ function generateLobbies(n: number): Lobby[] {
   const lobbies: Lobby[] = [];
 
 
-
   for (let i = 0; i < n; i++) {
-	let users = []
+	let users: LobbyUser[] = []
 	for (let j = 0; j < i+1 && j < 15; j++) {
 		users.push({
 			id: `user${j + 1}`,

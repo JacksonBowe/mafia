@@ -21,6 +21,7 @@ const props = withDefaults(defineProps<{
 const backgroundColor = computed(() => {
 
 switch (props.lobby.id) {
+	// TODO
 	// case lStore.currentLobbyId:
 	// 	return 'bg-gradient-current'
 	// case lStore.selectedLobbyId:
