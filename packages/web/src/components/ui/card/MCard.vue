@@ -1,6 +1,5 @@
 <template>
 	<q-card v-bind="props" class="background">
-	  	<!-- Your card content goes here -->
 	  	<slot />
 	</q-card>
   </template>
@@ -9,10 +8,9 @@
 
 // Define your default props
 const props = defineProps<{
-  // Add more default props as needed
+  	class: string
 }>();
 
-// Optionally, define any other setup logic here
 </script>
 
 <style scoped>

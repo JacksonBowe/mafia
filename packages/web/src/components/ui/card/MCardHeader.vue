@@ -1,13 +1,19 @@
 <template>
-	<q-card-section v-bind="props">
+	<q-card-section v-bind="props" :class="[
+		dense ? 'q-py-xs' : 'q-py-md',
+	]">
 		<slot />
 	</q-card-section>
 </template>
 
 <script setup lang="ts">
 
-const props = defineProps<{
-  // Add more default props as needed
-}>();
+const props = withDefaults(defineProps<{
+	class: string,
+	dense: boolean,
+}>() , {
+	class: '',
+	dense: false
+});
 
 </script>
