@@ -29,16 +29,15 @@ const tab = ref('join')
 </script>
 
 <style>
-	.q-tab .q-focus-helper {
-        visibility: hidden;
-    }
+.q-tab .q-focus-helper {
+	visibility: hidden;
+}
 
-	.tab-title {
-        color: rgba(255, 255, 255, 0.3);
-    }
+.tab-title {
+	color: rgba(255, 255, 255, 0.3);
+}
 
-	.active-tab {
-        color: rgba(255, 255, 255, 1);
-    }
-
+.active-tab {
+	color: rgba(255, 255, 255, 1);
+}
 </style>

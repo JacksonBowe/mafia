@@ -1,6 +1,37 @@
 <template>
-	<div></div>
+	<MCard class="column">
+		<MCardHeader >
+			Players
+		</MCardHeader>
+		<q-separator color="primary" inset />
+		<MCardContent class="col row">
+			<MLobbyPreviewUsersList :users="users?.slice(0, 8)" />
+			<q-separator vertical color="accent" class="q-mx-sm" inset />
+			<MLobbyPreviewUsersList :users="users?.slice(8, users.length)" />
+		</MCardContent>
+	</MCard>
 </template>
 
-<script setup lang="ts">
+<script setup lang ="ts">
+import { MCard, MCardHeader, MCardContent } from '../ui/card';
+
+import MLobbyPreviewUsersList from './MLobbyPreviewUsersList.vue';
+
+import { useLobbyStore } from 'src/stores/lobby';
+import { useLobbies } from 'src/lib/state';
+import { computed, ComputedRef } from 'vue';
+import { LobbyUser } from 'src/lib/api/lobby';
+
+const lStore = useLobbyStore();
+const { data: lobbies } = useLobbies();
+
+const users: ComputedRef<LobbyUser[] | null> = computed(() => {
+	if (lStore.selectedLobbyId && lobbies.value) {
+		const lobby = lobbies.value.find((lobby) => lobby.id === lStore.selectedLobbyId);
+		if (lobby) {
+			return lobby.users;
+		}
+	}
+	return [];
+});
 </script>
