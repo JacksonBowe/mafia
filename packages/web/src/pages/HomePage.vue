@@ -2,7 +2,7 @@
 	<q-page padding class="column">
 		<div class="col row justify-evenly">
 			<div class="col-5 column">
-				<m-lobby-card class="fit" />
+				<m-lobbies class="fit" />
 			</div>
 
 			<div class="col-6 column">
@@ -33,6 +33,5 @@
 </template>
 
 <script setup lang="ts">
-import MLobbyCard from 'src/components/lobby/MLobbyCard.vue';
-
+import { MLobbies } from 'src/components/lobbies';
 </script>
