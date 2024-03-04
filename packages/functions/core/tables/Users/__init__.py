@@ -7,7 +7,7 @@ from typing import Optional, List, Self, Mapping, Any
 from aws_lambda_powertools.utilities.parser import BaseModel, ValidationError, Field
 from core.utils import collapse_dict
 
-table_name = os.environ['SST_TABLE_TABLENAME_USERTABLE']
+table_name = os.environ.get('SST_TABLE_TABLENAME_USERTABLE')
 if table_name:
     ddb = boto3.resource('dynamodb')
     table = ddb.Table(table_name)

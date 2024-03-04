@@ -40,7 +40,7 @@ def generate_tokenset(claims: dict, access_expiry_days: int=7, refresh_expiry_da
     refresh_encoded = jwt.encode(claims, _auth_private_key(), algorithm='RS256')
 
     # Store them in the database
-    SessionTable().table.put_item(
+    SessionTable.table.put_item(
         Item=SessionTable.Entities.Session(
             userId=claims['sub'],
             accessToken=access_encoded,
@@ -94,7 +94,7 @@ def get_session(user_id: str):
     '''
     Get a session from the database
     '''
-    return SessionTable().table.get_item(
+    return SessionTable.table.get_item(
         Key={
             'userId': user_id
         }

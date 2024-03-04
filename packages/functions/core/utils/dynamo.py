@@ -92,14 +92,3 @@ def serialize(input_dict: dict) -> dict:
         # Handle serialization errors
         raise TypeError(f"Failed to serialize dictionary: {str(e)}")
     
-# Baseclass for all DynamoDB tables
-class Table:
-    def __init__(self, table_name: str):
-        self.table_name = table_name
-        self.table = ddb.Table(self.table_name)
-        
-    class Indexes(Enum):
-        pass
-        
-    class Entities:
-        pass
