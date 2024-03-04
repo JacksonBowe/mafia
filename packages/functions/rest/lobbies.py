@@ -24,8 +24,8 @@ app = APIGatewayHttpResolver(enable_validation=True)
 
 
 class CreateLobbyPayload(BaseModel):
-    lobby_name: str = Field(alias='lobbyName')
-    lobby_config: Optional[str] = Field(alias='lobbyConfig', default=DEFAULT_GAME_CONFIG)
+    lobby_name: str = Field(alias='name')
+    lobby_config: Optional[str] = Field(alias='config', default=DEFAULT_GAME_CONFIG)
 
 @app.post('/lobbies')
 def create_lobby(payload: CreateLobbyPayload) -> LobbyTable.entities.Lobby:

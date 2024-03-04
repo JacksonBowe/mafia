@@ -1,5 +1,5 @@
 <template>
-	<MCard class="full-height">
+	<MCard class="">
 		<q-scroll-area class="full-height">
 			<q-list class="">
 				<m-lobby-item

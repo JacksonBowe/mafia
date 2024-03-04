@@ -59,7 +59,6 @@ def validate_token(token: str, token_type: Literal['accessToken', 'refreshToken'
     Validate a JWT token
     '''
     try:
-        print('Token', token)
         claims = jwt.decode(token, _auth_public_key(), algorithms=['RS256'])
         # Check if 'exp' claim is present
         if 'exp' not in claims or not isinstance(claims['exp'], int):

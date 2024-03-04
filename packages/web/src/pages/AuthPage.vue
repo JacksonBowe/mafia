@@ -1,7 +1,7 @@
 <template>
 	<q-page class="row justify-center content-center">
 		<q-btn
-		  class="discord-color custom-shadow"
+		  class="discord-color custom-shadow text-white"
 		  label="Login with Discord"
 		  icon="fa-brands fa-discord"
 		  @click="login"
@@ -23,7 +23,6 @@ const login = async () => {
 </script>
 
 <style scoped>
-
 .discord-color {
 	background-color: #7289da;
 }
@@ -35,5 +34,4 @@ const login = async () => {
 .gradient-bg {
 	background-image: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(17, 19, 34, 0.7), rgba(17, 19, 34, 0.8), rgba(17, 19, 34, 0.9), rgba(17, 19, 34, 1));
 }
-
 </style>

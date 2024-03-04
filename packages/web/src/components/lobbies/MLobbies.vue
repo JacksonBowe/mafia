@@ -11,10 +11,10 @@
 			<q-tab-panels v-model="tab" animated class="full-height bg-transparent q-pa-none">
 				<q-tab-panel name="join" class="q-pa-none">
 					<MLobbyList class="fit" />
-					</q-tab-panel>
-					<q-tab-panel name="host">
-					Doin Host stuff
-					</q-tab-panel>
+				</q-tab-panel>
+				<q-tab-panel name="host" CLASS="q-pa-none">
+					<MLobbyHost class="fit"/>
+				</q-tab-panel>
 			</q-tab-panels>
 		</MCardContent>
 	</MCard>
@@ -24,6 +24,7 @@
 import { ref } from 'vue';
 import { MCard, MCardHeader, MCardContent } from 'src/components/ui/card';
 import MLobbyList from './MLobbyList.vue';
+import MLobbyHost from './MLobbyHost.vue';
 const tab = ref('join')
 
 </script>

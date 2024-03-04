@@ -1,40 +1,47 @@
-export interface LobbyHost {
-	id: string;
-	username: string;
-}
+import { z } from 'zod';
+import { api } from 'src/boot/axios';
 
-export interface LobbyUser {
-	id: string;
-	type: string;
-	createdAt: number;
-	username: string;
-	lobbyId: string;
-}
+/* FETCH LOBBIES */
+const LobbyHostSchema = z.object({
+	id: z.string(),
+	username: z.string(),
+});
+export type LobbyHost = z.infer<typeof LobbyHostSchema>;
 
-export interface Lobby {
-	id: string;
-	type: string;
-	createdAt: number;
-	name: string;
-	host: LobbyHost
-	config: string
-	users: LobbyUser[] | null
-}
+const LobbyUserSchema = z.object({
+	id: z.string(),
+	type: z.string(),
+	createdAt: z.number(),
+	username: z.string(),
+	lobbyId: z.string(),
+});
+export type LobbyUser = z.infer<typeof LobbyUserSchema>;
+
+const LobbySchema = z.object({
+	id: z.string(),
+	type: z.string(),
+	createdAt: z.number(),
+	name: z.string(),
+	host: LobbyHostSchema,
+	config: z.string(),
+	users: z.array(LobbyUserSchema).nullable(),
+});
+export type Lobby = z.infer<typeof LobbySchema>;
 
 export const fetchLobbies = async (): Promise<Lobby[]> => {
 	// TODO: Replace with API Call
 	const lobbies: Lobby[] = [];
 
 	for (let i = 0; i < 20; i++) {
-		const users: LobbyUser[] = []
-		for (let j = 0; j < i+1 && j < 15; j++) {
+		const users: LobbyUser[] = [];
+		for (let j = 0; j < i + 1 && j < 15; j++) {
 			users.push({
 				id: `user${j + 1}`,
 				createdAt: Date.now(),
 				type: 'LOBBY_USER',
 				username: `User ${j + 1}`,
-				lobbyId: `lobby${i + 1}`
-			})
+				lobbyId: `lobby${i + 1}`,
+			});
 		}
 		lobbies.push({
 			id: `lobby${i + 1}`,
@@ -48,4 +55,18 @@ export const fetchLobbies = async (): Promise<Lobby[]> => {
 	}
 
 	return lobbies;
-}
+};
+
+/* HOST LOBBY */
+
+const HostLobbyPropsSchema = z.object({
+	name: z.string(),
+	config: z.string().optional(),
+});
+export type HostLobbyProps = z.infer<typeof HostLobbyPropsSchema>;
+
+export const hostLobby = async (props: HostLobbyProps): Promise<Lobby> => {
+	const payload = HostLobbyPropsSchema.parse(props);
+	const r = await api.post('/lobbies', payload);
+	return r.data;
+};

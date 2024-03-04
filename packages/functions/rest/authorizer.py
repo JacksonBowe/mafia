@@ -54,6 +54,7 @@ ENDPOINTS = [
     # ChatController
     # ('POST', 'chat'),
     # ('POST', 'games/chat')
+    ('POST', 'lobbies/*/terminate')
 ]
 
 ADMIN_ENDPOINTS = [

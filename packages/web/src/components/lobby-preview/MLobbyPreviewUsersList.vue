@@ -1,7 +1,7 @@
 <template>
 	<q-list class="column col">
 		<q-scroll-area class="col" dense :thumb-style="thumbStyle">
-			<div v-for="user in props.users" :key="user.id" class="col" > {{ user.username }}</div>
+			<div v-for="user in props.users" :key="user.id" class="col" > {{ user.username || '-' }}</div>
 		</q-scroll-area>
 	</q-list>
 </template>

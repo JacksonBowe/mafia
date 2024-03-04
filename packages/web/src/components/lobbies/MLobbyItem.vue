@@ -27,7 +27,6 @@ const backgroundColor = computed(() => {
 		default:
 			return `bg-gradient-lobby-${props.index % 2}`
 	}
-
 })
 
 </script>

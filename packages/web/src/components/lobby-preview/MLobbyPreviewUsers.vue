@@ -1,13 +1,13 @@
 <template>
 	<MCard class="column">
-		<MCardHeader >
+		<MCardHeader dense >
 			Players
 		</MCardHeader>
 		<q-separator color="primary" inset />
-		<MCardContent class="col row">
+		<MCardContent class="col row q-py-xs" v-if="users?.length">
 			<MLobbyPreviewUsersList :users="users?.slice(0, 8)" />
 			<q-separator vertical color="accent" class="q-mx-sm" inset />
-			<MLobbyPreviewUsersList :users="users?.slice(8, users.length)" />
+			<MLobbyPreviewUsersList :users="users?.slice(8, 15)" />
 		</MCardContent>
 	</MCard>
 </template>
@@ -28,8 +28,8 @@ const { data: lobbies } = useLobbies();
 const users: ComputedRef<LobbyUser[] | null> = computed(() => {
 	if (lStore.selectedLobbyId && lobbies.value) {
 		const lobby = lobbies.value.find((lobby) => lobby.id === lStore.selectedLobbyId);
-		if (lobby) {
-			return lobby.users;
+		if (lobby && lobby.users) {
+			return lobby.users.concat(Array(15).fill({}).slice(0, 15));
 		}
 	}
 	return [];
