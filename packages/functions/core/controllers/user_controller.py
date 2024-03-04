@@ -10,13 +10,13 @@ from core.utils import Config, Dynamo
 from core.utils.auth import DiscordUser
 
 from core.utils.auth import DiscordUser
-from core.tables import Users as UsersTable
+from core.tables import UserTable
 
 logger = Logger()
 
 def discord_post_auth_create_user(discord_user: DiscordUser):
     # TODO
-    user = UsersTable.entities.User(
+    user = UserTable.Entities.User(
         id=discord_user.id,
         createdAt=Dynamo.timestamp(),
         username=discord_user.username,
@@ -26,7 +26,7 @@ def discord_post_auth_create_user(discord_user: DiscordUser):
     )
     
     try:
-        create = UsersTable.table.put_item(
+        create = UserTable.table.put_item(
             Item=user.serialize()
         )
     except BotoCoreError as e:
@@ -34,7 +34,7 @@ def discord_post_auth_create_user(discord_user: DiscordUser):
     
     return create
     
-def discord_post_auth_update_user(user: UsersTable.entities.User, discord_user: DiscordUser):
+def discord_post_auth_update_user(user: UserTable.Entities.User, discord_user: DiscordUser):
     # TODO
     
     attrs = {
@@ -50,7 +50,7 @@ def discord_post_auth_update_user(user: UsersTable.entities.User, discord_user: 
     expr, names, vals = Dynamo.build_update_expression(user._updated_attributes)
 
     try:
-        update = UsersTable.table.update_item(
+        update = UserTable.table.update_item(
             Key={
                 'PK': discord_user.id,
                 'SK': 'A'
@@ -65,9 +65,9 @@ def discord_post_auth_update_user(user: UsersTable.entities.User, discord_user: 
     return update
 
 
-def get_user_by_id(id: str) -> UsersTable.entities.User:
+def get_user_by_id(id: str) -> UserTable.Entities.User:
     try:
-        item = UsersTable.table.get_item(
+        item = UserTable.table.get_item(
             Key={
                 'PK': id,
                 'SK': 'A'
@@ -77,9 +77,9 @@ def get_user_by_id(id: str) -> UsersTable.entities.User:
     except BotoCoreError as e:
         raise InternalServerError(f"Error in DybnamoDB operation: {e}")
     
-    return UsersTable.entities.User.deserialize(item)
+    return UserTable.Entities.User.deserialize(item)
 
-def clear_lobby(user: UsersTable.entities.User):
+def clear_lobby(user: UserTable.Entities.User):
     try:
         user.update({
             'lobby': None
@@ -90,7 +90,7 @@ def clear_lobby(user: UsersTable.entities.User):
     
     try:
         expr, names, vals = Dynamo.build_update_expression(user._updated_attributes)
-        UsersTable.table.update_item(
+        UserTable.table.update_item(
             Key={
                 'PK': user.id,
                 'SK': 'A'

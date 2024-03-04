@@ -8,14 +8,14 @@ from aws_lambda_powertools.event_handler.exceptions import (
     BadRequestError
 )
 
-from core.tables import Users as UsersTable
+from core.tables import Users as UserTable
 from core.controllers import UserController
 
 app = APIGatewayHttpResolver(enable_validation=True)
 
 
 @app.get('/users/me')
-def get_me() -> UsersTable.entities.User:
+def get_me() -> UserTable.Entities.User:
     try:
         user_id = app.current_event.request_context.authorizer.get_lambda['CallerID']
     except KeyError as e:
@@ -26,7 +26,7 @@ def get_me() -> UsersTable.entities.User:
 
 
 @app.get('/users/<user_id>')
-def get_user(user_id: str) -> UsersTable.entities.User:
+def get_user(user_id: str) -> UserTable.Entities.User:
     
     user = UserController.get_user_by_id(user_id)
     return user

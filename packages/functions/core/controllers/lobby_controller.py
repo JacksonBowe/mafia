@@ -13,8 +13,7 @@ from pydantic import ValidationError
 
 from core.utils import Dynamo
 
-from core.tables import Users as UsersTable
-from core.tables.Users.entities import User
+from core.tables import UserTable
 
 import core.tables.Lobby as LobbyTable
 from core.tables.Lobby.entities import Lobby, LobbyUser
@@ -42,7 +41,7 @@ class Events:
 
  
 
-def create_lobby(name, host: User, config: dict) -> Lobby:
+def create_lobby(name, host: UserTable.Entities.User, config: dict) -> Lobby:
     # Need to create a new lobby records, and update the User.host value
     
     # Create Lobby instance
@@ -96,7 +95,7 @@ def create_lobby(name, host: User, config: dict) -> Lobby:
                         'UpdateExpression': host_expr,
                         'ExpressionAttributeNames': host_names,
                         'ExpressionAttributeValues': Dynamo.serialize(host_vals),
-                        'TableName': UsersTable.table_name
+                        'TableName': UserTable.table_name
                     }
                 }
             ]
@@ -211,7 +210,7 @@ def delete_lobby(lobby: Lobby):
 # def grant_host(lobby: Lobby, user: LobbyUser) -> None:
 #     pass
 
-def remove_user_from_lobby(user: User, lobby: Lobby):
+def remove_user_from_lobby(user: UserTable.Entities.User, lobby: Lobby):
     try:
         user.update({ 'lobby': None })
     except ValidationError as e:
@@ -243,7 +242,7 @@ def remove_user_from_lobby(user: User, lobby: Lobby):
                         }),
                         'UpdateExpression': expr,
                         'ExpressionAttributeNames': names,
-                        'TableName': UsersTable.table_name
+                        'TableName': UserTable.table_name
                     }
                 }
             ]
