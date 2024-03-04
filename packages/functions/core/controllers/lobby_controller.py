@@ -16,7 +16,6 @@ from core.utils import Dynamo
 from core.tables import UserTable
 
 import core.tables.Lobby as LobbyTable
-from core.tables.Lobby.entities import Lobby, LobbyUser
 
 from core.events import Event
 from pydantic import BaseModel
@@ -24,11 +23,11 @@ from pydantic import BaseModel
 ddb_client = boto3.client('dynamodb')
 logger = Logger()
 
-class LobbyWithUsers(Lobby):
-    users: List[LobbyUser] = None
+class LobbyWithUsers(LobbyTable.Entities.Lobby):
+    users: List[LobbyTable.Entities.LobbyUser] = None
     
     @classmethod
-    def from_lobby(cls, lobby: Lobby, users: List[Lobby]):
+    def from_lobby(cls, lobby: LobbyTable.Entities.Lobby, users: List[LobbyTable.Entities.LobbyUser]):
         return cls(**{**lobby.model_dump(), 'users': users }) 
    
    
@@ -37,18 +36,18 @@ class Events:
         event_name = 'lobby.user_leave'
         class Properties(BaseModel):
             user_id: str
-            lobby: Lobby
+            lobby: LobbyTable.Entities.Lobby
 
  
 
-def create_lobby(name, host: UserTable.Entities.User, config: dict) -> Lobby:
+def create_lobby(name, host: UserTable.Entities.User, config: dict) -> LobbyTable.Entities.Lobby:
     # Need to create a new lobby records, and update the User.host value
     
     # Create Lobby instance
-    lobby = Lobby(
+    lobby = LobbyTable.Entities.Lobby(
         id=Dynamo.new_id(),
         createdAt=Dynamo.timestamp(),
-        host=Lobby.LobbyHost(
+        host=LobbyTable.Entities.Lobby.LobbyHost(
             id=host.id,
             username=host.username
         ),
@@ -57,7 +56,7 @@ def create_lobby(name, host: UserTable.Entities.User, config: dict) -> Lobby:
     )
     
     # Create LobbyUser instance from host
-    lobby_user = LobbyUser(
+    lobby_user = LobbyTable.Entities.LobbyUser(
         id=host.id,
         createdAt=Dynamo.timestamp(),
         username=host.username,
@@ -106,7 +105,7 @@ def create_lobby(name, host: UserTable.Entities.User, config: dict) -> Lobby:
     
     return lobby
     
-def get_lobby_by_id(lobby_id: str, with_users: bool=False) -> Lobby | LobbyWithUsers:
+def get_lobby_by_id(lobby_id: str, with_users: bool=False) -> LobbyTable.Entities.Lobby | LobbyWithUsers:
     try:
         item = LobbyTable.table.get_item(
             Key={
@@ -121,7 +120,7 @@ def get_lobby_by_id(lobby_id: str, with_users: bool=False) -> Lobby | LobbyWithU
     if not item: raise NotFoundError(f"No lobby with id '{lobby_id}'")
     
     try:
-        lobby = Lobby.deserialize(item)
+        lobby = LobbyTable.Entities.Lobby.deserialize(item)
     except ValidationError as e:
         logger.error(str(e))
         raise InternalServerError(str(e))
@@ -131,20 +130,20 @@ def get_lobby_by_id(lobby_id: str, with_users: bool=False) -> Lobby | LobbyWithU
     
     return lobby
 
-def get_lobbies(with_users: bool=False) -> List[Lobby]:
+def get_lobbies(with_users: bool=False) -> List[LobbyTable.Entities.Lobby]:
     try:
         items = LobbyTable.table.query(
             IndexName=LobbyTable.Indexes.ITEMS_BY_TYPE.value,
             KeyConditionExpression='#t=:t',
             ExpressionAttributeNames={ '#t': 'type' },
-            ExpressionAttributeValues={ ':t': LobbyTable.entities.EntityType.LOBBY.value }
+            ExpressionAttributeValues={ ':t': LobbyTable.EntityType.LOBBY.value }
         ).get('Items', [])
     except BotoCoreError as e:
         logger.error(str(e))
         raise InternalServerError(f"Error in DynamoDB operation: {e}")
     
     try:
-        lobbies = [Lobby.deserialize(item) for item in items]
+        lobbies = [LobbyTable.Entities.Lobby.deserialize(item) for item in items]
     except ValidationError as e:
         logger.error(str(e))
         raise InternalServerError(str(e))
@@ -154,7 +153,7 @@ def get_lobbies(with_users: bool=False) -> List[Lobby]:
     
     return lobbies
 
-def get_lobby_users(lobby_id: str) -> List[LobbyUser]:
+def get_lobby_users(lobby_id: str) -> List[LobbyTable.Entities.LobbyUser]:
     try:
         items = LobbyTable.table.query(
             KeyConditionExpression='#pk=:pk and begins_with(#sk, :sk)',
@@ -166,14 +165,14 @@ def get_lobby_users(lobby_id: str) -> List[LobbyUser]:
         raise InternalServerError(f"Error in DynamoDB operation: {e}")
     
     try:
-        lobby_users = [LobbyUser.deserialize(item) for item in items]
+        lobby_users = [LobbyTable.Entities.LobbyUser.deserialize(item) for item in items]
     except ValidationError as e:
         logger.error(str(e))
         raise InternalServerError(str(e))
     
     return lobby_users
 
-def get_lobby_user(lobby_id: str, user_id: str) -> LobbyUser:
+def get_lobby_user(lobby_id: str, user_id: str) -> LobbyTable.Entities.LobbyUser:
     try:
         item = LobbyTable.table.get_item(
             Key={
@@ -188,14 +187,14 @@ def get_lobby_user(lobby_id: str, user_id: str) -> LobbyUser:
     if not item: raise NotFoundError(f"No lobby user with id '{user_id}' in lobby '{lobby_id}'")
 
     try:
-        lobby_user = LobbyUser.deserialize(item)
+        lobby_user = LobbyTable.Entities.LobbyUser.deserialize(item)
     except ValidationError as e:
         logger.error(str(e))
         raise InternalServerError(str(e))
 
     return lobby_user
 
-def delete_lobby(lobby: Lobby):
+def delete_lobby(lobby: LobbyTable.Entities.Lobby):
     try:
         LobbyTable.table.delete_item(
             Key={
@@ -210,7 +209,7 @@ def delete_lobby(lobby: Lobby):
 # def grant_host(lobby: Lobby, user: LobbyUser) -> None:
 #     pass
 
-def remove_user_from_lobby(user: UserTable.Entities.User, lobby: Lobby):
+def remove_user_from_lobby(user: UserTable.Entities.User, lobby: LobbyTable.Entities.Lobby):
     try:
         user.update({ 'lobby': None })
     except ValidationError as e:

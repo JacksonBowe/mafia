@@ -28,7 +28,7 @@ class CreateLobbyPayload(BaseModel):
     lobby_config: Optional[str] = Field(alias='config', default=DEFAULT_GAME_CONFIG)
 
 @app.post('/lobbies')
-def create_lobby(payload: CreateLobbyPayload) -> LobbyTable.entities.Lobby:
+def create_lobby(payload: CreateLobbyPayload) -> LobbyTable.Entities.Lobby:
     try:
         user_id = app.current_event.request_context.authorizer.get_lambda['CallerID']
     except KeyError as e:
@@ -53,7 +53,7 @@ def create_lobby(payload: CreateLobbyPayload) -> LobbyTable.entities.Lobby:
 @app.get('/lobbies')
 def get_lobbies(
     users: Annotated[Optional[bool], Query()] = False
-) -> List[LobbyTable.entities.Lobby] | List[LobbyController.LobbyWithUsers]:
+) -> List[LobbyTable.Entities.Lobby] | List[LobbyController.LobbyWithUsers]:
     lobbies = LobbyController.get_lobbies(with_users=users)
     return lobbies
 
@@ -61,7 +61,7 @@ def get_lobbies(
 def get_lobby(
     lobby_id: str, 
     users: Annotated[Optional[bool], Query()] = False
-) -> Union[LobbyController.LobbyWithUsers, LobbyTable.entities.Lobby]: # TODO: This is doing wack shit
+) -> Union[LobbyController.LobbyWithUsers, LobbyTable.Entities.Lobby]: # TODO: This is doing wack shit
     lobby = LobbyController.get_lobby_by_id(lobby_id, with_users=users)
     return lobby
 
