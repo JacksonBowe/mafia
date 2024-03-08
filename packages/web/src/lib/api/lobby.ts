@@ -70,3 +70,8 @@ export const hostLobby = async (props: HostLobbyProps): Promise<Lobby> => {
 	const r = await api.post('/lobbies', payload);
 	return r.data;
 };
+
+/* ADMIN TERMINATE ALL LOBBIES */
+export const terminateAllLobbies = async (): Promise<void> => {
+	await api.post('/lobbies/terminate');
+};

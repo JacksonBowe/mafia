@@ -21,14 +21,17 @@
 		</q-header>
 
 		<q-page-container>
+
 			<!-- This is where pages get injected -->
 			<router-view />
+			<AdminFab />
 		</q-page-container>
 
 	</q-layout>
 </template>
 
 <script setup lang="ts">
+import AdminFab from 'src/components/AdminFab.vue';
 import { useMe } from 'src/lib/state/me';
 
 const { data: me, isLoading } = useMe()

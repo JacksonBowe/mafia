@@ -130,7 +130,7 @@ def get_lobby_by_id(lobby_id: str, with_users: bool=False) -> LobbyTable.Entitie
     
     return lobby
 
-def get_lobbies(with_users: bool=False) -> List[LobbyTable.Entities.Lobby]:
+def get_lobbies(with_users: bool=False) -> List[LobbyTable.Entities.Lobby] | List[LobbyWithUsers]:
     try:
         items = LobbyTable.table.query(
             IndexName=LobbyTable.Indexes.ITEMS_BY_TYPE.value,

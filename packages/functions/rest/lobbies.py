@@ -94,6 +94,15 @@ def terminate_lobby(lobby_id: str) -> None:
             lobby
         )
     
+@app.post('/lobbies/terminate')
+def terminate_all_lobbies() -> None:
+    lobbies = LobbyController.get_lobbies(with_users=True)
+    for lobby in lobbies:
+        for user in lobby.users:
+            LobbyController.remove_user_from_lobby(
+                UserController.get_user_by_id(user.id),
+                lobby
+            )
     
 def handler(event, context):
     return app.resolve(event, context)
