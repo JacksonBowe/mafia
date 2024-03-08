@@ -51,7 +51,6 @@ def discord_token(
         raise BadRequestError('Code is expired or invalid')
     
     discord_user = Discord.user(tokens['access_token'])
-    
     try:
         user = UserController.get_user_by_id(discord_user.id)
         UserController.discord_post_auth_update_user(user, discord_user)

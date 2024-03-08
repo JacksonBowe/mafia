@@ -55,6 +55,6 @@ class DiscordAdapter():
         user_data = response.json()
         return DiscordUser(
             id=user_data['id'],
-            avatar=f"https://cdn.discordapp.com/avatars/{Config.get_secret('DISCORD_OAUTH_CLIENT_ID')}/{user_data['avatar']}",
+            avatar=f"https://cdn.discordapp.com/avatars/{user_data['id']}/{user_data['avatar']}",
             username=user_data['global_name']
         )

@@ -2,7 +2,7 @@
 	<q-form @submit="submit" class="column">
 		<div class="row justify-between q-mb-md">
 			<MCard class="col-8">
-				<q-input v-model="name" class="q-pl-sm" dense borderless dark />
+				<q-input v-model="name" class="q-pl-sm" dense borderless dark/>
 			</MCard>
 			<div class="content-center flex">
 				<q-btn label="Host" type="submit" no-caps class="submit-button" size="" />
@@ -16,7 +16,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref } from 'vue'
 
 import { MCard } from '../ui/card';
 
