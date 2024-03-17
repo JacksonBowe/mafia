@@ -34,4 +34,4 @@ const users: ComputedRef<LobbyUser[] | null> = computed(() => {
 	}
 	return [];
 });
-</script>src/api/lobby
+</script>

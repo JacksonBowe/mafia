@@ -55,4 +55,3 @@ const submit = () => {
 	border-radius: 10px;
 }
 </style>
-src/composables/mesrc/composables/lobbies

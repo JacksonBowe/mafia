@@ -14,4 +14,3 @@
 <script setup lang="ts">
 import { terminateAllLobbies } from 'src/api/lobby';
 </script>
-src/api/lobby

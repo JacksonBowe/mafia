@@ -35,4 +35,3 @@ const login = async () => {
 	background-image: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(17, 19, 34, 0.7), rgba(17, 19, 34, 0.8), rgba(17, 19, 34, 0.9), rgba(17, 19, 34, 1));
 }
 </style>
-src/api/auth
