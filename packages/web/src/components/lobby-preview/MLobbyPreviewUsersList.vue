@@ -18,7 +18,7 @@ const props = defineProps<{
 	users?: LobbyUser[],
 }>();
 
-const { selectedLobby } = useSelectedLobby();
+const selectedLobby = useSelectedLobby();
 
 const thumbStyle = {
 	right: '0px',

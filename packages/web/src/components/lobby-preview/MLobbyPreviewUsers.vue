@@ -20,5 +20,5 @@ import MLobbyPreviewUsersList from './MLobbyPreviewUsersList.vue';
 import { useSelectedLobby } from 'src/composables';
 
 
-const { selectedLobby } = useSelectedLobby();
+const selectedLobby = useSelectedLobby();
 </script>
