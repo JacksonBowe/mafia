@@ -20,8 +20,8 @@ import { ref } from 'vue'
 
 import { MCard } from '../ui/card';
 
-import { useMe } from 'src/lib/state/me';
-import { hostLobbyMutation } from 'src/lib/state/lobbies';
+import { useMe } from 'src/composables';
+import { hostLobbyMutation } from 'src/composables';
 const mutation = hostLobbyMutation()
 
 const me = useMe()
@@ -55,3 +55,4 @@ const submit = () => {
 	border-radius: 10px;
 }
 </style>
+src/composables/mesrc/composables/lobbies

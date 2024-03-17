@@ -1,47 +1,49 @@
 import { defineStore } from 'pinia';
 import { LocalStorage } from 'quasar';
 import { api } from 'src/boot/axios';
-import type { AccessTokenResponse } from '../lib/api/auth';
+import type { AccessTokenResponse } from '../api/auth';
 
 export const useAuthStore = defineStore('auth', {
 	state: () => ({
-		isAuthenticated: false
+		isAuthenticated: false,
 	}),
 
 	getters: {
-		accessToken () {
+		accessToken() {
 			if (LocalStorage.has('mtokens')) {
-				return (LocalStorage.getItem('mtokens') as AccessTokenResponse).AccessToken;
+				return (LocalStorage.getItem('mtokens') as AccessTokenResponse)
+					.AccessToken;
 			} else {
-				return null
+				return null;
 			}
 		},
-		refreshToken () {
+		refreshToken() {
 			if (LocalStorage.has('mtokens')) {
-				return (LocalStorage.getItem('mtokens') as AccessTokenResponse).RefreshToken;
+				return (LocalStorage.getItem('mtokens') as AccessTokenResponse)
+					.RefreshToken;
 			} else {
-				return null
+				return null;
 			}
-		}
+		},
 	},
 
 	actions: {
-		setAuthenticated () {
+		setAuthenticated() {
 			this.isAuthenticated = true;
 		},
-		authenticate (tokens: AccessTokenResponse) {
+		authenticate(tokens: AccessTokenResponse) {
 			LocalStorage.set('mtokens', tokens);
 			this.setAuthenticated();
 
 			// Set the default headers
 			api.defaults.headers.common = {
-				'Authorization': `Bearer ${tokens.AccessToken}`
+				Authorization: `Bearer ${tokens.AccessToken}`,
 			};
 		},
-		doLogout () {
+		doLogout() {
 			LocalStorage.remove('mtokens');
 			this.isAuthenticated = false;
 			this.router.push('/auth');
-		}
-	}
+		},
+	},
 });

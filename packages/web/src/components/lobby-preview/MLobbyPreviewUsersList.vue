@@ -1,17 +1,24 @@
 <template>
 	<q-list class="column col">
 		<q-scroll-area class="col" dense :thumb-style="thumbStyle">
-			<div v-for="user in props.users" :key="user.id" class="col" > {{ user.username || '-' }}</div>
+			<q-list dense>
+				<MLobbyPreviewUser v-for="user in props.users" :key="user.id" class="col" :user="user" :is-host="user.id === selectedLobby?.host.id" ></MLobbyPreviewUser>
+			</q-list>
 		</q-scroll-area>
 	</q-list>
 </template>
 
 <script setup lang="ts">
-import type { LobbyUser } from 'src/lib/api/lobby';
+import MLobbyPreviewUser from './MLobbyPreviewUser.vue';;
+import type { LobbyUser } from 'src/api/lobby';
+import { useSelectedLobby } from 'src/composables';
+
 
 const props = defineProps<{
 	users?: LobbyUser[],
 }>();
+
+const { selectedLobby } = useSelectedLobby();
 
 const thumbStyle = {
 	right: '0px',

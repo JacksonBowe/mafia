@@ -1,14 +1,14 @@
 import { boot } from 'quasar/wrappers';
-import { Notify } from 'quasar'
+import { Notify } from 'quasar';
 import axios, { AxiosInstance } from 'axios';
 import { useAuthStore } from 'src/stores/auth';
-import { refreshSession } from 'src/lib/api/auth';
+import { refreshSession } from 'src/api/auth';
 
 declare module '@vue/runtime-core' {
-  interface ComponentCustomProperties {
-    $axios: AxiosInstance;
-    $api: AxiosInstance;
-  }
+	interface ComponentCustomProperties {
+		$axios: AxiosInstance;
+		$api: AxiosInstance;
+	}
 }
 
 const api = axios.create({ baseURL: import.meta.env.VITE_API_URL });
@@ -31,18 +31,21 @@ api.interceptors.response.use(
 					aStore.authenticate(tokens);
 
 					// Update the headers of the original request and retry
-					originalRequest.headers['Authorization'] = `Bearer ${tokens.AccessToken}`;
+					originalRequest.headers[
+						'Authorization'
+					] = `Bearer ${tokens.AccessToken}`;
 					return api(originalRequest);
 				} catch (refreshError) {
 					console.error('Error refreshing session:', refreshError);
 					Notify.create({
-						message: 'Error refreshing session. Please log in again.',
+						message:
+							'Error refreshing session. Please log in again.',
 						color: 'negative',
-						timeout: 2000
+						timeout: 2000,
 					});
 				}
 			}
-			console.log('Unauthorized')
+			console.log('Unauthorized');
 			aStore.doLogout();
 		}
 
@@ -51,10 +54,9 @@ api.interceptors.response.use(
 			Notify.create({
 				message: 'Access denied',
 				color: 'negative',
-				timeout: 2000
+				timeout: 2000,
 			});
 		}
-
 
 		// 422 MalformedRequest
 		if (error.response.status === 422) {
@@ -65,17 +67,27 @@ api.interceptors.response.use(
 				color: 'negative',
 				timeout: 0,
 				actions: [
-					{ label: 'Copy Error', class: 'q-ml-md', color: 'white', dense: true, handler: () => { navigator.clipboard.writeText(JSON.stringify(error.response.data, null, 2)) } },
-			  ]
+					{
+						label: 'Copy Error',
+						class: 'q-ml-md',
+						color: 'white',
+						dense: true,
+						handler: () => {
+							navigator.clipboard.writeText(
+								JSON.stringify(error.response.data, null, 2)
+							);
+						},
+					},
+				],
 			});
-		  }
+		}
 
 		// BadRequest
 		if (error.response.status === 400) {
 			Notify.create({
 				message: error.response.data.message,
 				color: 'warning',
-				timeout: 2000
+				timeout: 2000,
 			});
 		}
 
@@ -84,7 +96,7 @@ api.interceptors.response.use(
 			Notify.create({
 				message: error.response.data.message,
 				color: 'negative',
-				timeout: 2000
+				timeout: 2000,
 			});
 		}
 
@@ -97,7 +109,7 @@ export default boot(() => {
 
 	if (aStore.accessToken) {
 		api.defaults.headers.common = {
-			'Authorization': `Bearer ${aStore.accessToken}`
+			Authorization: `Bearer ${aStore.accessToken}`,
 		};
 	}
 });

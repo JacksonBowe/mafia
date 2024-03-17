@@ -32,7 +32,7 @@
 
 <script setup lang="ts">
 import AdminFab from 'src/components/AdminFab.vue';
-import { useMe } from 'src/lib/state/me';
+import { useMe } from 'src/composables';
 
 const { data: me, isLoading } = useMe()
 </script>
@@ -66,3 +66,4 @@ const { data: me, isLoading } = useMe()
 	z-index: -1;
 }
 </style>
+src/composables/mesrc/composables/useMe

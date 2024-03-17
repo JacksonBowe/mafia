@@ -48,7 +48,7 @@ export const fetchLobbies = async (): Promise<Lobby[]> => {
 			type: 'LOBBY',
 			createdAt: Date.now(),
 			name: `Lobby ${i + 1}`,
-			host: { id: `host${i + 1}`, username: `Host ${i + 1}` },
+			host: { id: `user${i + 1}`, username: `User ${i + 1}` },
 			config: `config${i + 1}`,
 			users: users,
 		});

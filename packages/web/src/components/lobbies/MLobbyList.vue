@@ -21,7 +21,7 @@
 import { useLobbyStore } from 'src/stores/lobby';
 import { MCard } from '../ui/card';
 import MLobbyItem from './MLobbyItem.vue';
-import { useLobbies } from 'src/lib/state';
+import { useLobbies } from 'src/composables';
 
 const lStore = useLobbyStore();
 

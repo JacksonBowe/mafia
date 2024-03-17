@@ -12,15 +12,15 @@
 	</MCard>
 </template>
 
-<script setup lang ="ts">
+<script setup lang="ts">
 import { MCard, MCardHeader, MCardContent } from '../ui/card';
 
 import MLobbyPreviewUsersList from './MLobbyPreviewUsersList.vue';
 
 import { useLobbyStore } from 'src/stores/lobby';
-import { useLobbies } from 'src/lib/state';
+import { useLobbies } from 'src/composables';
 import { computed, ComputedRef } from 'vue';
-import { LobbyUser } from 'src/lib/api/lobby';
+import { type LobbyUser } from 'src/api/lobby';
 
 const lStore = useLobbyStore();
 const { data: lobbies } = useLobbies();
@@ -34,4 +34,4 @@ const users: ComputedRef<LobbyUser[] | null> = computed(() => {
 	}
 	return [];
 });
-</script>
+</script>src/api/lobby
