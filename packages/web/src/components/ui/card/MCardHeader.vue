@@ -10,8 +10,8 @@ import { computed } from 'vue';
 
 const props = withDefaults(defineProps<{
 	class?: string,
-	dense: boolean,
-	denser: boolean,
+	dense?: boolean,
+	denser?: boolean,
 }>(), {
 	dense: false,
 	denser: false
