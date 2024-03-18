@@ -29,32 +29,34 @@ const LobbySchema = z.object({
 export type Lobby = z.infer<typeof LobbySchema>;
 
 export const fetchLobbies = async (): Promise<Lobby[]> => {
-	// TODO: Replace with API Call
-	const lobbies: Lobby[] = [];
+	// // TODO: Replace with API Call
+	// const lobbies: Lobby[] = [];
 
-	for (let i = 0; i < 20; i++) {
-		const users: LobbyUser[] = [];
-		for (let j = 0; j < i + 1 && j < 15; j++) {
-			users.push({
-				id: `user${j + 1}`,
-				createdAt: Date.now(),
-				type: 'LOBBY_USER',
-				username: `User ${j + 1}`,
-				lobbyId: `lobby${i + 1}`,
-			});
-		}
-		lobbies.push({
-			id: `lobby${i + 1}`,
-			type: 'LOBBY',
-			createdAt: Date.now(),
-			name: `Lobby ${i + 1}`,
-			host: { id: `user${i + 1}`, username: `User ${i + 1}` },
-			config: `config${i + 1}`,
-			users: users,
-		});
-	}
+	// for (let i = 0; i < 20; i++) {
+	// 	const users: LobbyUser[] = [];
+	// 	for (let j = 0; j < i + 1 && j < 15; j++) {
+	// 		users.push({
+	// 			id: `user${j + 1}`,
+	// 			createdAt: Date.now(),
+	// 			type: 'LOBBY_USER',
+	// 			username: `User ${j + 1}`,
+	// 			lobbyId: `lobby${i + 1}`,
+	// 		});
+	// 	}
+	// 	lobbies.push({
+	// 		id: `lobby${i + 1}`,
+	// 		type: 'LOBBY',
+	// 		createdAt: Date.now(),
+	// 		name: `Lobby ${i + 1}`,
+	// 		host: { id: `user${i + 1}`, username: `User ${i + 1}` },
+	// 		config: `config${i + 1}`,
+	// 		users: users,
+	// 	});
+	// }
 
-	return lobbies;
+	const response = await api.get('/lobbies', { params: { users: true } });
+	console.log(response.data);
+	return response.data;
 };
 
 /* HOST LOBBY */
@@ -69,9 +71,4 @@ export const hostLobby = async (props: HostLobbyProps): Promise<Lobby> => {
 	const payload = HostLobbyPropsSchema.parse(props);
 	const r = await api.post('/lobbies', payload);
 	return r.data;
-};
-
-/* ADMIN TERMINATE ALL LOBBIES */
-export const terminateAllLobbies = async (): Promise<void> => {
-	await api.post('/lobbies/terminate');
 };

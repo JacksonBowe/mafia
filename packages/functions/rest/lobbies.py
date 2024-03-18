@@ -53,7 +53,7 @@ def create_lobby(payload: CreateLobbyPayload) -> LobbyTable.Entities.Lobby:
 @app.get('/lobbies')
 def get_lobbies(
     users: Annotated[Optional[bool], Query()] = False
-) -> List[LobbyTable.Entities.Lobby] | List[LobbyController.LobbyWithUsers]:
+): # -> List[LobbyTable.Entities.Lobby] | List[LobbyController.LobbyWithUsers]
     lobbies = LobbyController.get_lobbies(with_users=users)
     return lobbies
 

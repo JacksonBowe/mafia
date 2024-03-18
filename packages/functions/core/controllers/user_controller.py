@@ -64,6 +64,13 @@ def discord_post_auth_update_user(user: UserTable.Entities.User, discord_user: D
     
     return update
 
+def get_users() -> list[UserTable.Entities.User]:
+    try:
+        items = UserTable.table.scan().get('Items')
+    except BotoCoreError as e:
+        raise InternalServerError(f"Error in DybnamoDB operation: {e}")
+    
+    return [UserTable.Entities.User.deserialize(item) for item in items]
 
 def get_user_by_id(id: str) -> UserTable.Entities.User:
     try:

@@ -1,21 +1,36 @@
-# import os
-# if os.getenv('IS_LOCAL'):
-#     import sys
-#     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import os
+import random
+if os.getenv('IS_LOCAL'):
+    import sys
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     
-# from core.tables import UsersTable, LobbyTable
-# from packages.functions.core.tables.Users._entities import User
+from core.tables import UserTable, LobbyTable
+from packages.functions.core.tables.Users._entities import User
 
-# from core.controllers import LobbyController
+from core.controllers import UserController, LobbyController
 
-# from core.utils import Dynamo
+from core.utils import Dynamo
+from core.utils.game import DEFAULT_GAME_CONFIG
     
-# def handler(event, context):
-#     host = User(
-#         id=Dynamo.new_id(),
-#         createdAt=Dynamo.timestamp(),
-#         username='SeedUser_1',
-#         provider="seed_lobbies"
-#     )
-#     return event
+def handler(event, context):
+    users = UserController.get_users()
+    seed_users = [user for user in users if user.provider == 'seed']
+    
+    lobbies = []
+    for i in range(1, len(seed_users)):
+        user = seed_users[i]
+        
+        if i < 4:
+            lobby = LobbyController.create_lobby(
+                name=f"Seed Lobby {i}",
+                host=user,
+                config=DEFAULT_GAME_CONFIG
+            )
+            lobbies.append(lobby)
+
+            print('Seeded lobby', i)
+        else:
+            pass
+        
+    return event
  

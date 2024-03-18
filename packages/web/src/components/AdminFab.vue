@@ -16,7 +16,7 @@
 
 <script setup lang="ts">
 // import { api } from 'src/boot/axios';
-import { terminateAllLobbies } from 'src/api/lobby';
+import { terminateAllLobbies } from 'src/api/admin';
 
 // const seedLobbies = async () => {
 

@@ -46,7 +46,6 @@ def discord_token(
     Discord = DiscordAdapter(test=test)
     tokens = Discord.tokens(code)
     
-    print('Discord tokens', tokens)
     if 'error' in tokens:
         raise BadRequestError('Code is expired or invalid')
     

@@ -154,12 +154,14 @@ def get_lobbies(with_users: bool=False) -> List[LobbyTable.Entities.Lobby] | Lis
     return lobbies
 
 def get_lobby_users(lobby_id: str) -> List[LobbyTable.Entities.LobbyUser]:
+    print('Here')
     try:
         items = LobbyTable.table.query(
             KeyConditionExpression='#pk=:pk and begins_with(#sk, :sk)',
             ExpressionAttributeNames={ '#pk': 'PK', '#sk': 'SK' },
             ExpressionAttributeValues={ ':pk': lobby_id, ':sk': 'LU' }
         ).get('Items', [])
+        print('items', items)
     except BotoCoreError as e:
         logger.error(str(e))
         raise InternalServerError(f"Error in DynamoDB operation: {e}")
