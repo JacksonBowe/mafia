@@ -1,6 +1,6 @@
 <template>
 	<MCard class="text-white column">
-		<MCardHeader dense>
+		<MCardHeader denser>
 			<q-tabs v-model="tab" active-class="active-tab" dense animated no-caps align="justify" indicator-color="transparent" class="text-h6 tab-title" >
 				<q-tab name="join" :ripple="false">Join</q-tab>
 				<span class="tab-title">|</span>

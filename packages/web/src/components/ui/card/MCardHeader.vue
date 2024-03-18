@@ -1,18 +1,26 @@
 <template>
-	<q-card-section v-bind="props" :class="[
-		dense ? 'q-py-xs' : 'q-py-md',
-	]">
+	<q-card-section v-bind="props" :class="[density]">
 		<slot />
 	</q-card-section>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
+
 
 const props = withDefaults(defineProps<{
 	class?: string,
 	dense: boolean,
-}>() , {
-	dense: false
+	denser: boolean,
+}>(), {
+	dense: false,
+	denser: false
+});
+
+const density = computed(() => {
+	if (props.denser) return 'q-py-xs';
+	if (props.dense) return 'q-py-sm';
+	return 'q-py-md';
 });
 
 </script>

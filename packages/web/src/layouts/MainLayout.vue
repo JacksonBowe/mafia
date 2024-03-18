@@ -3,21 +3,27 @@
 		<div class="bg-splash">
 			<img src="~assets/mafia-village-night.png" class="fit" />
 		</div>
-		<q-header class="bg-transparent" height-hint="98">
-			<q-toolbar class="q-px-md toolbar">
-				<q-btn flat dense class="logo" icon="mdi-home" />
-				<q-toolbar-title class="text-body q-mr-md text-mafia">Mafia</q-toolbar-title>
-				<q-space />
-				<div class="q-gutter-sm flex items-center">
-					<q-skeleton type="QInput" v-if="isLoading" class="q-mr-sm" />
-					<span class="text-subtitle1 ">{{ me?.username }}</span>
-					<q-skeleton type="QAvatar" dense v-if="isLoading" class="q-mr-sm" />
-					<q-avatar v-if="!isLoading" size="md">
-						<img :src="me?.avatar" >
-					</q-avatar>
+		<q-header class="bg-transparent flex justify-center" height-hint="98">
+			<MCard class="" style="width: 80%;" >
+				<MCardHeader dense class="row">
+					<div class="q-gutter-sm flex items-center">
+						<span class="text-subtitle1 text-mafia">Mafia</span>
+						<q-btn flat dense icon="fa-brands fa-github" color="grey-6" rounded size="sm" target="_blank" href="https://github.com/JacksonBowe/mafia" />
+					</div>
 
-				</div>
-			</q-toolbar>
+					<q-space />
+					<div class="q-gutter-sm flex items-cente">
+						<q-skeleton v-if="isLoading" type="rect" dark class="q-mr-sm" width="100px" />
+						<span v-else class="text-subtitle1 q-mr-sm">{{ me?.username }}</span>
+
+						<q-skeleton v-if="isLoading" type="QAvatar" dense size="24px" dark  class="q-mr-sm" />
+						<q-avatar v-else size="sm" class="">
+							<img :src="me?.avata || 'https://cdn.quasar.dev/img/boy-avatar.png'" alt ="Avatar" >
+						</q-avatar>
+
+					</div>
+				</MCardHeader>
+			</MCard>
 		</q-header>
 
 		<q-page-container>
@@ -32,9 +38,12 @@
 
 <script setup lang="ts">
 import AdminFab from 'src/components/AdminFab.vue';
+import { MCard, MCardHeader } from 'src/components/ui/card';
 import { useMe } from 'src/composables';
 
-const { data: me, isLoading } = useMe()
+const { data: me } = useMe()
+
+const isLoading = false
 </script>
 
 <style scoped>
@@ -44,26 +53,4 @@ const { data: me, isLoading } = useMe()
 	width: 100%;
 	z-index: 0;
 }
-
-.toolbar {
-	background: rgba(4, 6, 17, 0.6);
-	/* Light semi-transparent color */
-	backdrop-filter: blur(5px);
-	/* Add blur effect */
-	-webkit-backdrop-filter: blur(5px);
-	/* For Safari */
-}
-
-.toolbar::after {
-	content: '';
-	position: absolute;
-	top: -10px;
-	left: -10px;
-	right: -10px;
-	bottom: 0px;
-	box-shadow: 0 0 10px 10px rgba(4, 6, 17, 0.6);
-	/* Adjust glow color and intensity */
-	z-index: -1;
-}
 </style>
-src/composables/mesrc/composables/useMe

@@ -1,6 +1,6 @@
 <template>
 	<MCard class="column">
-		<MCardHeader dense >
+		<MCardHeader denser >
 			Players
 		</MCardHeader>
 		<q-separator color="primary" inset />

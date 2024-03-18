@@ -7,10 +7,18 @@
 			</q-fab>
 
 			<!-- USERS -->
+			<q-fab color="orange" label="Users" direction="up" padding="xs" >
+				<q-fab-action label="Terminate all" @click="() => { }" hide-icon color="red" padding="none" />
+			</q-fab>
 		</q-fab>
 	</q-page-sticky>
 </template>
 
 <script setup lang="ts">
+// import { api } from 'src/boot/axios';
 import { terminateAllLobbies } from 'src/api/lobby';
+
+// const seedLobbies = async () => {
+
+// };
 </script>
