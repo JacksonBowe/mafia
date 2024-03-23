@@ -25,7 +25,7 @@ def test_create_lobby_success(infra):
         "rawPath": "/lobbies",
         "body": json.dumps(
             {
-                "lobbyName": "TestLobby",
+                "name": "TestLobby",
             }
         ),
         "requestContext": {
