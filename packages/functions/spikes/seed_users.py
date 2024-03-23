@@ -1,14 +1,14 @@
 import os
-if os.getenv('IS_LOCAL'):
+
+if os.getenv("IS_LOCAL"):
     import sys
+
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    
+
 from core.tables import UserTable
-
-from core.controllers import LobbyController
-
 from core.utils import Dynamo
-    
+
+
 def handler(event, context):
     for i in range(1, 16):
         user = UserTable.Entities.User(
@@ -17,13 +17,10 @@ def handler(event, context):
             username=f"User {i}",
             provider="seed",
             avatar="https://cdn.quasar.dev/img/boy-avatar.png",
-            lastLogin=Dynamo.timestamp()
+            lastLogin=Dynamo.timestamp(),
         )
-        
-        UserTable.table.put_item(
-            Item=user.serialize()
-        )
-        
-        print('Seeded user', i)
+
+        UserTable.table.put_item(Item=user.serialize())
+
+        print("Seeded user", i)
     return event
- 

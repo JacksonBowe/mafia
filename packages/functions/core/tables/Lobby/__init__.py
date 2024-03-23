@@ -1,46 +1,49 @@
 from __future__ import annotations
+
 import os
-import boto3
-from enum import Enum
 from abc import ABC, abstractmethod
-from typing import Optional, List, Self, Mapping, Any
-from aws_lambda_powertools.utilities.parser import BaseModel, ValidationError, Field
+from enum import Enum
+from typing import Any, Mapping, Self
+
+import boto3
+from aws_lambda_powertools.utilities.parser import BaseModel
 from core.utils import collapse_dict
 
-
-table_name = os.environ.get('SST_TABLE_TABLENAME_LOBBYTABLE')
+table_name = os.environ.get("SST_TABLE_TABLENAME_LOBBYTABLE")
 if table_name:
-    ddb = boto3.resource('dynamodb')
+    ddb = boto3.resource("dynamodb")
     table = ddb.Table(table_name)
 
 
 class Indexes(Enum):
-    ITEMS_BY_TYPE = 'itemsByType'
+    ITEMS_BY_TYPE = "itemsByType"
+
 
 class EntityType(Enum):
-    LOBBY = 'LOBBY'
-    LOBBY_USER = 'LOBBY_USER'
-  
+    LOBBY = "LOBBY"
+    LOBBY_USER = "LOBBY_USER"
+
+
 class Entities:
     class BaseEntity(BaseModel, ABC):
         id: str
         type: EntityType
         createdAt: int
         _updated_attributes: dict = dict()
-        
+
         class ConfigDict:
             validate_assignment = True
-        
+
         @property
         @abstractmethod
         def PK(self) -> str:
             pass
-        
+
         @property
         @abstractmethod
         def SK(self) -> str:
             pass
-        
+
         def _update_attribute(self, current_object, attribute_parts, value):
             """
             Helper method to recursively update an attribute with a given value.
@@ -59,7 +62,7 @@ class Entities:
                     # Otherwise, use setattr for class instances
                     setattr(current_object, attribute_parts[0], value)
                 else:
-                    raise Exception(f'Unsupported update type: {current_object}')
+                    raise Exception(f"Unsupported update type: {current_object}")
             else:
                 # Move deeper into the nested structure
                 nested_object = getattr(current_object, attribute_parts[0], None)
@@ -81,53 +84,52 @@ class Entities:
             """
             values = collapse_dict(values)
             for key, value in values.items():
-                attribute_parts = key.split('.')
+                attribute_parts = key.split(".")
                 # Start the recursive update from the current instance
                 self._update_attribute(self, attribute_parts, value)
                 # Keep track of updated attributes
                 self._updated_attributes[key] = value
-            
-        
+
         def serialize(self) -> dict:
             raw = self.model_dump(exclude_none=True)
-            raw['PK'] = self.PK
-            raw['SK'] = self.SK
-            raw['type'] = self.type.value
-            
+            raw["PK"] = self.PK
+            raw["SK"] = self.SK
+            raw["type"] = self.type.value
+
             return raw
-        
+
         @classmethod
         def deserialize(cls, data: dict) -> Self:
-            [data.pop(key) for key in ['PK', 'SK']]
-            return cls(**data)   
+            [data.pop(key) for key in ["PK", "SK"]]
+            return cls(**data)
 
     class Lobby(BaseEntity):
         host: LobbyHost
         config: str
         name: str
         type: EntityType = EntityType.LOBBY
-        
+
         class LobbyHost(BaseModel):
             id: str
             username: str
-            
+
         @property
         def PK(self):
             return self.id
-        
+
         @property
         def SK(self):
-            return 'A'
-        
+            return "A"
+
     class LobbyUser(BaseEntity):
         username: str
         lobbyId: str
         type: EntityType = EntityType.LOBBY_USER
-        
+
         @property
         def PK(self):
             return self.lobbyId
-        
+
         @property
         def SK(self):
             return f"LU#{self.id}"

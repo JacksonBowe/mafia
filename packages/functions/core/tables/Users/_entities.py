@@ -1,33 +1,36 @@
 from __future__ import annotations
-from pydantic import BaseModel, ValidationError
+
 from abc import ABC, abstractmethod
-from typing import Optional, List, Self
 from enum import Enum
+from typing import List, Optional, Self
 
 from core.utils import collapse_dict
+from pydantic import BaseModel
+
 
 class EntityType(Enum):
-    USER = 'USER'
+    USER = "USER"
+
 
 class Entity(BaseModel, ABC):
     id: str
     type: EntityType
     createdAt: int
     _updated_attributes: dict = dict()
-    
+
     class ConfigDict:
         validate_assignment = True
-    
+
     @property
     @abstractmethod
     def PK(self) -> str:
         pass
-    
+
     @property
     @abstractmethod
     def SK(self) -> str:
         pass
-    
+
     def _update_attribute(self, current_object, attribute_parts, value):
         """
         Helper method to recursively update an attribute with a given value.
@@ -46,7 +49,7 @@ class Entity(BaseModel, ABC):
                 # Otherwise, use setattr for class instances
                 setattr(current_object, attribute_parts[0], value)
             else:
-                raise Exception(f'Unsupported update type: {current_object}')
+                raise Exception(f"Unsupported update type: {current_object}")
         else:
             # Move deeper into the nested structure
             nested_object = getattr(current_object, attribute_parts[0], None)
@@ -68,26 +71,26 @@ class Entity(BaseModel, ABC):
         """
         values = collapse_dict(values)
         for key, value in values.items():
-            attribute_parts = key.split('.')
+            attribute_parts = key.split(".")
             # Start the recursive update from the current instance
             self._update_attribute(self, attribute_parts, value)
             # Keep track of updated attributes
             self._updated_attributes[key] = value
-        
-    
+
     def serialize(self) -> dict:
         raw = self.model_dump(exclude_none=True)
-        raw['PK'] = self.PK
-        raw['SK'] = self.SK
-        raw['type'] = self.type.value
-        
+        raw["PK"] = self.PK
+        raw["SK"] = self.SK
+        raw["type"] = self.type.value
+
         return raw
-    
+
     @classmethod
     def deserialize(cls, data: dict) -> Self:
-        [data.pop(key) for key in ['PK', 'SK']]
+        [data.pop(key) for key in ["PK", "SK"]]
         return cls(**data)
-    
+
+
 class User(Entity):
     type: EntityType = EntityType.USER
     username: str
@@ -97,13 +100,11 @@ class User(Entity):
     game: Optional[str] = None
     roles: Optional[List[str]] = None
     lastLogin: int = None
-    
+
     @property
     def PK(self):
         return self.id
-    
+
     @property
     def SK(self):
-        return 'A'
-    
-    
+        return "A"

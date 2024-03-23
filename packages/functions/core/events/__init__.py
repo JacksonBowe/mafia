@@ -1,19 +1,18 @@
-import os
-import json
-
 import inspect
+import os
 from pathlib import Path
 
 import boto3
-
 from aws_lambda_powertools import Logger
 from pydantic import BaseModel, ValidationError
 
 logger = Logger()
-eb = boto3.client('events')
+eb = boto3.client("events")
+
 
 class Event:
     event_name: str
+
     class Properties(BaseModel):
         pass
 
@@ -24,10 +23,12 @@ class Event:
             return eb.put_events(
                 Entries=[
                     {
-                        'Source': Path(inspect.stack()[1][1]).__str__(), # Resolves to the file that triggered the event
-                        'DetailType': cls.event_name,
-                        'Detail': validated_data,
-                        'EventBusName': os.environ['EVENT_BUS_NAME']
+                        "Source": Path(
+                            inspect.stack()[1][1]
+                        ).__str__(),  # Resolves to the file that triggered the event
+                        "DetailType": cls.event_name,
+                        "Detail": validated_data,
+                        "EventBusName": os.environ["EVENT_BUS_NAME"],
                     }
                 ]
             )
