@@ -154,7 +154,6 @@ def get_lobbies(with_users: bool=False) -> List[LobbyTable.Entities.Lobby] | Lis
     return lobbies
 
 def get_lobby_users(lobby_id: str) -> List[LobbyTable.Entities.LobbyUser]:
-    print('Here')
     try:
         items = LobbyTable.table.query(
             KeyConditionExpression='#pk=:pk and begins_with(#sk, :sk)',
@@ -211,6 +210,61 @@ def delete_lobby(lobby: LobbyTable.Entities.Lobby):
 # def grant_host(lobby: Lobby, user: LobbyUser) -> None:
 #     pass
 
+def add_user_to_lobby(user: UserTable.Entities.User, lobby: LobbyTable.Entities.Lobby) -> None:
+    try:
+        user.update({ 'lobby': lobby.id })
+    except ValidationError as e:
+        raise InternalServerError(f"Error updating user. {str(e)}") from e
+    
+    lobby_user = LobbyTable.Entities.LobbyUser(
+        id=user.id,
+        createdAt=Dynamo.timestamp(),
+        username=user.username,
+        lobbyId=lobby.id
+    )
+    
+    
+    # Update the User
+    expr, names, vals = Dynamo.build_update_expression(user._updated_attributes)
+    
+    try:
+        # Transaction to delete LobbyUser and update User
+        transaction = ddb_client.transact_write_items(
+            TransactItems=[
+                {
+                    'Put': {
+                        'Item': Dynamo.serialize(lobby_user.serialize()),
+                        'TableName': LobbyTable.table_name
+                    },
+                },{
+                    'Update': {
+                        'Key': Dynamo.serialize({
+                            'PK': user.PK,
+                            'SK': user.SK
+                        }),
+                        'UpdateExpression': expr,
+                        'ExpressionAttributeNames': names,
+                        'ExpressionAttributeValues': Dynamo.serialize(vals),
+                        'TableName': UserTable.table_name
+                    }
+                }
+            ]
+        )
+    except ddb_client.exceptions.TransactionCanceledException as e:
+        logger.exception(f"Leave lobby failed transaction. {e.response['CancellationReasons']}")
+        raise InternalServerError(f"Leave lobby failed transaction. {e.response['CancellationReasons']}")
+    except ClientError as e:
+        logger.error(f"Error in DynamoDB operation: {e}")
+        raise InternalServerError(f"Error in DynamoDB operation: {e}")
+    
+    # Raise user join event
+    # Events.UserJoin.publish({
+    #     'user_id': user.id,
+    #     'lobby': lobby
+    # })
+    
+    return lobby
+
 def remove_user_from_lobby(user: UserTable.Entities.User, lobby: LobbyTable.Entities.Lobby):
     try:
         user.update({ 'lobby': None })
@@ -223,6 +277,7 @@ def remove_user_from_lobby(user: UserTable.Entities.User, lobby: LobbyTable.Enti
     # Update the User
     expr, names, vals = Dynamo.build_update_expression(user._updated_attributes)
     print(expr, names, vals)
+    
     try:
         # Transaction to delete LobbyUser and update User
         transaction = ddb_client.transact_write_items(

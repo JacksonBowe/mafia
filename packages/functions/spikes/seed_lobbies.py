@@ -30,7 +30,8 @@ def handler(event, context):
 
             print('Seeded lobby', i)
         else:
-            pass
+            
+            LobbyController.add_user_to_lobby(user, random.choice(lobbies))
         
     return event
  
