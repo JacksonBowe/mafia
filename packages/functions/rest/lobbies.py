@@ -7,7 +7,7 @@ if os.getenv("IS_LOCAL"):
 
 from typing import Optional, Union
 
-import core.tables.Lobby as LobbyTable
+from core.tables import LobbyTable
 from aws_lambda_powertools import Logger
 from aws_lambda_powertools.event_handler import APIGatewayHttpResolver
 from aws_lambda_powertools.event_handler.exceptions import (

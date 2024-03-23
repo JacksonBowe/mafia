@@ -2,7 +2,7 @@ import json
 from typing import List
 
 import boto3
-import core.tables.Lobby as LobbyTable
+from core.tables import LobbyTable
 from aws_lambda_powertools import Logger
 from aws_lambda_powertools.event_handler.exceptions import (
     InternalServerError,

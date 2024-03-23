@@ -5,7 +5,7 @@ from tests.conftest import lambda_context
 
 def test_create_lobby_success(infra):
     # Create User
-    import core.tables.Users as UserTable
+    from core.tables import UserTable
 
     user = UserTable.Entities.User(
         id="1234-test-user",

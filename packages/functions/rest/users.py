@@ -8,7 +8,7 @@ if os.getenv("IS_LOCAL"):
 from aws_lambda_powertools.event_handler import APIGatewayHttpResolver
 from aws_lambda_powertools.event_handler.exceptions import BadRequestError
 from core.controllers import UserController
-from core.tables import Users as UserTable
+from core.tables import UserTable
 
 app = APIGatewayHttpResolver(enable_validation=True)
 

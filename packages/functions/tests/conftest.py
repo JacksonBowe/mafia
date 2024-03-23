@@ -124,68 +124,12 @@ def infra(user_table, lobby_table):
 
 
 # @pytest.fixture(autouse=True)
-# def print_test_name(request: pytest.FixtureRequest):
-#     print(f"\nRunning test: {request.node.name}")
-
-
-# @pytest.fixture(autouse=True)
-# def print_test_name(request):
-#     print(f"\nRunning test: {request.node.name}")
-#     start_time = time.time()
-
-#     def fin():
-#         end_time = time.time()
-#         duration = end_time - start_time
-#         outcome = "Passed" if request.node.outcome == "passed" else "Failed"
-#         print(f"Test {request.node.name} - {outcome} ({duration:.2f} seconds)")
-
-#     request.addfinalizer(fin)
-
-# def pytest_terminal_summary(terminalreporter):
-#     passed_tests = [i for i in terminalreporter.stats.get('passed', [])]
-#     failed_tests = [i for i in terminalreporter.stats.get('failed', [])]
-#     print(f"\nPassed tests: {len(passed_tests)}")
-#     for test in passed_tests:
-#         print(test.nodeid)
-#     print(f"\nFailed tests: {len(failed_tests)}")
-#     for test in failed_tests:
-#         print(test.nodeid)
-
-# @pytest.fixture(autouse=True)
 # def seed_user_table(infra):
-#     from core.utils import Dynamo
-#     import core.tables.Users as UserTable
-
-#     for i in range(15):
-#         # print(f"Seeding user {i}")
-#         UserTable.table.put_item(
-#             Item=UserTable.entities.User(
-#                 id=Dynamo.new_id(),
-#                 createdAt=Dynamo.timestamp(),
-#                 username=f"TestUser-{i}",
-#                 provider="discord",
-#                 avatar="avatar",
-#                 lastLogin=Dynamo.timestamp(),
-#             ).serialize()
-#         )
+#     pass
 
 # @pytest.fixture(autouse=True)
 # def seed_lobby_table(infra):
-#     from core.utils import Dynamo
-#     import core.tables.Lobby as LobbyTable
-
-#     for i in range(15):
-#         # print(f"Seeding user {i}")
-#         LobbyTable.table.put_item(
-#             Item=UserTable.entities.User(
-#                 id=Dynamo.new_id(),
-#                 createdAt=Dynamo.timestamp(),
-#                 username=f"TestUser-{i}",
-#                 provider="discord",
-#                 avatar="avatar",
-#                 lastLogin=Dynamo.timestamp(),
-#             ).serialize()
-#         )
+#     pass
 
 
 @pytest.fixture

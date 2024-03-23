@@ -1,7 +1,8 @@
-import core.utils.config as Config
-import core.utils.dynamo as Dynamo
+import core.utils.config as Config  # noqa: F401
+import core.utils.dynamo as Dynamo  # noqa: F401
 
-def collapse_dict(d, parent_key='', sep='.'):
+
+def collapse_dict(d, parent_key="", sep="."):
     """
     Collapse a nested dictionary into dot notation.
 
