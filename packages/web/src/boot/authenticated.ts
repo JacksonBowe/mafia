@@ -7,7 +7,11 @@ export default boot(async ({ router }) => {
 	const aStore = useAuthStore();
 
 	router.beforeEach(async (to, from, next) => {
-		if (from.path === '/' && to.path !== '/auth' && aStore.refreshToken) {
+		if (
+			from.path === '/' &&
+			!to.path.startsWith('/auth') &&
+			aStore.refreshToken
+		) {
 			console.log('Attempting to refresh');
 			try {
 				const tokens = await refreshSession(aStore.refreshToken);
