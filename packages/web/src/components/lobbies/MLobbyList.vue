@@ -3,18 +3,29 @@
 		<q-scroll-area class="full-height">
 			<q-list class="">
 				<m-lobby-item
-				  v-for="lobby, index in lobbies" :key="lobby.id"
-				  class="q-ma-xs"
-				  :lobby="lobby"
-				  :index="index"
-				  dense
-				  clickable
-				  @click="lStore.setSelectedLobbyId(lobby.id)"
-				  :selected="lobby.id === lStore.selectedLobbyId"
+					v-for="(lobby, index) in lobbies"
+					:key="lobby.id"
+					class="q-ma-xs"
+					:lobby="lobby"
+					:index="index"
+					dense
+					clickable
+					:selected="lobby.id === lStore.selectedLobbyId"
+					:disable="isFetching"
+					@click="lStore.setSelectedLobbyId(lobby.id)"
 				/>
 			</q-list>
-			<q-btn class="absolute-bottom-right q-ma-sm" fab-mini @click="refreshLobbies" :loading="isFetching" push glossy icon="refresh" color="secondary" padding="xs"></q-btn>
-
+			<q-btn
+				class="absolute-bottom-right q-ma-sm"
+				fab-mini
+				:loading="isFetching"
+				push
+				glossy
+				icon="refresh"
+				color="secondary"
+				padding="xs"
+				@click="refreshLobbies"
+			></q-btn>
 		</q-scroll-area>
 	</MCard>
 </template>
@@ -33,7 +44,6 @@ const lStore = useLobbyStore();
 const { data: lobbies, isFetching } = useLobbies();
 
 const refreshLobbies = () => {
-	queryClient.invalidateQueries('lobbies');
+	queryClient.invalidateQueries({ queryKey: ['lobbies'] });
 };
-
 </script>

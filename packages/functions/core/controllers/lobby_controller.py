@@ -2,7 +2,6 @@ import json
 from typing import List
 
 import boto3
-from core.tables import LobbyTable
 from aws_lambda_powertools import Logger
 from aws_lambda_powertools.event_handler.exceptions import (
     InternalServerError,
@@ -10,7 +9,7 @@ from aws_lambda_powertools.event_handler.exceptions import (
 )
 from botocore.exceptions import BotoCoreError, ClientError
 from core.events import Event
-from core.tables import UserTable
+from core.tables import LobbyTable, UserTable
 from core.utils import Dynamo
 from pydantic import BaseModel, ValidationError
 
@@ -169,7 +168,6 @@ def get_lobby_users(lobby_id: str) -> List[LobbyTable.Entities.LobbyUser]:
             ExpressionAttributeNames={"#pk": "PK", "#sk": "SK"},
             ExpressionAttributeValues={":pk": lobby_id, ":sk": "LU"},
         ).get("Items", [])
-        print("items", items)
     except BotoCoreError as e:
         logger.error(str(e))
         raise InternalServerError(f"Error in DynamoDB operation: {e}")
