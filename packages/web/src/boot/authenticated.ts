@@ -7,6 +7,9 @@ export default boot(async ({ router }) => {
 	const aStore = useAuthStore();
 
 	router.beforeEach(async (to, from, next) => {
+		if (to.path === '/') {
+			next('/auth');
+		}
 		if (
 			from.path === '/' &&
 			!to.path.startsWith('/auth') &&
