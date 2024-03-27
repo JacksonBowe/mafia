@@ -1,10 +1,10 @@
 <template>
 	<MCard class="text-white column">
-		<MCardHeader denser>
+		<MCardHeader dense :denser="$q.screen.lt.md">
 			<q-tabs
 				v-model="tab"
 				active-class="active-tab"
-				dense
+				:dense="$q.screen.lt.md"
 				animated
 				no-caps
 				align="justify"

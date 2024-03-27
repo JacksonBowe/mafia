@@ -1,13 +1,18 @@
 <template>
 	<MCard class="column">
-		<MCardHeader denser >
-			Players
-		</MCardHeader>
+		<MCardHeader denser> Players </MCardHeader>
 		<q-separator color="primary" inset />
-		<MCardContent class="col row q-py-xs" v-if="selectedLobby?.users?.length">
-			<MLobbyPreviewUsersList :users="selectedLobby?.users?.slice(0, 8)" />
+		<MCardContent
+			v-if="selectedLobby?.users?.length"
+			class="col row q-py-xs"
+		>
+			<MLobbyPreviewUsersList
+				:users="selectedLobby?.users?.slice(0, 8)"
+			/>
 			<q-separator vertical color="accent" class="q-mx-sm" inset />
-			<MLobbyPreviewUsersList :users="selectedLobby?.users?.slice(8, 15)" />
+			<MLobbyPreviewUsersList
+				:users="selectedLobby?.users?.slice(8, 15)"
+			/>
 		</MCardContent>
 	</MCard>
 </template>
@@ -18,7 +23,6 @@ import { MCard, MCardHeader, MCardContent } from '../ui/card';
 import MLobbyPreviewUsersList from './MLobbyPreviewUsersList.vue';
 
 import { useSelectedLobby } from 'src/composables';
-
 
 const selectedLobby = useSelectedLobby();
 </script>

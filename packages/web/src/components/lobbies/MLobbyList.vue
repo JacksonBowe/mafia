@@ -8,7 +8,7 @@
 					class="q-ma-xs"
 					:lobby="lobby"
 					:index="index"
-					dense
+					:dense="$q.screen.lt.md"
 					clickable
 					:selected="lobby.id === lStore.selectedLobbyId"
 					:disable="isFetching"
