@@ -47,3 +47,8 @@ export const hostLobby = async (props: HostLobbyProps): Promise<Lobby> => {
 	const r = await api.post('/lobbies', payload);
 	return r.data;
 };
+
+/* JOIN LOBBY */
+const JoinLobbyPropsSchema = z.object({
+	lobbyId: z.string(),
+});

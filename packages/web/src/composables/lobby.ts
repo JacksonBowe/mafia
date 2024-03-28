@@ -18,6 +18,7 @@ export const mutHostLobby = () => {
 		mutationFn: hostLobby,
 		onSuccess: () => {
 			console.log('Host success');
+			// TODO: Invalidate or update useMe
 		},
 		onError: () => {
 			console.log('Host error');
@@ -37,4 +38,16 @@ export const useSelectedLobby = () => {
 	});
 
 	return selectedLobby;
+};
+
+export const mutJoinLobby = () => {
+	return useMutation({
+		mutationFn: joinLobby,
+		onSuccess: () => {
+			console.log('Join Success');
+		},
+		onError: () => {
+			console.log('Join Error');
+		},
+	});
 };

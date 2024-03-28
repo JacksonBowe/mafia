@@ -70,6 +70,14 @@ def get_lobby(
     return lobby
 
 
+@app.post("/lobbies/<lobby_id>/join")
+def join_lobby(lobby_id):
+    user_id = app.current_event.request_context.authorizer.get_lambda["CallerID"]
+    user = UserController.get_user_by_id(user_id)
+    lobby = LobbyController.get_lobby_by_id(lobby_id)
+    return LobbyController.add_user_to_lobby(user, lobby)
+
+
 @app.post("/lobbies/leave")
 def leave_lobby():
     # Verify User

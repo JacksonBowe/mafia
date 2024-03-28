@@ -8,7 +8,7 @@ from moto import mock_aws
 # Provision mock infrastructure
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="session")
 def environment():
     """Mocked Environment Variables for moto."""
     # AWS
@@ -30,7 +30,7 @@ def aws(environment):
         yield
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def secrets(aws):
     ssm = boto3.client("ssm")
 
@@ -45,7 +45,7 @@ def secrets(aws):
     yield
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def user_table(aws):
     # Set up the mock DynamoDB table
     dynamodb = boto3.resource("dynamodb", region_name="ap-southeast-2")
@@ -73,7 +73,7 @@ def user_table(aws):
     return table
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def lobby_table(aws):
     # Set up the mock DynamoDB table
     dynamodb = boto3.resource("dynamodb", region_name="ap-southeast-2")
@@ -119,7 +119,21 @@ def lobby_table(aws):
 
 
 @pytest.fixture(scope="function")
-def infra(user_table, lobby_table):
+def event_bus(aws):
+    client = boto3.client("events", region_name="ap-southeast-2")
+
+    response = client.create_event_bus(Name="bus")
+
+    # List event buses to verify that 'test-bus' was created
+    response = client.list_event_buses()
+
+    assert "bus" in str(response), "Event bus not created"
+
+    os.environ["EVENT_BUS_NAME"] = "bus"
+
+
+@pytest.fixture(scope="function")
+def infra(user_table, lobby_table, event_bus):
     return
 
 

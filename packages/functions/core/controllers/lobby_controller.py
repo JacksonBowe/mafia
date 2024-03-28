@@ -30,6 +30,13 @@ class LobbyWithUsers(LobbyTable.Entities.Lobby):
 
 
 class Events:
+    class UserJoin(Event):
+        event_name = "lobby.user_join"
+
+        class Properties(BaseModel):
+            user: UserTable.Entities.User
+            lobby: LobbyTable.Entities.Lobby
+
     class UserLeave(Event):
         event_name = "lobby.user_leave"
 
@@ -267,10 +274,7 @@ def add_user_to_lobby(
         raise InternalServerError(f"Error in DynamoDB operation: {e}")
 
     # Raise user join event
-    # Events.UserJoin.publish({
-    #     'user_id': user.id,
-    #     'lobby': lobby
-    # })
+    Events.UserJoin.publish({"user": user, "lobby": lobby})
 
     return lobby
 
