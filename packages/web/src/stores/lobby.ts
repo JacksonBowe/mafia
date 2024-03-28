@@ -11,5 +11,8 @@ export const useLobbyStore = defineStore('lobby', {
 		setSelectedLobbyId(lobbyId: string) {
 			this.selectedLobbyId = lobbyId;
 		},
+		clearSelectedLobbyId() {
+			this.selectedLobbyId = '';
+		},
 	},
 });

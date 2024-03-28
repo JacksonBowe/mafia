@@ -44,6 +44,7 @@ const lStore = useLobbyStore();
 const { data: lobbies, isFetching } = useLobbies();
 
 const refreshLobbies = () => {
+	lStore.clearSelectedLobbyId();
 	queryClient.invalidateQueries({ queryKey: ['lobbies'] });
 };
 </script>

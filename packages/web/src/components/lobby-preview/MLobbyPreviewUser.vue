@@ -1,5 +1,5 @@
 <template>
-	<q-item v-if="user.username" clickable style="padding: 0px">
+	<q-item v-if="user.username" style="padding: 0px">
 		<q-item-section>
 			<q-item-label class="ellipsis content-center flex">
 				<q-icon

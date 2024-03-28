@@ -9,6 +9,7 @@ export const useLobbies = () => {
 		queryKey: ['lobbies'],
 		queryFn: fetchLobbies,
 		retry: false,
+		staleTime: Infinity,
 	});
 };
 
