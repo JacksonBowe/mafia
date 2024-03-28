@@ -71,11 +71,12 @@ def get_lobby(
 
 
 @app.post("/lobbies/<lobby_id>/join")
-def join_lobby(lobby_id):
+def join_lobby(lobby_id) -> None:
     user_id = app.current_event.request_context.authorizer.get_lambda["CallerID"]
     user = UserController.get_user_by_id(user_id)
     lobby = LobbyController.get_lobby_by_id(lobby_id)
-    return LobbyController.add_user_to_lobby(user, lobby)
+    LobbyController.add_user_to_lobby(user, lobby)
+    return
 
 
 @app.post("/lobbies/leave")

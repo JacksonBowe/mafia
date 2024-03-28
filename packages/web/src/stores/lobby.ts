@@ -3,6 +3,8 @@ import { defineStore } from 'pinia';
 export const useLobbyStore = defineStore('lobby', {
 	state: () => ({
 		selectedLobbyId: '',
+		joinLobbyPending: false,
+		leaveLobbyPending: false,
 	}),
 
 	getters: {},
@@ -13,6 +15,18 @@ export const useLobbyStore = defineStore('lobby', {
 		},
 		clearSelectedLobbyId() {
 			this.selectedLobbyId = '';
+		},
+		setJoinLobbyPending() {
+			this.joinLobbyPending = true;
+		},
+		clearJoinLobbyPending() {
+			this.joinLobbyPending = false;
+		},
+		setLeaveLobbyPending() {
+			this.leaveLobbyPending = true;
+		},
+		clearLeaveLobbyPending() {
+			this.leaveLobbyPending = false;
 		},
 	},
 });

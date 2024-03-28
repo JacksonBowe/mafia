@@ -1,8 +1,9 @@
 import { computed } from 'vue';
 
-import { useQuery, useMutation } from '@tanstack/vue-query';
-import { fetchLobbies, hostLobby } from 'src/api/lobby';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query';
+import { fetchLobbies, hostLobby, joinLobby, leaveLobby } from 'src/api/lobby';
 import { useLobbyStore } from 'src/stores/lobby';
+import { User } from 'src/api/users';
 
 export const useLobbies = () => {
 	return useQuery({
@@ -41,13 +42,66 @@ export const useSelectedLobby = () => {
 };
 
 export const mutJoinLobby = () => {
+	const queryClient = useQueryClient();
+	const lStore = useLobbyStore();
 	return useMutation({
 		mutationFn: joinLobby,
-		onSuccess: () => {
-			console.log('Join Success');
+		onMutate: () => {
+			lStore.setJoinLobbyPending();
 		},
-		onError: () => {
-			console.log('Join Error');
+		onSuccess: (data, variables) => {
+			console.log('Join Success');
+			queryClient.invalidateQueries({ queryKey: ['lobbies'] });
+
+			console.log('Variables', variables);
+			queryClient.setQueryData(['me'], (oldData: User) =>
+				oldData
+					? {
+							...oldData,
+							lobby: variables.lobbyId,
+					  }
+					: oldData
+			);
+		},
+		onError: (e) => {
+			console.error('Join Error', e);
+		},
+		onSettled: () => {
+			lStore.clearJoinLobbyPending();
+		},
+	});
+};
+
+export const mutLeaveLobby = () => {
+	const queryClient = useQueryClient();
+	const lStore = useLobbyStore();
+	return useMutation({
+		mutationFn: leaveLobby,
+		onMutate: () => {
+			console.log('Leave Mutate');
+			lStore.setLeaveLobbyPending();
+		},
+		onSuccess: () => {
+			console.log('Leave Success');
+			queryClient.invalidateQueries({ queryKey: ['lobbies'] });
+
+			queryClient.setQueryData(['me'], (oldData: User) =>
+				oldData
+					? {
+							...oldData,
+							lobby: null,
+					  }
+					: oldData
+			);
+
+			lStore.clearSelectedLobbyId();
+		},
+		onError: (e) => {
+			console.error('Leave Error', e);
+			queryClient.invalidateQueries({ queryKey: ['me'] });
+		},
+		onSettled: () => {
+			lStore.clearLeaveLobbyPending();
 		},
 	});
 };

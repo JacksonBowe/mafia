@@ -11,14 +11,14 @@
 					:dense="$q.screen.lt.md"
 					clickable
 					:selected="lobby.id === lStore.selectedLobbyId"
-					:disable="isFetching"
+					:disable="dataLoading || me?.lobby !== null"
 					@click="lStore.setSelectedLobbyId(lobby.id)"
 				/>
 			</q-list>
 			<q-btn
 				class="absolute-bottom-right q-ma-sm"
 				fab-mini
-				:loading="isFetching"
+				:loading="dataLoading"
 				push
 				glossy
 				icon="refresh"
@@ -35,13 +35,22 @@ import { useQueryClient } from '@tanstack/vue-query';
 import { useLobbyStore } from 'src/stores/lobby';
 import { MCard } from '../ui/card';
 import MLobbyItem from './MLobbyItem.vue';
-import { useLobbies } from 'src/composables';
+import { useLobbies, useMe } from 'src/composables';
+import { computed } from 'vue';
 
 const queryClient = useQueryClient();
 
 const lStore = useLobbyStore();
 
 const { data: lobbies, isFetching } = useLobbies();
+
+const dataLoading = computed(() => {
+	return (
+		isFetching.value || lStore.joinLobbyPending || lStore.leaveLobbyPending
+	);
+});
+
+const { data: me } = useMe();
 
 const refreshLobbies = () => {
 	lStore.clearSelectedLobbyId();
