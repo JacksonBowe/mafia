@@ -6,25 +6,25 @@ import { Site } from "./stacks/Site";
 import { Storage } from "./stacks/Storage";
 import { Events } from "./stacks/Events";
 import { Spikes } from "./stacks/Spikes";
-
+import { IoT } from "./stacks/IoT";
 
 export default {
 	config(_input) {
 		return {
-		name: "mafia",
-		region: "ap-southeast-2",
+			name: "mafia",
+			region: "ap-southeast-2",
 		};
 	},
-  	stacks(app) {
+	async stacks(app) {
 		app.setDefaultFunctionProps({
-		    runtime: "python3.12",
-            copyFiles: [{ from: 'packages/functions/core', to: 'core'}]
+			runtime: "python3.12",
+			copyFiles: [{ from: "packages/functions/core", to: "core" }],
 		});
 
-        
-	
-		app.stack(LambdaLayers).stack(Storage).stack(Events).stack(Auth).stack(API).stack(Site)
+		await app.stack(LambdaLayers).stack(Storage).stack(Events).stack(Auth).stack(API).stack(IoT);
 
-        app.stack(Spikes)
-  },
+		app.stack(Site);
+
+		app.stack(Spikes);
+	},
 } satisfies SSTConfig;

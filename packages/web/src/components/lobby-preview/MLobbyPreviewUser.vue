@@ -1,5 +1,5 @@
 <template>
-	<q-item v-if="user.username" style="padding: 0px">
+	<q-item v-if="user.username" style="padding: 0px" clickable @click="click">
 		<q-item-section>
 			<q-item-label class="ellipsis content-center flex">
 				<q-icon
@@ -17,8 +17,13 @@
 <script setup lang="ts">
 import type { LobbyUser } from 'src/api/lobby';
 
-defineProps<{
+const props = defineProps<{
 	user: LobbyUser;
 	isHost?: boolean;
 }>();
+
+const click = () => {
+	console.log('clicked');
+	window.navigator.clipboard.writeText(props.user.id);
+};
 </script>
