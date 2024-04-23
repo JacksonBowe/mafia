@@ -108,7 +108,7 @@ const IoT = {
 	},
 };
 
-export default boot(async ({ app }) => {
+export default boot(async () => {
 	// app.config.globalProperties.$IoT = IoT;
 });
 

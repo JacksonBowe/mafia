@@ -19,7 +19,7 @@ export default defineComponent({
 </script> -->
 
 <script setup lang="ts">
-import { authorizeDiscord } from 'src/api/auth';
+import { authorizeDiscord } from 'src/lib/api/auth';
 
 const login = async () => {
 	console.log('Redirecting to discord');
@@ -48,3 +48,4 @@ const login = async () => {
 	);
 }
 </style>
+src/lib/api/auth

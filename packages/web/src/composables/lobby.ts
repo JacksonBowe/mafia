@@ -1,9 +1,14 @@
 import { computed } from 'vue';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query';
-import { fetchLobbies, hostLobby, joinLobby, leaveLobby } from 'src/api/lobby';
+import {
+	fetchLobbies,
+	hostLobby,
+	joinLobby,
+	leaveLobby,
+} from 'src/lib/api/lobby';
 import { useLobbyStore } from 'src/stores/lobby';
-import { User } from 'src/api/users';
+import { User } from 'src/lib/api/user';
 
 export const useLobbies = () => {
 	return useQuery({

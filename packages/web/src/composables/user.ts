@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/vue-query';
-import { fetchMe } from '../api/users';
+import { fetchMe } from '../lib/api/user';
 
 export const useMe = () => {
 	return useQuery({

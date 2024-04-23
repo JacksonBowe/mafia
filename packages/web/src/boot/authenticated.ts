@@ -1,7 +1,7 @@
 import { boot } from 'quasar/wrappers';
 import { Notify } from 'quasar';
 import { useAuthStore } from 'src/stores/auth';
-import { refreshSession } from 'src/api/auth';
+import { refreshSession } from 'src/lib/api/auth';
 
 export default boot(async ({ router }) => {
 	const aStore = useAuthStore();

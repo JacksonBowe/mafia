@@ -16,7 +16,7 @@
 
 <script setup lang="ts">
 import MLobbyPreviewUser from './MLobbyPreviewUser.vue';
-import type { LobbyUser } from 'src/api/lobby';
+import type { LobbyUser } from 'src/lib/api/lobby';
 import { useSelectedLobby } from 'src/composables';
 
 const props = defineProps<{
@@ -33,3 +33,4 @@ const thumbStyle = {
 	opacity: '0.75',
 };
 </script>
+src/lib/api/lobby

@@ -15,7 +15,7 @@
 </template>
 
 <script setup lang="ts">
-import type { LobbyUser } from 'src/api/lobby';
+import type { LobbyUser } from 'src/lib/api/lobby';
 
 const props = defineProps<{
 	user: LobbyUser;
@@ -27,3 +27,4 @@ const click = () => {
 	window.navigator.clipboard.writeText(props.user.id);
 };
 </script>
+src/lib/api/lobby

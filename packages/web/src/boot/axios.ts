@@ -2,7 +2,7 @@ import { boot } from 'quasar/wrappers';
 import { Notify } from 'quasar';
 import axios, { AxiosInstance } from 'axios';
 import { useAuthStore } from 'src/stores/auth';
-import { refreshSession } from 'src/api/auth';
+import { refreshSession } from 'src/lib/api/auth';
 
 declare module '@vue/runtime-core' {
 	interface ComponentCustomProperties {
