@@ -5,10 +5,10 @@
 			<q-fab color="orange" label="Lobbies" direction="up" padding="xs">
 				<q-fab-action
 					label="Terminate all"
-					@click="terminateAllLobbies"
 					hide-icon
 					color="red"
 					padding="none"
+					@click="terminateAllLobbies"
 				/>
 			</q-fab>
 
@@ -16,10 +16,10 @@
 			<q-fab color="orange" label="Users" direction="up" padding="xs">
 				<q-fab-action
 					label="Terminate all"
-					@click="() => {}"
 					hide-icon
 					color="red"
 					padding="none"
+					@click="() => {}"
 				/>
 			</q-fab>
 		</q-fab>

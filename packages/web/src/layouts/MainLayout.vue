@@ -71,7 +71,7 @@
 import { IoT } from 'src/boot/iot';
 import AdminFab from 'src/components/AdminFab.vue';
 import { MCard, MCardHeader } from 'src/components/ui/card';
-import { useMe } from 'src/composables';
+import { useMe } from 'src/lib/composables';
 import { onUnmounted } from 'vue';
 
 const { data: me } = useMe();
@@ -98,3 +98,4 @@ const test = () => {
 	z-index: 0;
 }
 </style>
+src/lib/composables

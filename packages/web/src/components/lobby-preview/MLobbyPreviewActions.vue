@@ -22,18 +22,16 @@
 </template>
 
 <script setup lang="ts">
-import { useSelectedLobby, useMe } from 'src/composables';
+import { useSelectedLobby, useMe } from 'src/lib/composables';
 import { useLobbyStore } from 'src/stores/lobby';
 import { computed } from 'vue';
-import { mutJoinLobby, mutLeaveLobby } from 'src/composables';
+import { mutJoinLobby, mutLeaveLobby } from 'src/lib/composables';
 
 const { data: me } = useMe();
 const lStore = useLobbyStore();
 const selectedLobby = useSelectedLobby();
 
 const joinDisabled = computed(() => {
-	console.log(selectedLobby.value);
-	console.log(me.value?.lobby);
 	return !selectedLobby.value || me.value?.lobby !== null;
 });
 
@@ -61,3 +59,4 @@ const leaveLobby = () => {
 // 	console.log('Start lobby', me.value?.lobby);
 // };
 </script>
+src/lib/composablessrc/lib/composables

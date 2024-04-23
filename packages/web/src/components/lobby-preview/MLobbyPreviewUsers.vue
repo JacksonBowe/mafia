@@ -22,7 +22,8 @@ import { MCard, MCardHeader, MCardContent } from '../ui/card';
 
 import MLobbyPreviewUsersList from './MLobbyPreviewUsersList.vue';
 
-import { useSelectedLobby } from 'src/composables';
+import { useSelectedLobby } from 'src/lib/composables';
 
 const selectedLobby = useSelectedLobby();
 </script>
+src/lib/composables

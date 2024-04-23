@@ -1,7 +1,7 @@
 import { boot } from 'quasar/wrappers';
 import { mqtt, io, iot } from 'aws-iot-device-sdk-v2';
 import { useAuthStore } from 'src/stores/auth';
-import { useMe } from 'src/composables';
+import { useMe } from 'src/lib/composables';
 
 interface WebsocketMQTTArgs {
 	endpoint: string;

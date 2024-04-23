@@ -35,7 +35,7 @@ import { useQueryClient } from '@tanstack/vue-query';
 import { useLobbyStore } from 'src/stores/lobby';
 import { MCard } from '../ui/card';
 import MLobbyItem from './MLobbyItem.vue';
-import { useLobbies, useMe } from 'src/composables';
+import { useLobbies, useMe } from 'src/lib/composables';
 import { computed } from 'vue';
 
 const queryClient = useQueryClient();
@@ -57,3 +57,4 @@ const refreshLobbies = () => {
 	queryClient.invalidateQueries({ queryKey: ['lobbies'] });
 };
 </script>
+src/lib/composables
