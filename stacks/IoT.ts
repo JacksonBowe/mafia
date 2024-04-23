@@ -5,9 +5,14 @@ import { Storage } from "./Storage";
 import * as iot from "@aws-cdk/aws-iot-alpha";
 import * as actions from "@aws-cdk/aws-iot-actions-alpha";
 import * as iam from "aws-cdk-lib/aws-iam";
+import { Events } from "./Events";
 
 export async function IoT({ app, stack }: StackContext) {
 	const { userTable, lobbyTable } = use(Storage);
+	const { bus } = use(Events);
+
+	// IoT Base
+	const iotBase = `${app.name}/${app.stage}`;
 
 	// IoT Endpoint
 	let iotEndpoint = "";
@@ -29,7 +34,7 @@ export async function IoT({ app, stack }: StackContext) {
 				"iot:Receive",
 				// No publish permission
 			],
-			resources: [`arn:aws:iot:${stack.region}:${stack.account}:topic/${app.name}/${app.stage}/*`],
+			resources: [`*`],
 			effect: iam.Effect.ALLOW,
 		})
 	);
@@ -37,7 +42,7 @@ export async function IoT({ app, stack }: StackContext) {
 	// Disconnect Event
 	iotUser.addToPolicy(
 		new iam.PolicyStatement({
-			resources: [`arn:aws:iot:${stack.region}:${stack.account}:topic/${app.name}/${app.stage}/disconnect`],
+			resources: [`arn:aws:iot:${stack.region}:${stack.account}:topic/${iotBase}/disconnect`],
 			actions: ["iot:Publish"],
 			effect: iam.Effect.ALLOW,
 		})
@@ -53,8 +58,9 @@ export async function IoT({ app, stack }: StackContext) {
 				environment: {
 					APP_USER_TABLE_NAME: userTable.tableName,
 					APP_LOBBY_TABLE_NAME: lobbyTable.tableName,
+					EVENT_BUS_NAME: bus.eventBusName,
 				},
-				bind: [userTable, lobbyTable],
+				bind: [userTable, lobbyTable, bus],
 				permissions: ["iot:Publish"],
 			},
 		},
@@ -63,7 +69,7 @@ export async function IoT({ app, stack }: StackContext) {
 	const topicRule = new iot.TopicRule(stack, "IoTDisconnectRule", {
 		topicRuleName: `${app.name}_${app.stage}_iot_disconnect`,
 		description: "Handle IoT Core disconnect events",
-		sql: iot.IotSql.fromStringAsVer20160323(`SELECT * FROM '${app.name}/${app.stage}/disconnect'`),
+		sql: iot.IotSql.fromStringAsVer20160323(`SELECT * FROM '${iotBase}/disconnect'`),
 		actions: [new actions.SnsTopicAction(topic.cdk.topic)],
 	});
 
@@ -74,6 +80,7 @@ export async function IoT({ app, stack }: StackContext) {
 	return {
 		iotUser,
 		iotEndpoint,
+		iotBase,
 		topic,
 		topicRule,
 	};

@@ -8,7 +8,7 @@ export default boot(async ({ router }) => {
 
 	router.beforeEach(async (to, from, next) => {
 		if (to.path === '/') {
-			next('/auth');
+			return next('/auth');
 		}
 		if (
 			from.path === '/' &&
@@ -32,9 +32,9 @@ export default boot(async ({ router }) => {
 		}
 		if (!(to.meta.requiresAuth === false) && !aStore.isAuthenticated) {
 			console.log('Not authenticated');
-			next('/auth');
+			return next('/auth');
 		} else {
-			next();
+			return next();
 		}
 	});
 });

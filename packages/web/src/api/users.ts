@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { api } from 'boot/axios';
 
 const UserSchema = z.object({
+	id: z.string(),
 	type: z.string(),
 	username: z.string(),
 	provider: z.string(),

@@ -4,9 +4,9 @@ import * as iam from "aws-cdk-lib/aws-iam";
 import { API } from "./Api";
 import { IoT } from "./IoT";
 
-export function Site({ stack }: StackContext) {
+export function Site({ app, stack }: StackContext) {
 	const { api } = use(API);
-	const { iotUser, iotEndpoint } = use(IoT);
+	const { iotUser, iotEndpoint, iotBase } = use(IoT);
 
 	// Get the users access tokens
 	const accessKey = new iam.AccessKey(stack, "iotAccessKey", { user: iotUser });
@@ -18,8 +18,11 @@ export function Site({ stack }: StackContext) {
 		errorPage: "index.html",
 		environment: {
 			VITE_API_URL: api.url,
-			VITE_REGION: stack.region,
+			VITE_APP_NAME: app.name,
+			VITE_APP_STAGE: app.stage,
+			VITE_APP_REGION: app.region,
 			VITE_IOT_ENDPOINT: iotEndpoint,
+			VITE_IOT_BASE: iotBase,
 			VITE_IOT_ACCESS_KEY_ID: accessKey.accessKeyId,
 			VITE_IOT_SECRET_ACCESS_KEY: accessKey.secretAccessKey.toString(),
 		},
