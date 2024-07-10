@@ -1,5 +1,5 @@
 import { computed } from 'vue';
-
+import { IoT } from 'src/boot/iot';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query';
 import {
 	fetchLobbies,
@@ -20,14 +20,31 @@ export const useLobbies = () => {
 };
 
 export const mutHostLobby = () => {
+	const queryClient = useQueryClient();
+	const lStore = useLobbyStore();
 	return useMutation({
 		mutationFn: hostLobby,
-		onSuccess: () => {
+		onSuccess: (data) => {
 			console.log('Host success');
-			// TODO: Invalidate or update useMe
+			queryClient.invalidateQueries({ queryKey: ['lobbies'] });
+
+			console.log('Lobby', data);
+			queryClient.setQueryData(['me'], (oldData: User) =>
+				oldData
+					? {
+							...oldData,
+							lobby: data.id,
+					  }
+					: oldData
+			);
+
+			lStore.setSelectedLobbyId(data.id);
 		},
-		onError: () => {
-			console.log('Host error');
+		onError: (e) => {
+			console.error('Host error', e);
+		},
+		onSettled: () => {
+			lStore.clearJoinLobbyPending();
 		},
 	});
 };

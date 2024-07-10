@@ -6,5 +6,6 @@ export const useMe = () => {
 		queryKey: ['me'],
 		queryFn: fetchMe,
 		retry: false,
+		staleTime: Infinity,
 	});
 };

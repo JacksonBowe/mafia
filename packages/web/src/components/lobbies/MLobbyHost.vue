@@ -37,7 +37,6 @@ const submit = () => {
 	console.log(me.data);
 	console.log('submit');
 	let x = mutation.mutate({ name: name.value });
-	console.log(x);
 };
 </script>
 

@@ -26,4 +26,3 @@ import { useSelectedLobby } from 'src/lib/composables';
 
 const selectedLobby = useSelectedLobby();
 </script>
-src/lib/composables

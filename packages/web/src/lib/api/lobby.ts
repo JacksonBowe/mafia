@@ -52,9 +52,9 @@ export const hostLobby = async (props: HostLobbyProps): Promise<Lobby> => {
 const JoinLobbyPropsSchema = z.object({
 	lobbyId: z.string(),
 });
-export type JoinLobbyPrips = z.infer<typeof JoinLobbyPropsSchema>;
+export type JoinLobbyProps = z.infer<typeof JoinLobbyPropsSchema>;
 
-export const joinLobby = async (props: JoinLobbyPrips): Promise<Lobby> => {
+export const joinLobby = async (props: JoinLobbyProps): Promise<Lobby> => {
 	const payload = JoinLobbyPropsSchema.parse(props);
 	const r = await api.post(`/lobbies/${payload.lobbyId}/join`);
 	return r.data;
