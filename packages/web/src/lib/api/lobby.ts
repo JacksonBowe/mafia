@@ -30,7 +30,6 @@ export type Lobby = z.infer<typeof LobbySchema>;
 
 export const fetchLobbies = async (): Promise<Lobby[]> => {
 	const response = await api.get('/lobbies', { params: { users: true } });
-
 	return LobbySchema.array().parse(response.data);
 };
 

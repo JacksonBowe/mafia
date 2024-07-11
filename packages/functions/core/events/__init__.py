@@ -28,7 +28,7 @@ class Event:
                         ).__str__(),  # Resolves to the file that triggered the event
                         "DetailType": cls.event_name,
                         "Detail": validated_data,
-                        "EventBusName": os.environ["EVENT_BUS_NAME"],
+                        "EventBusName": os.environ["SST_EVENTBUS_EVENTBUSNAME_BUS"],
                     }
                 ]
             )

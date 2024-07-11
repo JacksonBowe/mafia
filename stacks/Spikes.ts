@@ -15,6 +15,11 @@ export function Spikes({ stack }: StackContext) {
 
 	const seedLobbies = new Function(stack, "SeedLobbies", {
 		handler: "packages/functions/spikes/seed_lobbies.handler",
-		bind: [userTable, lobbyTable],
+		bind: [userTable, lobbyTable, bus],
+	});
+
+	const userJoinLobby = new Function(stack, "UserJoinLobby", {
+		handler: "packages/functions/spikes/user_join_lobby.handler",
+		bind: [userTable, lobbyTable, bus],
 	});
 }

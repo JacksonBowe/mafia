@@ -59,4 +59,3 @@ const leaveLobby = () => {
 // 	console.log('Start lobby', me.value?.lobby);
 // };
 </script>
-src/lib/composablessrc/lib/composables

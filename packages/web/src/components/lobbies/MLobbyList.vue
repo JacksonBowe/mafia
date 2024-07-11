@@ -19,6 +19,7 @@
 				class="absolute-bottom-right q-ma-sm"
 				fab-mini
 				:loading="dataLoading"
+				:disabled="lStore.lobbyActionPending"
 				push
 				glossy
 				icon="refresh"
@@ -57,4 +58,3 @@ const refreshLobbies = () => {
 	queryClient.invalidateQueries({ queryKey: ['lobbies'] });
 };
 </script>
-src/lib/composables

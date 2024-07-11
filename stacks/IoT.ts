@@ -56,7 +56,7 @@ export async function IoT({ app, stack }: StackContext) {
 		defaults: {
 			function: {
 				environment: {
-					APP_USER_TABLE_NAME: userTable.tableName,
+					// APP_USER_TABLE_NAME: userTable.tableName,
 					APP_LOBBY_TABLE_NAME: lobbyTable.tableName,
 					EVENT_BUS_NAME: bus.eventBusName,
 				},

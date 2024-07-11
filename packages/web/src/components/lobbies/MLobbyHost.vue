@@ -11,6 +11,8 @@
 					no-caps
 					class="submit-button"
 					size=""
+					:loading="mutation.isPending.value"
+					:diabled="lStore.lobbyActionPending"
 				/>
 			</div>
 		</div>
@@ -21,13 +23,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, defineEmits } from 'vue';
 
 import { MCard } from '../ui/card';
 
-import { useMe } from 'src/lib/composables';
-import { mutHostLobby } from 'src/lib/composables';
+import { useLobbyStore } from 'src/stores/lobby';
+import { mutHostLobby, useMe } from 'src/lib/composables';
+
+const emit = defineEmits(['submit']);
+
 const mutation = mutHostLobby();
+
+const lStore = useLobbyStore();
 
 const me = useMe();
 const name = ref(`${me.data.value?.username}'s Lobby` || '');
@@ -36,7 +43,10 @@ const config = ref('');
 const submit = () => {
 	console.log(me.data);
 	console.log('submit');
-	let x = mutation.mutate({ name: name.value });
+	let x = mutation.mutate(
+		{ name: name.value },
+		{ onSuccess: () => emit('submit') }
+	);
 };
 </script>
 
@@ -62,4 +72,3 @@ const submit = () => {
 	border-radius: 10px;
 }
 </style>
-src/lib/composablessrc/lib/composables

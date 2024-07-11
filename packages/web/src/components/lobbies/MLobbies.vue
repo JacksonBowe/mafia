@@ -26,7 +26,7 @@
 					<MLobbyList class="fit" />
 				</q-tab-panel>
 				<q-tab-panel name="host" class="q-pa-none">
-					<MLobbyHost class="fit" />
+					<MLobbyHost class="fit" @submit="tab = 'join'" />
 				</q-tab-panel>
 			</q-tab-panels>
 		</MCardContent>
@@ -38,6 +38,7 @@ import { ref } from 'vue';
 import { MCard, MCardHeader, MCardContent } from 'src/components/ui/card';
 import MLobbyList from './MLobbyList.vue';
 import MLobbyHost from './MLobbyHost.vue';
+
 const tab = ref('join');
 </script>
 

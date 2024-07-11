@@ -291,7 +291,6 @@ def remove_user_from_lobby(
 
     # Update the User
     expr, names, vals = Dynamo.build_update_expression(user._updated_attributes)
-    print(expr, names, vals)
 
     try:
         # Transaction to delete LobbyUser and update User
