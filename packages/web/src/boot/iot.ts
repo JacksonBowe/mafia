@@ -14,10 +14,8 @@ interface WebsocketMQTTArgs {
 
 function build_websocket_mqtt_connection(args: WebsocketMQTTArgs) {
 	const client_bootstrap = new io.ClientBootstrap();
-
 	const configBuilder =
 		iot.AwsIotMqttConnectionConfigBuilder.new_with_websockets();
-
 	configBuilder.with_clean_session(false);
 	configBuilder.with_client_id(args.clientId || '');
 	configBuilder.with_endpoint(args.endpoint);
@@ -29,38 +27,30 @@ function build_websocket_mqtt_connection(args: WebsocketMQTTArgs) {
 		qos: mqtt.QoS.AtLeastOnce,
 		retain: false,
 	});
-
 	configBuilder.with_credentials(
 		args.region,
 		args.aws_access_id,
 		args.aws_secret_key
 	);
-
 	const config = configBuilder.build();
-
 	const client = new mqtt.MqttClient(client_bootstrap);
 	const conn = client.new_connection(config);
-
 	conn.on('connect', () => {
 		console.log('IoT connection opened');
+		IoT.stopPolling();
 	});
-
 	conn.on('disconnect', () => {
 		console.log('IoT connection disconnected');
 	});
-
 	conn.on('closed', () => {
 		console.log('IoT connection closed');
 	});
-
 	conn.on('message', (topic, payload, packet) => {
 		console.log('IoT message', topic, payload, packet);
 	});
-
 	conn.on('error', (e) => {
 		console.log('IoT Error', e);
 	});
-
 	return conn;
 }
 
@@ -71,8 +61,6 @@ const args: WebsocketMQTTArgs = {
 	aws_secret_key: import.meta.env.VITE_IOT_SECRET_ACCESS_KEY,
 	iotBase: import.meta.env.VITE_IOT_BASE,
 };
-
-console.log(args);
 
 const IoT = {
 	mqtt: mqtt,
@@ -88,8 +76,8 @@ const IoT = {
 		const aStore = useAuthStore();
 		const { data: currentUser } = useMe();
 		console.log('Start Polling IoT');
-
 		this.pollingInterval = setInterval(async () => {
+			console.log('Polling IoT');
 			if (
 				currentUser.value &&
 				aStore.isAuthenticated &&
@@ -108,8 +96,13 @@ const IoT = {
 	},
 };
 
-export default boot(async () => {
+export default boot(async ({ router }) => {
 	// app.config.globalProperties.$IoT = IoT;
+	router.afterEach(() => {
+		if (!IoT.connection) {
+			IoT.startPolling();
+		}
+	});
 });
 
 export { IoT };
