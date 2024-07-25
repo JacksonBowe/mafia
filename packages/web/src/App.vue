@@ -4,7 +4,7 @@
 
 <script setup lang="ts">
 import { useQuasar } from 'quasar';
-
+import * as events from 'src/lib/events';
 const q = useQuasar();
 
 q.screen.setSizes({
@@ -13,4 +13,6 @@ q.screen.setSizes({
 });
 
 // q.dark.set(true)
+
+console.log(events);
 </script>

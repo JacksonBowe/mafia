@@ -2,6 +2,9 @@ import { boot } from 'quasar/wrappers';
 import { mqtt, io, iot } from 'aws-iot-device-sdk-v2';
 import { useAuthStore } from 'src/stores/auth';
 import { useMe } from 'src/lib/composables';
+import { bus } from './bus';
+import { type Events } from 'src/lib/events';
+import { z } from 'zod';
 
 interface WebsocketMQTTArgs {
 	endpoint: string;
@@ -11,6 +14,11 @@ interface WebsocketMQTTArgs {
 	clientId?: string;
 	iotBase?: string;
 }
+
+const iotMessageSchema = z.object({
+	type: z.string(),
+	properties: z.object({}).passthrough(),
+});
 
 function build_websocket_mqtt_connection(args: WebsocketMQTTArgs) {
 	const client_bootstrap = new io.ClientBootstrap();
@@ -38,6 +46,8 @@ function build_websocket_mqtt_connection(args: WebsocketMQTTArgs) {
 	conn.on('connect', () => {
 		console.log('IoT connection opened');
 		IoT.stopPolling();
+
+		IoT.subscribe('test');
 	});
 	conn.on('disconnect', () => {
 		console.log('IoT connection disconnected');
@@ -45,8 +55,20 @@ function build_websocket_mqtt_connection(args: WebsocketMQTTArgs) {
 	conn.on('closed', () => {
 		console.log('IoT connection closed');
 	});
-	conn.on('message', (topic, payload, packet) => {
-		console.log('IoT message', topic, payload, packet);
+	conn.on('message', (topic, payload) => {
+		const rawMsg = JSON.parse(new TextDecoder('utf-8').decode(payload));
+		console.log('IoT message', topic, rawMsg);
+
+		try {
+			const msg = iotMessageSchema.parse(rawMsg);
+			console.log('Parsed message', msg);
+
+			bus.emit(msg.type as any, msg.properties);
+		} catch (e) {
+			console.error('Failed to parse message', e);
+			// TODO: Notify here when receiving malformed IoT messages
+			return;
+		}
 	});
 	conn.on('error', (e) => {
 		console.log('IoT Error', e);
@@ -65,6 +87,11 @@ const args: WebsocketMQTTArgs = {
 const IoT = {
 	mqtt: mqtt,
 	connection: null as mqtt.MqttClientConnection | null,
+	subscribe(topic: string) {
+		const pre = `mafia/${import.meta.env.VITE_APP_STAGE}/`;
+		console.log(pre);
+		this.connection?.subscribe(topic, mqtt.QoS.AtLeastOnce);
+	},
 	async connectIoT(userId: string) {
 		if (IoT.connection !== null) return;
 		args.clientId = userId;
@@ -98,7 +125,11 @@ const IoT = {
 
 export default boot(async ({ router }) => {
 	// app.config.globalProperties.$IoT = IoT;
-	router.afterEach(() => {
+	router.afterEach((to, from) => {
+		if (to.meta.requiresAuth === false) {
+			IoT.stopPolling();
+			return;
+		}
 		if (!IoT.connection) {
 			IoT.startPolling();
 		}

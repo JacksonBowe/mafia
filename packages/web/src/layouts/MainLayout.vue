@@ -78,7 +78,7 @@ const { data: me, isLoading } = useMe();
 const decoder = new TextDecoder('utf-8');
 
 // IoT
-IoT.startPolling();
+// IoT.startPolling();
 // onMounted(() => {
 
 // });
@@ -90,7 +90,7 @@ onUnmounted(() => {
 });
 
 const test = () => {
-	// console.log('test', IoT.connection);
+	console.log('test', IoT.connection);
 	// IoT.connection?.publish('mafia/local/test', 'test', 1);
 	IoT.connection?.subscribe(
 		'mafia/local/test',
@@ -110,4 +110,3 @@ const test = () => {
 	z-index: 0;
 }
 </style>
-src/lib/composables

@@ -36,5 +36,6 @@ export function Site({ app, stack }: StackContext) {
 	stack.addOutputs({
 		SiteUrl: site.url || "http://localhost:9000",
 		iotUser: iotUser.userName || "No user",
+		stage: app.stage,
 	});
 }
