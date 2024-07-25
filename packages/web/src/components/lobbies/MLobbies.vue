@@ -1,5 +1,5 @@
 <template>
-	<MCard class="text-white column">
+	<MCard class="fit text-white column">
 		<MCardHeader dense :denser="$q.screen.lt.md">
 			<q-tabs
 				v-model="tab"

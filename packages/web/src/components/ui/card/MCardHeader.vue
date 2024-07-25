@@ -7,20 +7,24 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
-
-const props = withDefaults(defineProps<{
-	class?: string,
-	dense?: boolean,
-	denser?: boolean,
-}>(), {
-	dense: false,
-	denser: false
-});
+const props = withDefaults(
+	defineProps<{
+		class?: string;
+		dense?: boolean;
+		denser?: boolean;
+		densest?: boolean;
+	}>(),
+	{
+		dense: false,
+		denser: false,
+		densest: false,
+	}
+);
 
 const density = computed(() => {
+	if (props.densest) return 'q-py-none';
 	if (props.denser) return 'q-py-xs';
 	if (props.dense) return 'q-py-sm';
 	return 'q-py-md';
 });
-
 </script>

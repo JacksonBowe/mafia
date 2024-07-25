@@ -1,5 +1,5 @@
 <template>
-	<MCard class="row text-white">
+	<MCard class="fit row text-white">
 		<q-card-section class="col column">
 			<MLobbyPreviewUsers class="col" />
 
