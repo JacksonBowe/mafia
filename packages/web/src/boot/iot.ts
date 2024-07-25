@@ -3,7 +3,7 @@ import { mqtt, io, iot } from 'aws-iot-device-sdk-v2';
 import { useAuthStore } from 'src/stores/auth';
 import { useMe } from 'src/lib/composables';
 import { bus } from './bus';
-import { type Events } from 'src/lib/events';
+import { onBeforeUnmount } from 'vue';
 import { z } from 'zod';
 
 interface WebsocketMQTTArgs {
@@ -47,7 +47,7 @@ function build_websocket_mqtt_connection(args: WebsocketMQTTArgs) {
 		console.log('IoT connection opened');
 		IoT.stopPolling();
 
-		IoT.subscribe('test');
+		// IoT.subscribe('test');
 	});
 	conn.on('disconnect', () => {
 		console.log('IoT connection disconnected');
@@ -61,8 +61,6 @@ function build_websocket_mqtt_connection(args: WebsocketMQTTArgs) {
 
 		try {
 			const msg = iotMessageSchema.parse(rawMsg);
-			console.log('Parsed message', msg);
-
 			bus.emit(msg.type as any, msg.properties);
 		} catch (e) {
 			console.error('Failed to parse message', e);
@@ -87,10 +85,33 @@ const args: WebsocketMQTTArgs = {
 const IoT = {
 	mqtt: mqtt,
 	connection: null as mqtt.MqttClientConnection | null,
+	prefix: `mafia/${import.meta.env.VITE_APP_STAGE}/`,
+	subscriptions: [] as string[],
 	subscribe(topic: string) {
-		const pre = `mafia/${import.meta.env.VITE_APP_STAGE}/`;
-		console.log(pre);
-		this.connection?.subscribe(topic, mqtt.QoS.AtLeastOnce);
+		const finalTopic = `${this.prefix}${topic}`;
+
+		if (!this.connection) {
+			console.error('No IoT connection');
+			return;
+		}
+		if (this.subscriptions.includes(finalTopic)) {
+			console.log('Already subscribed to', finalTopic);
+			this.unsubscribe(topic);
+		}
+		this.connection?.subscribe(finalTopic, mqtt.QoS.AtLeastOnce);
+		this.subscriptions.push(finalTopic);
+		console.log('Subscribed to', finalTopic);
+	},
+	unsubscribe(topic: string) {
+		const finalTopic = `${this.prefix}${topic}`;
+		if (!this.connection) {
+			console.error('No IoT connection');
+			return;
+		}
+
+		this.connection?.unsubscribe(finalTopic);
+		this.subscriptions = this.subscriptions.filter((t) => t !== finalTopic);
+		console.log('Unsubscribed from', finalTopic);
 	},
 	async connectIoT(userId: string) {
 		if (IoT.connection !== null) return;
@@ -123,8 +144,7 @@ const IoT = {
 	},
 };
 
-export default boot(async ({ router }) => {
-	// app.config.globalProperties.$IoT = IoT;
+export default boot(async ({ app, router }) => {
 	router.afterEach((to, from) => {
 		if (to.meta.requiresAuth === false) {
 			IoT.stopPolling();

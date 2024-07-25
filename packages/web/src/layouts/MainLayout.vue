@@ -72,33 +72,11 @@ import { IoT } from 'src/boot/iot';
 import AdminFab from 'src/components/AdminFab.vue';
 import { MCard, MCardHeader } from 'src/components/ui/card';
 import { useMe } from 'src/lib/composables';
-import { onMounted, onUnmounted } from 'vue';
 
 const { data: me, isLoading } = useMe();
-const decoder = new TextDecoder('utf-8');
-
-// IoT
-// IoT.startPolling();
-// onMounted(() => {
-
-// });
-
-onUnmounted(() => {
-	IoT.stopPolling();
-
-	IoT.connection?.unsubscribe('mafia/local/test');
-});
 
 const test = () => {
-	console.log('test', IoT.connection);
-	// IoT.connection?.publish('mafia/local/test', 'test', 1);
-	IoT.connection?.subscribe(
-		'mafia/local/test',
-		IoT.mqtt.QoS.AtLeastOnce,
-		(topic, payload) => {
-			console.log('test3', topic, JSON.parse(decoder.decode(payload)));
-		}
-	);
+	IoT.subscribe('test');
 };
 </script>
 
