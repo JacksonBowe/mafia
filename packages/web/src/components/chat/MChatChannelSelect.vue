@@ -15,8 +15,8 @@
 		>
 			<q-list dense class="q-gutter-y-sm text-white">
 				<q-item
-					clickable
 					v-close-popup
+					clickable
 					dense
 					class="bg-chat-global m-item"
 					@click="cStore.channel = 'GLOBAL'"
@@ -27,11 +27,11 @@
 				</q-item>
 				<q-item
 					v-if="user?.lobby"
-					clickable
 					v-close-popup
+					clickable
 					dense
 					class="bg-chat-lobby m-item"
-					@click="cStore.channel = 'LOCAL'"
+					@click="cStore.channel = 'LOBBY'"
 				>
 					<q-item-section>
 						<q-item-label>Lobby</q-item-label>
