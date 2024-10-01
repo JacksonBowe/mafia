@@ -59,4 +59,3 @@ const backgroundColor = computed(() => {
 	);
 }
 </style>
-src/lib/api/lobby
