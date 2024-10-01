@@ -1,19 +1,11 @@
 import { defineStore } from 'pinia';
 
-export const useCounterStore = defineStore('counter', {
-  state: () => ({
-    counter: 0
-  }),
+export const useChatStore = defineStore('chat', {
+	state: () => ({
+		channel: 'GLOBAL',
+	}),
 
-  getters: {
-    doubleCount (state) {
-      return state.counter * 2;
-    }
-  },
+	getters: {},
 
-  actions: {
-    increment () {
-      this.counter++;
-    }
-  }
+	actions: {},
 });

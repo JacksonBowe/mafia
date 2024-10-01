@@ -11,6 +11,27 @@
     font-family: Risque;
 }
 
+.bg-card-glossy {
+	background: rgba(4, 6, 17, 0.6);
+	/* Light semi-transparent color */
+	backdrop-filter: blur(5px);
+	/* Add blur effect */
+	-webkit-backdrop-filter: blur(5px);
+	/* For Safari */
+}
+
+.bg-chat-global {
+	background-image: linear-gradient(to bottom,
+				rgba(255, 138, 138, 1),
+				rgba(247, 51, 51, 1));
+}
+
+.bg-chat-lobby {
+	background-image: linear-gradient(to bottom,
+			rgba(255, 201, 138, 1),
+			rgba(247, 86, 51, 1));
+}
+
 .text-town {
 	color: var(--town);
 }

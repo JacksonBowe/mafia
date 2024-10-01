@@ -9,13 +9,7 @@
 				densest
 			>
 				<div class="flex flex-center">
-					<q-btn
-						dens
-						size="sm"
-						padding="xs sm"
-						label="L"
-						color="orange"
-					/>
+					<MChatChannelSelect />
 				</div>
 				<div class="col">
 					<q-input
@@ -27,6 +21,7 @@
 						dense
 						class="fit"
 						input-class="text-white"
+						@keydown.enter.prevent="submit"
 					/>
 				</div>
 			</MCardHeader>
@@ -38,5 +33,12 @@
 import { ref } from 'vue';
 import { MCard, MCardHeader, MCardContent } from 'src/components/ui/card';
 
+import MChatChannelSelect from './MChatChannelSelect.vue';
+
 const input = ref('');
+
+const submit = () => {
+	console.log(input.value);
+	input.value = '';
+};
 </script>
