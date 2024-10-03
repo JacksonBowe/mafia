@@ -143,8 +143,8 @@ const IoT = {
 	},
 };
 
-export default boot(async ({ app, router }) => {
-	router.afterEach((to, from) => {
+export default boot(async ({ router }) => {
+	router.afterEach((to) => {
 		if (to.meta.requiresAuth === false) {
 			IoT.stopPolling();
 			return;

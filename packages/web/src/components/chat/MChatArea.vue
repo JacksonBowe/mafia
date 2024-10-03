@@ -1,8 +1,8 @@
 <template>
-	<div>
-		<q-scroll-area ref="chatArea" class="col">
+	<div class="fit">
+		<q-scroll-area ref="chatArea" class="fit">
 			<div v-for="message in cStore.messages" :key="message.id">
-				{{ message.content }}
+				<MChatMessage :message="message" />
 			</div>
 		</q-scroll-area>
 	</div>
@@ -10,6 +10,7 @@
 
 <script setup lang="ts">
 import { useChatStore } from 'src/stores/message';
+import MChatMessage from './MChatMessage.vue';
 
 const cStore = useChatStore();
 </script>

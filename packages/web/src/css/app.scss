@@ -32,6 +32,28 @@
 			rgba(247, 86, 51, 1));
 }
 
+.text-global {
+	color: white;
+}
+
+.text-lobby {
+	color: orange;
+}
+
+.text-private {
+	color: #d4b5ff;
+	/* A purple-ish color that looks good on a glossy blue background */
+}
+
+.text-info {
+	color: grey;
+}
+
+.text-system {
+	color: #00ff00;
+	/* Bright green for visibility */
+}
+
 .text-town {
 	color: var(--town);
 }

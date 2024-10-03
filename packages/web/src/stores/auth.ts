@@ -2,7 +2,6 @@ import { defineStore } from 'pinia';
 import { LocalStorage } from 'quasar';
 import { api } from 'src/boot/axios';
 import type { AccessTokenResponse } from '../lib/api/auth';
-import { IoT } from 'src/boot/iot';
 
 export const useAuthStore = defineStore('auth', {
 	state: () => ({

@@ -1,37 +1,31 @@
 import { z } from 'zod';
 
-// Define the base schema for a message
+// Base schema for all messages
 const BaseMessageSchema = z.object({
-	id: z.string().uuid(), // Ensure each message has a unique ID
-	sender: z.object({
-		id: z.string(),
-		name: z.string(),
-	}),
-	content: z.string(),
+	id: z.string().uuid(), // Unique message ID
+	content: z.string(), // Message content
 	timestamp: z.date().optional(), // Optional timestamp
+	target: z.string(), // Target ID (e.g., lobby, user, or system-wide)
 });
 
-// Define the schema for GLOBAL messages
-const GlobalMessageSchema = BaseMessageSchema.extend({
-	type: z.literal('GLOBAL'),
-	target: z.literal('GLOBAL'),
+// Schema for user-generated messages (GLOBAL, LOBBY, PRIVATE)
+const UserMessageSchema = BaseMessageSchema.extend({
+	sender: z
+		.object({
+			id: z.string(),
+			name: z.string(),
+		})
+		.optional(), // Optional sender information
+	type: z.enum(['GLOBAL', 'LOBBY', 'PRIVATE']), // Types of user messages
 });
 
-// Define the schema for LOBBY messages
-const LobbyMessageSchema = BaseMessageSchema.extend({
-	type: z.literal('LOBBY'),
-	target: z.string(), // Lobby ID or name
+// Schema for system-generated messages (SYSTEM, INFO)
+const SystemMessageSchema = BaseMessageSchema.extend({
+	type: z.enum(['SYSTEM', 'INFO']), // System messages or app-to-user messages
 });
 
-// Define the schema for PRIVATE messages
-const PrivateMessageSchema = BaseMessageSchema.extend({
-	type: z.literal('PRIVATE'),
-	target: z.string(), // User ID or name
-});
+// Union schema to handle both user and system messages
+export const MessageSchema = z.union([UserMessageSchema, SystemMessageSchema]);
 
-// Union schema to handle all message types
-export const MessageSchema = z.union([
-	GlobalMessageSchema,
-	LobbyMessageSchema,
-	PrivateMessageSchema,
-]);
+// Infer the TypeScript type from the Zod schema
+export type Message = z.infer<typeof MessageSchema>;

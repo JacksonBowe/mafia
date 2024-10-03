@@ -1,7 +1,6 @@
 <template>
 	<MCard class="fit column">
 		<MCardContent class="text-white col" style="flex-grow: 1">
-			dsfdg
 			<MChatArea />
 		</MCardContent>
 		<MCard class="row" dense>
@@ -36,15 +35,15 @@ import { MCard, MCardHeader, MCardContent } from 'src/components/ui/card';
 
 import MChatChannelSelect from './MChatChannelSelect.vue';
 import MChatArea from './MChatArea.vue';
-import { useChatStore } from 'src/stores/message';
-
-const cStore = useChatStore();
+import { useSendMessage } from 'src/lib/message';
 
 const input = ref('');
 
+const { sendMessage, isLoading, error } = useSendMessage();
+
 const submit = () => {
 	console.log(input.value);
-	cStore.sendMessage(input.value);
+	sendMessage(input.value);
 	input.value = '';
 };
 </script>
