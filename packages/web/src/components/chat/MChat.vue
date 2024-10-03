@@ -2,6 +2,7 @@
 	<MCard class="fit column">
 		<MCardContent class="text-white col" style="flex-grow: 1">
 			dsfdg
+			<MChatArea />
 		</MCardContent>
 		<MCard class="row" dense>
 			<MCardHeader
@@ -34,11 +35,16 @@ import { ref } from 'vue';
 import { MCard, MCardHeader, MCardContent } from 'src/components/ui/card';
 
 import MChatChannelSelect from './MChatChannelSelect.vue';
+import MChatArea from './MChatArea.vue';
+import { useChatStore } from 'src/stores/message';
+
+const cStore = useChatStore();
 
 const input = ref('');
 
 const submit = () => {
 	console.log(input.value);
+	cStore.sendMessage(input.value);
 	input.value = '';
 };
 </script>

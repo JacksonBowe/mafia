@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 // Define the base schema for a message
 const BaseMessageSchema = z.object({
+	id: z.string().uuid(), // Ensure each message has a unique ID
 	sender: z.object({
 		id: z.string(),
 		name: z.string(),

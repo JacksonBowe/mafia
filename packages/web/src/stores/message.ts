@@ -2,10 +2,12 @@ import { defineStore } from 'pinia';
 import { useMe } from 'src/lib/composables';
 
 import { MessageSchema } from 'src/lib/api/message';
+import { v4 as uuidv4 } from 'uuid'; // Import UUID library
 
 interface ChatState {
 	channel: 'GLOBAL' | 'LOBBY' | 'PRIVATE';
 	messages: Array<{
+		id: string;
 		sender: {
 			id: string;
 			name: string;
@@ -32,6 +34,7 @@ export const useChatStore = defineStore('chat', {
 			if (!sender.value) return;
 
 			const msg = {
+				id: uuidv4(),
 				sender: {
 					id: sender.value.id,
 					name: sender.value.username,
