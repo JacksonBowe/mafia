@@ -4,23 +4,25 @@
 		<span v-if="messageHasSender(message)">
 			<!-- Special case for GLOBAL messages: red sender, white content -->
 			<span v-if="message.type === 'GLOBAL'">
-				<span class="text-mafia">{{ message.sender!.name }}</span
+				<span :class="senderClass">{{ message.sender!.name }}</span
 				>:
-				<span>{{ message.content }}</span>
+				<span class="text-white">{{ message.content }}</span>
 			</span>
 
-			<!-- Other user messages (LOBBY, PRIVATE) -->
+			<!-- LOBBY and PRIVATE messages (sender colored, content white) -->
 			<span v-else>
-				{{ message.sender!.name }}: {{ message.content }}
+				<span :class="senderClass">{{ message.sender!.name }}</span
+				>:
+				<span class="text-white">{{ message.content }}</span>
 			</span>
 		</span>
 
-		<!-- System messages -->
+		<!-- System messages (entire content colored) -->
 		<span v-else-if="message.type === 'SYSTEM'">
 			SYSTEM: {{ message.content }}
 		</span>
 
-		<!-- Info messages -->
+		<!-- Info messages (entire content colored) -->
 		<span v-else-if="message.type === 'INFO'">
 			{{ message.content }}
 		</span>
@@ -47,19 +49,33 @@ function messageHasSender(
 	);
 }
 
-// Computed property to dynamically apply classes based on message type
+// Computed property to dynamically apply classes based on message type (for the message content)
 const messageClass = computed(() => {
 	switch (props.message.type) {
 		case 'GLOBAL':
-			return 'text-global';
+			return '';
 		case 'LOBBY':
-			return 'text-lobby';
+			return '';
 		case 'PRIVATE':
-			return 'text-private';
+			return '';
 		case 'SYSTEM':
 			return 'text-system';
 		case 'INFO':
 			return 'text-info';
+		default:
+			return '';
+	}
+});
+
+// Computed property to dynamically apply classes based on sender type (for the sender's name)
+const senderClass = computed(() => {
+	switch (props.message.type) {
+		case 'GLOBAL':
+			return 'text-mafia'; // Red sender for global messages
+		case 'LOBBY':
+			return 'text-lobby'; // Orange sender for lobby messages
+		case 'PRIVATE':
+			return 'text-private'; // Purple-ish sender for private messages
 		default:
 			return '';
 	}
