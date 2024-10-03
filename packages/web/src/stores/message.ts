@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { useMe } from 'src/lib/composables';
+import { useMe } from 'src/lib/user';
 
 import { MessageSchema } from 'src/lib/api/message';
 import { v4 as uuidv4 } from 'uuid'; // Import UUID library

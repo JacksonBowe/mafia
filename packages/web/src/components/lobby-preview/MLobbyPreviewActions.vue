@@ -22,10 +22,11 @@
 </template>
 
 <script setup lang="ts">
-import { useSelectedLobby, useMe } from 'src/lib/composables';
+import { useSelectedLobby } from 'src/lib/composables';
 import { useLobbyStore } from 'src/stores/lobby';
 import { computed } from 'vue';
 import { mutJoinLobby, mutLeaveLobby } from 'src/lib/composables';
+import { useMe } from 'src/lib/user';
 
 const { data: me } = useMe();
 const lStore = useLobbyStore();

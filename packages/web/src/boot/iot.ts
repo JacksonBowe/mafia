@@ -1,9 +1,8 @@
 import { boot } from 'quasar/wrappers';
 import { mqtt, io, iot } from 'aws-iot-device-sdk-v2';
 import { useAuthStore } from 'src/stores/auth';
-import { useMe } from 'src/lib/composables';
+import { useMe } from 'src/lib/user';
 import { bus } from './bus';
-import { onBeforeUnmount } from 'vue';
 import { z } from 'zod';
 
 interface WebsocketMQTTArgs {

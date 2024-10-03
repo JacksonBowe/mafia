@@ -71,7 +71,7 @@
 import { IoT } from 'src/boot/iot';
 import AdminFab from 'src/components/AdminFab.vue';
 import { MCard, MCardHeader } from 'src/components/ui/card';
-import { useMe } from 'src/lib/composables';
+import { useMe } from 'src/lib/user';
 
 const { data: me, isLoading } = useMe();
 

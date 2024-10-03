@@ -43,7 +43,7 @@
 </template>
 
 <script setup lang="ts">
-import { useMe } from 'src/lib/composables';
+import { useMe } from 'src/lib/user';
 import { useChatStore } from 'src/stores/message';
 import { computed } from 'vue';
 

@@ -8,7 +8,7 @@ import {
 	leaveLobby,
 } from 'src/lib/api/lobby';
 import { useLobbyStore } from 'src/stores/lobby';
-import { User } from 'src/lib/api/user';
+import { type User } from 'src/lib/user';
 
 export const useLobbies = () => {
 	return useQuery({

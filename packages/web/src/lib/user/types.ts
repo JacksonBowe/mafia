@@ -1,6 +1,4 @@
 import { z } from 'zod';
-import { api } from 'boot/axios';
-
 const UserSchema = z.object({
 	id: z.string(),
 	type: z.string(),
@@ -13,8 +11,3 @@ const UserSchema = z.object({
 	lastLogin: z.number().optional(),
 });
 export type User = z.infer<typeof UserSchema>;
-
-export const fetchMe = async (): Promise<User> => {
-	const r = await api.get('/users/me');
-	return r.data;
-};
