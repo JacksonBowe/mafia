@@ -42,12 +42,7 @@ const name = ref(`${me.data.value?.username}'s Lobby` || '');
 const config = ref('');
 
 const submit = () => {
-	console.log(me.data);
-	console.log('submit');
-	let x = mutation.mutate(
-		{ name: name.value },
-		{ onSuccess: () => emit('submit') }
-	);
+	mutation.mutate({ name: name.value }, { onSuccess: () => emit('submit') });
 };
 </script>
 
