@@ -12,19 +12,21 @@ export function API({ stack, app }: StackContext) {
 	const { bus } = use(Events);
 	const { sessionTable } = use(Auth);
 
+	const apiHandler = "packages/functions/src/functions/rest/main.handler";
+
 	const api = new Api(stack, "api", {
 		authorizers: {
 			token: {
 				type: "lambda",
 				function: new Function(stack, "Authorizer", {
-					handler: "packages/functions/rest/authorizer.handler",
+					handler: "packages/functions/src/functionsrest/authorizer.handler",
 					permissions: ["ssm"],
 					layers: [requests],
 					bind: [userTable, lobbyTable, sessionTable],
 					environment: {
-						// APP_USER_TABLE_NAME: userTable.tableName,
-						// APP_LOBBY_TABLE_NAME: lobbyTable.tableName,
-						// EVENT_BUS_NAME: bus.eventBusName,
+						SST_TABLE_TABLENAME_USERTABLE: userTable.tableName,
+						SST_TABLE_TABLENAME_LOBBYTABLE: lobbyTable.tableName,
+						SST_EVENTBUS_EVENTBUSNAME_BUS: bus.eventBusName,
 					},
 				}),
 			},
@@ -35,32 +37,29 @@ export function API({ stack, app }: StackContext) {
 				permissions: ["ssm"],
 				bind: [userTable, lobbyTable, bus, sessionTable],
 				environment: {
-					// APP_USER_TABLE_NAME: userTable.tableName,
-					// APP_LOBBY_TABLE_NAME: lobbyTable.tableName,
-					// EVENT_BUS_NAME: bus.eventBusName,
-					...(app.local && {
-						PYTHONPATH: [path.resolve("./packages/functions")].join(";"),
-					}),
+					SST_TABLE_TABLENAME_USERTABLE: userTable.tableName,
+					SST_TABLE_TABLENAME_LOBBYTABLE: lobbyTable.tableName,
+					SST_EVENTBUS_EVENTBUSNAME_BUS: bus.eventBusName,
 				},
 			},
 		},
 		routes: {
 			// AuthController
-			"GET /auth/authorize/discord": { function: "packages/functions/rest/auth.handler", authorizer: "none" },
-			"POST /auth/token/discord": { function: "packages/functions/rest/auth.handler", authorizer: "none" },
-			"POST /auth/token/refresh": { function: "packages/functions/rest/auth.handler", authorizer: "none" },
+			"GET /auth/authorize/discord": { function: apiHandler, authorizer: "none" },
+			"POST /auth/token/discord": { function: apiHandler, authorizer: "none" },
+			"POST /auth/token/refresh": { function: apiHandler, authorizer: "none" },
 			// UserController
-			"GET /users/me": "packages/functions/rest/main.handler",
-			"GET /users/{userId}": "packages/functions/rest/main.handler",
+			"GET /users/me": apiHandler,
+			"GET /users/{userId}": apiHandler,
 			// LobbyController
-			"POST /lobbies": "packages/functions/rest/lobbies.handler",
-			"GET /lobbies": "packages/functions/rest/lobbies.handler",
-			"POST /lobbies/terminate": "packages/functions/rest/lobbies.handler",
-			"GET /lobbies/{lobbyId}": "packages/functions/rest/lobbies.handler",
-			"POST /lobbies/{lobbyId}/join": "packages/functions/rest/lobbies.handler",
-			"POST /lobbies/{lobbyId}/terminate": "packages/functions/rest/lobbies.handler",
-			"POST /lobbies/leave": "packages/functions/rest/lobbies.handler",
-			"POST /lobbies/start": "packages/functions/rest/lobbies.handler",
+			"POST /lobbies": apiHandler,
+			"GET /lobbies": apiHandler,
+			"POST /lobbies/terminate": apiHandler,
+			"GET /lobbies/{lobbyId}": apiHandler,
+			"POST /lobbies/{lobbyId}/join": apiHandler,
+			"POST /lobbies/{lobbyId}/terminate": apiHandler,
+			"POST /lobbies/leave": apiHandler,
+			"POST /lobbies/start": apiHandler,
 		},
 	});
 

@@ -9,17 +9,17 @@ export function Spikes({ stack }: StackContext) {
 	const { bus } = use(Events);
 
 	const seedUsers = new Function(stack, "SeedUsers", {
-		handler: "packages/functions/spikes/seed_users.handler",
+		handler: "packages/functions/src/functions/spikes/seed_users.handler",
 		bind: [userTable],
 	});
 
 	const seedLobbies = new Function(stack, "SeedLobbies", {
-		handler: "packages/functions/spikes/seed_lobbies.handler",
+		handler: "packages/functions/src/functions/spikes/seed_lobbies.handler",
 		bind: [userTable, lobbyTable, bus],
 	});
 
 	const userJoinLobby = new Function(stack, "UserJoinLobby", {
-		handler: "packages/functions/spikes/user_join_lobby.handler",
+		handler: "packages/functions/src/functions/spikes/user_join_lobby.handler",
 		bind: [userTable, lobbyTable, bus],
 	});
 }

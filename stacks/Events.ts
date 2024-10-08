@@ -9,15 +9,22 @@ export function Events({ stack }: StackContext) {
 	const bus = new EventBus(stack, "bus");
 
 	bus.subscribe("lobby.user_join", {
-		handler: "packages/functions/events/lobby/user_join.handler",
+		handler: "packages/functions/src/functions/events/lobby/user_join.handler",
 		bind: [lobbyTable],
+		environment: {
+			SST_TABLE_TABLENAME_LOBBYTABLE: lobbyTable.tableName,
+		},
 		permissions: ["iot"],
 		layers: [powertools],
 	});
 
 	bus.subscribe("lobby.user_leave", {
-		handler: "packages/functions/events/lobby/user_leave.handler",
+		handler: "packages/functions/src/functions/events/lobby/user_leave.handler",
 		bind: [lobbyTable, userTable],
+		environment: {
+			SST_TABLE_TABLENAME_LOBBYTABLE: lobbyTable.tableName,
+			SST_TABLE_TABLENAME_USERTABLE: userTable.tableName,
+		},
 		permissions: ["iot"],
 		layers: [powertools],
 	});

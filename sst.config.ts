@@ -18,7 +18,10 @@ export default {
 	async stacks(app) {
 		app.setDefaultFunctionProps({
 			runtime: "python3.12",
-			copyFiles: [{ from: "packages/functions/core", to: "core" }],
+			copyFiles: [{ from: "packages/core/src", to: "." }],
+			python: {
+				noDocker: true,
+			},
 		});
 
 		await app.stack(LambdaLayers).stack(Storage).stack(Events).stack(Auth).stack(API).stack(IoT);
