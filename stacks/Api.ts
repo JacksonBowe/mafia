@@ -4,7 +4,9 @@ import { Storage } from "./Storage";
 import { Events } from "./Events";
 import { Auth } from "./Auth";
 
-export function API({ stack }: StackContext) {
+import path from "path";
+
+export function API({ stack, app }: StackContext) {
 	const { requests } = use(LambdaLayers);
 	const { userTable, lobbyTable } = use(Storage);
 	const { bus } = use(Events);
@@ -36,6 +38,9 @@ export function API({ stack }: StackContext) {
 					// APP_USER_TABLE_NAME: userTable.tableName,
 					// APP_LOBBY_TABLE_NAME: lobbyTable.tableName,
 					// EVENT_BUS_NAME: bus.eventBusName,
+					...(app.local && {
+						PYTHONPATH: [path.resolve("./packages/functions")].join(";"),
+					}),
 				},
 			},
 		},
@@ -45,8 +50,8 @@ export function API({ stack }: StackContext) {
 			"POST /auth/token/discord": { function: "packages/functions/rest/auth.handler", authorizer: "none" },
 			"POST /auth/token/refresh": { function: "packages/functions/rest/auth.handler", authorizer: "none" },
 			// UserController
-			"GET /users/me": "packages/functions/rest/users.handler",
-			"GET /users/{userId}": "packages/functions/rest/users.handler",
+			"GET /users/me": "packages/functions/rest/main.handler",
+			"GET /users/{userId}": "packages/functions/rest/main.handler",
 			// LobbyController
 			"POST /lobbies": "packages/functions/rest/lobbies.handler",
 			"GET /lobbies": "packages/functions/rest/lobbies.handler",
