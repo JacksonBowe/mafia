@@ -2,7 +2,7 @@ import json
 import os
 
 # This is because Python was created by people with brain rot
-if os.getenv("PYTEST"):
+if os.getenv("PYTEST") or os.getenv("IS_LOCAL"):
     from . import auth, lobbies, users  # When Python is running "normally"
 else:
     # When Python is being invoked via SST

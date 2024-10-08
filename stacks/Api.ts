@@ -7,7 +7,7 @@ import { Auth } from "./Auth";
 import path from "path";
 
 export function API({ stack, app }: StackContext) {
-	const { requests } = use(LambdaLayers);
+	const { powertools, requests, jose } = use(LambdaLayers);
 	const { userTable, lobbyTable } = use(Storage);
 	const { bus } = use(Events);
 	const { sessionTable } = use(Auth);
@@ -19,9 +19,9 @@ export function API({ stack, app }: StackContext) {
 			token: {
 				type: "lambda",
 				function: new Function(stack, "Authorizer", {
-					handler: "packages/functions/src/functionsrest/authorizer.handler",
+					handler: "packages/functions/src/functions/rest/authorizer.handler",
 					permissions: ["ssm"],
-					layers: [requests],
+					layers: [requests, jose],
 					bind: [userTable, lobbyTable, sessionTable],
 					environment: {
 						SST_TABLE_TABLENAME_USERTABLE: userTable.tableName,

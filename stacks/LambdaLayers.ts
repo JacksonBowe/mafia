@@ -16,10 +16,16 @@ export function LambdaLayers({ app, stack }: StackContext) {
 		`arn:aws:lambda:${stack.region}:770693421928:layer:Klayers-p312-requests:1`
 	);
 
+	// python-jose
+	const jose = new lambda.LayerVersion(stack, "python-jose", {
+		code: lambda.Code.fromAsset("packages/functions/layers/python-jose"),
+	});
+
 	app.addDefaultFunctionLayers([powertools]);
 
 	return {
 		powertools,
 		requests,
+		jose,
 	};
 }
