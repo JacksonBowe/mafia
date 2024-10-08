@@ -1,5 +1,32 @@
+import uuid
+from datetime import UTC, datetime
+
 import core.utils.config as Config  # noqa: F401
 import core.utils.dynamo as Dynamo  # noqa: F401
+
+
+def new_id():
+    return str(uuid.uuid4())
+
+
+def timestamp():
+    """
+    Get the current UTC time as a timestamp in milliseconds.
+
+    Returns:
+        int: Current UTC time in milliseconds since the epoch.
+    """
+    return round(int(datetime.now(UTC).timestamp() * 1000))
+
+
+def timestamp_iso():
+    """
+    Get the current UTC time as a timestamp in milliseconds.
+
+    Returns:
+        int: Current UTC time in milliseconds since the epoch.
+    """
+    return datetime.now(UTC).isoformat()
 
 
 def collapse_dict(d, parent_key="", sep="."):

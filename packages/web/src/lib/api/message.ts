@@ -13,7 +13,7 @@ const UserMessageSchema = BaseMessageSchema.extend({
 	sender: z
 		.object({
 			id: z.string(),
-			name: z.string(),
+			username: z.string(),
 		})
 		.optional(), // Optional sender information
 	type: z.enum(['GLOBAL', 'LOBBY', 'PRIVATE']), // Types of user messages

@@ -46,8 +46,8 @@ ENDPOINTS = [
     # ('POST', 'games/vote'),
     # ('POST', 'games/verdict'),
     # ('POST', 'games/targets'),
-    # ChatController
-    # ('POST', 'chat'),
+    # MessageController
+    ("POST", "chat/message"),
     # ('POST', 'games/chat')
     ("POST", "lobbies/terminate"),
     ("POST", "lobbies/*/terminate"),

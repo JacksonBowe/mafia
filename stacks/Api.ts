@@ -60,6 +60,8 @@ export function API({ stack, app }: StackContext) {
 			"POST /lobbies/{lobbyId}/terminate": apiHandler,
 			"POST /lobbies/leave": apiHandler,
 			"POST /lobbies/start": apiHandler,
+			// ChatController
+			"POST /chat/message": apiHandler,
 		},
 	});
 

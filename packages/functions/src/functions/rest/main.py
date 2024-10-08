@@ -3,11 +3,12 @@ import os
 
 # This is because Python was created by people with brain rot
 if os.getenv("PYTEST") or os.getenv("IS_LOCAL"):
-    from . import auth, lobbies, users  # When Python is running "normally"
+    from . import auth, lobbies, chat, users  # When Python is running "normally"
 else:
     # When Python is being invoked via SST
     import auth
     import lobbies
+    import chat
     import users
 
 from aws_lambda_powertools.event_handler import (
@@ -26,6 +27,7 @@ app = APIGatewayHttpResolver(enable_validation=True)
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(lobbies.router)
+app.include_router(chat.router)
 
 
 @app.exception_handler(RequestValidationError)
