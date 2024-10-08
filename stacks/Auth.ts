@@ -5,7 +5,7 @@ export function Auth({ stack }: StackContext) {
 
 	const auth = new SSTAuth(stack, "auth", {
 		authenticator: {
-			handler: "packages/functions/rest/auth.handler",
+			handler: "packages/functions/src/functions/rest/auth.handler",
 			// prefix: "stub"
 		},
 	});
@@ -29,12 +29,13 @@ export function Auth({ stack }: StackContext) {
 		schedule: "cron(0 0 ? * 1 *)",
 		job: {
 			function: {
-				handler: "packages/functions/cron/remove_expired_sessions.handler",
+				handler: "packages/functions/src/functions/cron/remove_expired_sessions.handler",
 				permissions: ["ssm"],
 				bind: [sessionTable],
 			},
 			environment: {
 				// SESSION_TABLE_NAME: sessionTable.tableName
+				SST_TABLE_TABLENAME_SESSIONTABLE: sessionTable.tableName,
 			},
 		},
 	});

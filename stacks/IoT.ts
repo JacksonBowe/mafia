@@ -51,14 +51,14 @@ export async function IoT({ app, stack }: StackContext) {
 	// Create the IoT Topic
 	const topic = new Topic(stack, "IoTDisconnectTopic", {
 		subscribers: {
-			disconnect: "packages/functions/events/iot.disconnect",
+			disconnect: "packages/functions/src/functions/events/iot.disconnect",
 		},
 		defaults: {
 			function: {
 				environment: {
-					// APP_USER_TABLE_NAME: userTable.tableName,
-					APP_LOBBY_TABLE_NAME: lobbyTable.tableName,
-					EVENT_BUS_NAME: bus.eventBusName,
+					SST_TABLE_TABLENAME_USERTABLE: userTable.tableName,
+					SST_TABLE_TABLENAME_LOBBYTABLE: lobbyTable.tableName,
+					SST_EVENTBUS_EVENTBUSNAME_BUS: bus.eventBusName,
 				},
 				bind: [userTable, lobbyTable, bus],
 				permissions: ["iot:Publish"],

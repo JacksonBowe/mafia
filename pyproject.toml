@@ -1,0 +1,28 @@
+[project]
+name = "mafia"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "core",
+    "functions",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "aws-lambda-powertools[all]>=3.0.0",
+    "boto3>=1.35.35",
+    "botocore>=1.35.35",
+    "moto>=5.0.16",
+    "pytest>=8.3.3",
+    "python-jose>=3.3.0",
+    "requests>=2.32.3",
+]
+
+[tool.uv.workspace]
+members = ["packages/functions", "packages/core"]
+
+[tool.uv.sources]
+core = { workspace = true }
+functions = { workspace = true }
