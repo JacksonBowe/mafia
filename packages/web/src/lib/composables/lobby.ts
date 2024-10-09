@@ -1,5 +1,4 @@
 import { computed } from 'vue';
-import { IoT } from 'src/boot/iot';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query';
 import {
 	fetchLobbies,

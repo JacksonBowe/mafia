@@ -30,12 +30,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import { MCard, MCardHeader, MCardContent } from 'src/components/ui/card';
 
 import MChatChannelSelect from './MChatChannelSelect.vue';
 import MChatArea from './MChatArea.vue';
 import { useSendMessage } from 'src/lib/message';
+import { useRealtime } from 'src/lib/realtime';
 
 const input = ref('');
 
@@ -46,4 +47,14 @@ const submit = () => {
 	sendMessage(input.value);
 	input.value = '';
 };
+
+const { subscribe, unsubscribe } = useRealtime();
+
+onMounted(() => {
+	subscribe('chat');
+});
+
+onUnmounted(() => {
+	unsubscribe('chat');
+});
 </script>

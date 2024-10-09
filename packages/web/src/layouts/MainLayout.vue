@@ -51,9 +51,7 @@
 								alt="Avatar"
 							/>
 						</q-avatar>
-						<q-btn size="sm" color="primary" @click="test"
-							>Test</q-btn
-						>
+						<q-btn size="sm" color="primary">Test</q-btn>
 					</div>
 				</MCardHeader>
 			</MCard>
@@ -68,16 +66,11 @@
 </template>
 
 <script setup lang="ts">
-import { IoT } from 'src/boot/iot';
 import AdminFab from 'src/components/AdminFab.vue';
 import { MCard, MCardHeader } from 'src/components/ui/card';
 import { useMe } from 'src/lib/user';
 
 const { data: me, isLoading } = useMe();
-
-const test = () => {
-	IoT.subscribe('test');
-};
 </script>
 
 <style scoped>
