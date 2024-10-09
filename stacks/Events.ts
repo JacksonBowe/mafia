@@ -1,9 +1,9 @@
 import { StackContext, EventBus, use } from "sst/constructs";
-import { LambdaLayers } from "./LambdaLayers";
+// import { LambdaLayers } from "./LambdaLayers";
 import { Storage } from "./Storage";
 
 export function Events({ stack }: StackContext) {
-	const { powertools } = use(LambdaLayers);
+	// const { powertools } = use(LambdaLayers);
 	const { lobbyTable, userTable } = use(Storage);
 
 	const bus = new EventBus(stack, "bus");
@@ -15,7 +15,6 @@ export function Events({ stack }: StackContext) {
 			SST_TABLE_TABLENAME_LOBBYTABLE: lobbyTable.tableName,
 		},
 		permissions: ["iot"],
-		layers: [powertools],
 	});
 
 	bus.subscribe("lobby.user_leave", {
@@ -26,7 +25,6 @@ export function Events({ stack }: StackContext) {
 			SST_TABLE_TABLENAME_USERTABLE: userTable.tableName,
 		},
 		permissions: ["iot"],
-		layers: [powertools],
 	});
 
 	return {

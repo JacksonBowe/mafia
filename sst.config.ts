@@ -28,6 +28,6 @@ export default {
 
 		app.stack(Site);
 
-		app.stack(Spikes);
+		// app.stack(Spikes);
 	},
 } satisfies SSTConfig;

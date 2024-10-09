@@ -1,14 +1,11 @@
 export * from './api';
 export * from './models';
+export * from './events';
 
 import { useMe } from 'src/lib/user';
 import { useChatStore } from 'src/stores/chat';
 import { ref } from 'vue';
 import { sendMessage } from './api';
-
-export type ChatEvents = {
-	// ['chat:message']: (message: Message) => void;
-};
 
 export const useSendMessage = () => {
 	const isLoading = ref(false);
@@ -17,7 +14,7 @@ export const useSendMessage = () => {
 	const cStore = useChatStore();
 	const { data: user } = useMe(); // Fetch user data once
 
-	const send = async (message: string) => {
+	const send = async (message: string, target: string) => {
 		if (!message) return;
 
 		isLoading.value = true;
@@ -31,6 +28,7 @@ export const useSendMessage = () => {
 			await sendMessage({
 				content: message,
 				type: cStore.channel,
+				target,
 			});
 		} catch (err) {
 			error.value = err as Error;

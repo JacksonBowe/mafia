@@ -50,10 +50,5 @@ def send_message(
         sender={"id": sender.id, "username": sender.username} if sender else None,
     )
 
-    print("Sending a message")
-    print(msg)
-    r = publish_iot(
-        "chat", RealtimeEvent.CHAT_MESSAGE, msg.model_dump(exclude_none=True)
-    )
-    print(r)
+    publish_iot("chat", RealtimeEvent.CHAT_MESSAGE, msg.model_dump(exclude_none=True))
     return

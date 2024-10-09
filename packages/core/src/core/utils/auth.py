@@ -1,6 +1,5 @@
 from urllib.parse import urlencode
 
-import requests
 from core.utils import Config
 from pydantic import BaseModel
 
@@ -15,7 +14,7 @@ class DiscordUser(BaseModel):
 class DiscordAdapter:
     def __init__(self, test=False) -> None:
         self.redirect_uri = (
-            "http://localhost:9000/auth/discord/callback"
+            f"{Config.get_secret('SITE_URL')}/auth/discord/callback"
             if not test
             else "http://localhost:9000"
         )
@@ -34,6 +33,8 @@ class DiscordAdapter:
         return f"{base}?{urlencode(params)}"
 
     def tokens(self, code):
+        import requests
+
         params = {
             "client_id": Config.get_secret("DISCORD_OAUTH_CLIENT_ID"),
             "client_secret": Config.get_secret("DISCORD_OAUTH_CLIENT_SECRET"),
@@ -54,6 +55,8 @@ class DiscordAdapter:
         return response.json()
 
     def user(self, access_token):
+        import requests
+
         response = requests.get(
             "https://discord.com/api/users/@me",
             headers={"Authorization": f"Bearer {access_token}"},

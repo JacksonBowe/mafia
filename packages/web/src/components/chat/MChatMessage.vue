@@ -4,14 +4,14 @@
 		<span v-if="messageHasSender(message)">
 			<!-- Special case for GLOBAL messages: red sender, white content -->
 			<span v-if="message.type === 'GLOBAL'">
-				<span :class="senderClass">{{ message.sender!.name }}</span
+				<span :class="senderClass">{{ message.sender!.username }}</span
 				>:
 				<span class="text-white">{{ message.content }}</span>
 			</span>
 
 			<!-- LOBBY and PRIVATE messages (sender colored, content white) -->
 			<span v-else>
-				<span :class="senderClass">{{ message.sender!.name }}</span
+				<span :class="senderClass">{{ message.sender!.username }}</span
 				>:
 				<span class="text-white">{{ message.content }}</span>
 			</span>
@@ -41,7 +41,7 @@ const props = defineProps<{
 // Type guard to check if the message has a sender
 function messageHasSender(
 	message: Message
-): message is Message & { sender: { id: string; name: string } } {
+): message is Message & { sender: { id: string; username: string } } {
 	return (
 		message.type === 'GLOBAL' ||
 		message.type === 'LOBBY' ||

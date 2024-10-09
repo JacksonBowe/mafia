@@ -1,19 +1,18 @@
 import os
 from typing import Optional, Union
-from typing_extensions import Annotated
 
 from aws_lambda_powertools import Logger
-from aws_lambda_powertools.event_handler.router import APIGatewayHttpRouter
 from aws_lambda_powertools.event_handler.exceptions import (
     BadRequestError,
     InternalServerError,
 )
 from aws_lambda_powertools.event_handler.openapi.params import Query
+from aws_lambda_powertools.event_handler.router import APIGatewayHttpRouter
 from core.controllers import LobbyController, UserController
 from core.tables import LobbyTable
-
 from core.utils.game import DEFAULT_GAME_CONFIG
 from pydantic import BaseModel, Field
+from typing_extensions import Annotated
 
 os.environ["POWERTOOLS_SERVICE_NAME"] = "lobby"
 
@@ -77,7 +76,6 @@ def join_lobby(lobby_id) -> None:
 @router.post("/lobbies/leave")
 def leave_lobby():
     # Verify User
-    print(router.current_event.request_context.authorizer)
     user_id = router.current_event.request_context.authorizer.get_lambda["CallerID"]
     user = UserController.get_user_by_id(user_id)
     if not user.lobby:

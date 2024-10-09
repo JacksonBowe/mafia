@@ -6,8 +6,8 @@ from typing import Literal
 import boto3
 from aws_lambda_powertools.utilities import parameters
 from core.tables import SessionTable
-from jose import jwt
-from jose.exceptions import JWTError
+# from jose import jwt
+# from jose.exceptions import JWTError
 
 SST_APP = os.getenv("SST_APP")
 SST_STAGE = os.getenv("SST_STAGE")
@@ -37,13 +37,14 @@ def generate_tokenset(
     """
     Generate a JWT tokenset
     """
+    from jose import jwt
+
     # Generate the tokens
     access_expiration_time = round(
         (datetime.now(UTC) + timedelta(days=access_expiry_days)).timestamp() * 1000
     )
     claims["exp"] = access_expiration_time
     access_encoded = jwt.encode(claims, _auth_private_key(), algorithm="RS256")
-    print("Access", access_encoded)
 
     refresh_expiration_time = round(
         (datetime.now(UTC) + timedelta(days=refresh_expiry_days)).timestamp() * 1000
@@ -70,6 +71,9 @@ def validate_token(
     """
     Validate a JWT token
     """
+    from jose import jwt
+    from jose.exceptions import JWTError
+
     try:
         claims = jwt.decode(token, _auth_public_key(), algorithms=["RS256"])
         # Check if 'exp' claim is present
@@ -81,9 +85,6 @@ def validate_token(
         # Check the token's expiration time
         current_time = datetime.now(UTC).timestamp() * 1000
         if current_time > claims["exp"]:
-            print("current_time", claims["exp"])
-            print("exp", claims["exp"])
-            print("difference", current_time - claims["exp"])
             # TODO: Raise an error here
             print("Token has expired.")
             return None

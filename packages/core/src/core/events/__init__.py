@@ -33,6 +33,5 @@ class Event:
                 ]
             )
         except ValidationError as e:
-            print(e)
             logger.exception(e)
             raise e

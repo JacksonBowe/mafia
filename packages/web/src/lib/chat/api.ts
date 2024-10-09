@@ -3,6 +3,7 @@ import { api } from 'src/boot/axios';
 export interface SendMessageRequest {
 	content: string;
 	type: string;
+	target: string;
 }
 
 export const sendMessage = async (

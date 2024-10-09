@@ -24,21 +24,21 @@ export function Auth({ stack }: StackContext) {
 		},
 	});
 
-	// Script to run once per week to remove expired sessions
-	new Cron(stack, "RemoveExpiredSessions", {
-		schedule: "cron(0 0 ? * 1 *)",
-		job: {
-			function: {
-				handler: "packages/functions/src/functions/cron/remove_expired_sessions.handler",
-				permissions: ["ssm"],
-				bind: [sessionTable],
-			},
-			environment: {
-				// SESSION_TABLE_NAME: sessionTable.tableName
-				SST_TABLE_TABLENAME_SESSIONTABLE: sessionTable.tableName,
-			},
-		},
-	});
+	// TODO: Script to run once per week to remove expired sessions
+	// new Cron(stack, "RemoveExpiredSessions", {
+	// 	schedule: "cron(0 0 ? * 1 *)",
+	// 	job: {
+	// 		function: {
+	// 			handler: "packages/functions/src/functions/cron/remove_expired_sessions.handler",
+	// 			permissions: ["ssm"],
+	// 			bind: [sessionTable],
+	// 		},
+	// 		environment: {
+	// 			// SESSION_TABLE_NAME: sessionTable.tableName
+	// 			SST_TABLE_TABLENAME_SESSIONTABLE: sessionTable.tableName,
+	// 		},
+	// 	},
+	// });
 
 	return {
 		auth,

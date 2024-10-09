@@ -4,8 +4,6 @@ import { Storage } from "./Storage";
 import { Events } from "./Events";
 import { Auth } from "./Auth";
 
-import path from "path";
-
 export function API({ stack, app }: StackContext) {
 	const { powertools, requests, jose } = use(LambdaLayers);
 	const { userTable, lobbyTable } = use(Storage);
@@ -27,6 +25,7 @@ export function API({ stack, app }: StackContext) {
 						SST_TABLE_TABLENAME_USERTABLE: userTable.tableName,
 						SST_TABLE_TABLENAME_LOBBYTABLE: lobbyTable.tableName,
 						SST_EVENTBUS_EVENTBUSNAME_BUS: bus.eventBusName,
+						SST_TABLE_TABLENAME_SESSIONTABLE: sessionTable.tableName,
 					},
 				}),
 			},
@@ -40,14 +39,15 @@ export function API({ stack, app }: StackContext) {
 					SST_TABLE_TABLENAME_USERTABLE: userTable.tableName,
 					SST_TABLE_TABLENAME_LOBBYTABLE: lobbyTable.tableName,
 					SST_EVENTBUS_EVENTBUSNAME_BUS: bus.eventBusName,
+					SST_TABLE_TABLENAME_SESSIONTABLE: sessionTable.tableName,
 				},
 			},
 		},
 		routes: {
 			// AuthController
-			"GET /auth/authorize/discord": { function: apiHandler, authorizer: "none" },
-			"POST /auth/token/discord": { function: apiHandler, authorizer: "none" },
-			"POST /auth/token/refresh": { function: apiHandler, authorizer: "none" },
+			"GET /auth/authorize/discord": { function: { handler: apiHandler, layers: [jose, requests] }, authorizer: "none" },
+			"POST /auth/token/discord": { function: { handler: apiHandler, layers: [jose, requests] }, authorizer: "none" },
+			"POST /auth/token/refresh": { function: { handler: apiHandler, layers: [jose, requests] }, authorizer: "none" },
 			// UserController
 			"GET /users/me": apiHandler,
 			"GET /users/{userId}": apiHandler,

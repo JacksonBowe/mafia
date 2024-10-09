@@ -99,6 +99,7 @@ export function useRealtime() {
 
 			try {
 				const msg = iotMessageSchema.parse(rawMsg);
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				bus.emit(msg.type as any, msg.properties);
 			} catch (e) {
 				console.error('Failed to parse message', e);
