@@ -1,9 +1,7 @@
 import { useMe } from 'src/lib/user';
-import { MessageSchema } from 'src/lib/api/message';
-import { v4 as uuidv4 } from 'uuid';
-import { useChatStore } from 'src/stores/message';
+import { useChatStore } from 'src/stores/chat';
 import { ref } from 'vue';
-import { api } from 'src/boot/axios';
+import { sendMessage } from './api';
 
 export type ChatEvents = {
 	// ['chat:message']: (message: Message) => void;
@@ -16,7 +14,7 @@ export const useSendMessage = () => {
 	const cStore = useChatStore();
 	const { data: user } = useMe(); // Fetch user data once
 
-	const sendMessage = async (message: string) => {
+	const send = async (message: string) => {
 		if (!message) return;
 
 		isLoading.value = true;
@@ -27,12 +25,10 @@ export const useSendMessage = () => {
 
 			if (!sender) throw new Error('User data not available');
 
-			const msg = {
+			await sendMessage({
 				content: message,
 				type: cStore.channel,
-			};
-
-			await api.post('/chat/message', msg);
+			});
 		} catch (err) {
 			error.value = err as Error;
 		} finally {
@@ -40,5 +36,5 @@ export const useSendMessage = () => {
 		}
 	};
 
-	return { sendMessage, isLoading, error };
+	return { send, isLoading, error };
 };

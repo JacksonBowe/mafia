@@ -44,7 +44,7 @@
 
 <script setup lang="ts">
 import { useMe } from 'src/lib/user';
-import { useChatStore } from 'src/stores/message';
+import { useChatStore } from 'src/stores/chat';
 import { computed } from 'vue';
 
 const cStore = useChatStore();

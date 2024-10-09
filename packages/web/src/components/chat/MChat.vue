@@ -35,16 +35,16 @@ import { MCard, MCardHeader, MCardContent } from 'src/components/ui/card';
 
 import MChatChannelSelect from './MChatChannelSelect.vue';
 import MChatArea from './MChatArea.vue';
-import { useSendMessage } from 'src/lib/message';
+import { useSendMessage } from 'src/lib/chat';
 import { useRealtime } from 'src/lib/realtime';
 
 const input = ref('');
 
-const { sendMessage, isLoading, error } = useSendMessage();
+const { send, isLoading, error } = useSendMessage();
 
 const submit = () => {
 	console.log(input.value);
-	sendMessage(input.value);
+	send(input.value);
 	input.value = '';
 };
 

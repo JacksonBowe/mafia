@@ -9,7 +9,7 @@
 </template>
 
 <script setup lang="ts">
-import { useChatStore } from 'src/stores/message';
+import { useChatStore } from 'src/stores/chat';
 import MChatMessage from './MChatMessage.vue';
 import { watch, ref } from 'vue';
 import { QScrollArea } from 'quasar';

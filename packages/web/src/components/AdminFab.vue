@@ -41,8 +41,8 @@
 // import { api } from 'src/boot/axios';
 import { terminateAllLobbies } from 'src/lib/api/admin';
 import { v4 as uuidv4 } from 'uuid';
-import { Message } from 'src/lib/api/message';
-import { useChatStore } from 'src/stores/message';
+import { Message } from 'src/lib/chat/models';
+import { useChatStore } from 'src/stores/chat';
 // const seedLobbies = async () => {
 
 // };
@@ -54,10 +54,10 @@ const seedMessages = (): void => {
 			type: 'GLOBAL',
 			target: 'GLOBAL',
 			content: 'This is a global message',
-			timestamp: new Date(),
+			timestamp: new Date().getTime(),
 			sender: {
 				id: uuidv4(),
-				name: 'GlobalSender',
+				username: 'GlobalSender',
 			},
 		},
 		{
@@ -65,10 +65,10 @@ const seedMessages = (): void => {
 			type: 'LOBBY',
 			target: 'Lobby123',
 			content: 'This is a lobby message',
-			timestamp: new Date(),
+			timestamp: new Date().getTime(),
 			sender: {
 				id: uuidv4(),
-				name: 'LobbySender',
+				username: 'LobbySender',
 			},
 		},
 		{
@@ -76,10 +76,10 @@ const seedMessages = (): void => {
 			type: 'PRIVATE',
 			target: 'User123',
 			content: 'This is a private message',
-			timestamp: new Date(),
+			timestamp: new Date().getTime(),
 			sender: {
 				id: uuidv4(),
-				name: 'PrivateSender',
+				username: 'PrivateSender',
 			},
 		},
 		{
@@ -87,14 +87,14 @@ const seedMessages = (): void => {
 			type: 'SYSTEM',
 			target: 'User123',
 			content: 'This is a system message',
-			timestamp: new Date(),
+			timestamp: new Date().getTime(),
 		},
 		{
 			id: uuidv4(),
 			type: 'INFO',
 			target: 'User123',
 			content: 'This is an info message',
-			timestamp: new Date(),
+			timestamp: new Date().getTime(),
 		},
 	];
 
