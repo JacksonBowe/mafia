@@ -1,5 +1,5 @@
 export * from './api';
-export * from './types';
+export * from './models';
 
 import { useQuery } from '@tanstack/vue-query';
 import { fetchMe } from './api';

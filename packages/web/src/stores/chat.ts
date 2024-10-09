@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { type Message } from 'src/lib/chat/models';
+import { type Message } from 'src/lib/chat';
 
 interface ChatState {
 	channel: 'GLOBAL' | 'LOBBY' | 'PRIVATE';

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+
 const UserSchema = z.object({
 	id: z.string(),
 	type: z.string(),

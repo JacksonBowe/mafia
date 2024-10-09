@@ -41,7 +41,7 @@
 // import { api } from 'src/boot/axios';
 import { terminateAllLobbies } from 'src/lib/api/admin';
 import { v4 as uuidv4 } from 'uuid';
-import { Message } from 'src/lib/chat/models';
+import { Message } from 'src/lib/chat';
 import { useChatStore } from 'src/stores/chat';
 // const seedLobbies = async () => {
 

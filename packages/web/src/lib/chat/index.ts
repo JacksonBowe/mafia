@@ -1,3 +1,6 @@
+export * from './api';
+export * from './models';
+
 import { useMe } from 'src/lib/user';
 import { useChatStore } from 'src/stores/chat';
 import { ref } from 'vue';

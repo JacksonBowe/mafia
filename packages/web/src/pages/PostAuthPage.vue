@@ -1,11 +1,5 @@
 <template>
-	<q-page class="row items-center justify-evenly">
-		<!-- <q-card flat> -->
-		<!-- <q-card-section> -->
-		<!-- <div class="text-subtitle2">Verifying...</div> -->
-		<!-- </q-card-section> -->
-		<!-- </q-card> -->
-	</q-page>
+	<q-page class="row items-center justify-evenly"> </q-page>
 </template>
 
 <script setup lang="ts">
@@ -39,4 +33,3 @@ onMounted(async () => {
 	q.loading.hide();
 });
 </script>
-src/lib/api/auth

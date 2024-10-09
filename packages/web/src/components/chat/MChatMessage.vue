@@ -31,7 +31,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { type Message } from 'src/lib/api/message';
+import { type Message } from 'src/lib/chat';
 
 // Define props
 const props = defineProps<{
