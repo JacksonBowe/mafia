@@ -4,7 +4,7 @@ from aws_lambda_powertools.utilities.parser import BaseModel, model_validator
 from core.utils import new_id, timestamp
 
 from core.tables import UserTable
-from core.realtime import publish_iot
+from core.realtime import publish_iot, RealtimeEvent
 
 
 class MessageSender(BaseModel):
@@ -52,6 +52,8 @@ def send_message(
 
     print("Sending a message")
     print(msg)
-    r = publish_iot("chat", msg.model_dump_json(exclude_none=True))
+    r = publish_iot(
+        "chat", RealtimeEvent.CHAT_MESSAGE, msg.model_dump(exclude_none=True)
+    )
     print(r)
     return

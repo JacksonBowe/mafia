@@ -121,7 +121,7 @@ export function useRealtime() {
 				'Connection not ready. Queuing subscription to',
 				finalTopic
 			);
-			subscriptionQueue.value.push(finalTopic);
+			subscriptionQueue.value.push(topic);
 			return;
 		}
 

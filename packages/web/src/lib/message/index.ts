@@ -5,6 +5,10 @@ import { useChatStore } from 'src/stores/message';
 import { ref } from 'vue';
 import { api } from 'src/boot/axios';
 
+export type ChatEvents = {
+	// ['chat:message']: (message: Message) => void;
+};
+
 export const useSendMessage = () => {
 	const isLoading = ref(false);
 	const error = ref<Error | null>(null);
@@ -24,28 +28,11 @@ export const useSendMessage = () => {
 			if (!sender) throw new Error('User data not available');
 
 			const msg = {
-				// id: uuidv4(),
-				// sender: {
-				// 	id: sender.id,
-				// 	name: sender.username,
-				// },
 				content: message,
-				// target: cStore.channel,
 				type: cStore.channel,
-				// type: 'LOBBY',
 			};
 
-			console.log(msg);
-
-			const response = await api.post('/chat/message', msg);
-
-			console.log('response', response);
-			// Validate the message using the schema
-			// const parsedMessage = MessageSchema.parse(msg);
-
-			// Add the validated message to the messages array
-			// cStore.messages.push(parsedMessage);
-			console.log(msg);
+			await api.post('/chat/message', msg);
 		} catch (err) {
 			error.value = err as Error;
 		} finally {
