@@ -33,7 +33,7 @@ export function API({ stack, app }: StackContext) {
 		defaults: {
 			authorizer: "token",
 			function: {
-				permissions: ["ssm"],
+				permissions: ["ssm", "iot:Publish"],
 				bind: [userTable, lobbyTable, bus, sessionTable],
 				environment: {
 					SST_TABLE_TABLENAME_USERTABLE: userTable.tableName,
