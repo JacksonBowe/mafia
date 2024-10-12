@@ -40,7 +40,7 @@ const props = defineProps<{
 
 // Type guard to check if the message has a sender
 function messageHasSender(
-	message: Message
+	message: Message,
 ): message is Message & { sender: { id: string; username: string } } {
 	return (
 		message.type === 'GLOBAL' ||

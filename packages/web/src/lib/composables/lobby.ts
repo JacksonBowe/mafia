@@ -8,6 +8,8 @@ import {
 } from 'src/lib/api/lobby';
 import { useLobbyStore } from 'src/stores/lobby';
 import { type User } from 'src/lib/user';
+import { useChatStore } from 'src/stores/chat';
+import { useRealtime } from '../realtime';
 
 export const useLobbies = () => {
 	return useQuery({
@@ -21,23 +23,28 @@ export const useLobbies = () => {
 export const mutHostLobby = () => {
 	const queryClient = useQueryClient();
 	const lStore = useLobbyStore();
+	const cStore = useChatStore();
+	const { subscribe } = useRealtime();
+
 	return useMutation({
 		mutationFn: hostLobby,
-		onSuccess: (data) => {
+		onSuccess: (lobby) => {
 			console.log('Host success');
 			queryClient.invalidateQueries({ queryKey: ['lobbies'] });
 
-			console.log('Lobby', data);
+			console.log('Lobby', lobby);
 			queryClient.setQueryData(['me'], (oldData: User) =>
 				oldData
 					? {
 							...oldData,
-							lobby: data.id,
-					  }
-					: oldData
+							lobby: lobby.id,
+						}
+					: oldData,
 			);
 
-			lStore.setSelectedLobbyId(data.id);
+			lStore.setSelectedLobbyId(lobby.id);
+			cStore.newInfoMessage('You have created a Lobby');
+			subscribe(lobby.id);
 		},
 		onError: (e) => {
 			console.error('Host error', e);
@@ -55,7 +62,7 @@ export const useSelectedLobby = () => {
 	const selectedLobby = computed(() => {
 		if (!lobbies.value || !lStore.selectedLobbyId) return null;
 		return lobbies.value.find(
-			(lobby) => lobby.id === lStore.selectedLobbyId
+			(lobby) => lobby.id === lStore.selectedLobbyId,
 		);
 	});
 
@@ -80,8 +87,8 @@ export const mutJoinLobby = () => {
 					? {
 							...oldData,
 							lobby: variables.lobbyId,
-					  }
-					: oldData
+						}
+					: oldData,
 			);
 		},
 		onError: (e) => {
@@ -96,6 +103,7 @@ export const mutJoinLobby = () => {
 export const mutLeaveLobby = () => {
 	const queryClient = useQueryClient();
 	const lStore = useLobbyStore();
+	const cStore = useChatStore();
 	return useMutation({
 		mutationFn: leaveLobby,
 		onMutate: () => {
@@ -111,11 +119,13 @@ export const mutLeaveLobby = () => {
 					? {
 							...oldData,
 							lobby: null,
-					  }
-					: oldData
+						}
+					: oldData,
 			);
 
 			lStore.clearSelectedLobbyId();
+
+			cStore.newInfoMessage('You have left the lobby');
 		},
 		onError: (e) => {
 			console.error('Leave Error', e);

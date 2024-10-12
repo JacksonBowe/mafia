@@ -12,7 +12,7 @@ export interface AccessTokenResponse {
 }
 
 export const fetchTokensDiscord = async (
-	code: string
+	code: string,
 ): Promise<AccessTokenResponse> => {
 	try {
 		const response = await api.post('/auth/token/discord', null, {
@@ -24,7 +24,7 @@ export const fetchTokensDiscord = async (
 			if (error.response) {
 				console.error(
 					'Request failed with status code',
-					error.response.status
+					error.response.status,
 				);
 				console.error('Response data:', error.response.data);
 			} else if (error.request) {
@@ -35,7 +35,7 @@ export const fetchTokensDiscord = async (
 		} else {
 			console.error(
 				'Non-Axios error occurred:',
-				(error as Error).message
+				(error as Error).message,
 			);
 		}
 		throw error;
@@ -43,7 +43,7 @@ export const fetchTokensDiscord = async (
 };
 
 export const refreshSession = async (
-	refreshToken: string
+	refreshToken: string,
 ): Promise<AccessTokenResponse> => {
 	try {
 		const response = await api.post('/auth/token/refresh', null, {
@@ -55,7 +55,7 @@ export const refreshSession = async (
 			if (error.response) {
 				console.error(
 					'Request failed with status code',
-					error.response.status
+					error.response.status,
 				);
 				console.error('Response data:', error.response.data);
 			} else if (error.request) {
@@ -66,7 +66,7 @@ export const refreshSession = async (
 		} else {
 			console.error(
 				'Non-Axios error occurred:',
-				(error as Error).message
+				(error as Error).message,
 			);
 		}
 		throw error;

@@ -18,7 +18,7 @@ const props = withDefaults(
 		dense: false,
 		denser: false,
 		densest: false,
-	}
+	},
 );
 
 const density = computed(() => {

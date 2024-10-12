@@ -9,17 +9,13 @@
 	</q-layout>
 </template>
 
-<script setup lang="ts">
-
-</script>
+<script setup lang="ts"></script>
 
 <style scoped>
-
 .bg-splash {
-    position: fixed;
-    height: 100%;
-    width: 100%;
-    z-index: 0;
+	position: fixed;
+	height: 100%;
+	width: 100%;
+	z-index: 0;
 }
-
 </style>

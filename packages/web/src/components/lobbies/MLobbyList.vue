@@ -8,7 +8,7 @@
 					class="q-ma-xs"
 					:lobby="lobby"
 					:index="index"
-					:dense="$q.screen.lt.md"
+					:dense="q.screen.lt.md"
 					clickable
 					:selected="lobby.id === lStore.selectedLobbyId"
 					:disable="dataLoading || me?.lobby !== null"
@@ -39,6 +39,9 @@ import MLobbyItem from './MLobbyItem.vue';
 import { useLobbies } from 'src/lib/composables';
 import { useMe } from 'src/lib/user';
 import { computed } from 'vue';
+import { useQuasar } from 'quasar';
+
+const q = useQuasar();
 
 const queryClient = useQueryClient();
 

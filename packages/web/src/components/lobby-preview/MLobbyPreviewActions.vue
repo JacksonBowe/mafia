@@ -1,7 +1,7 @@
 <template>
 	<q-btn
 		color="positive"
-		:size="$q.screen.lt.lg ? 'sm' : 'md'"
+		:size="q.screen.lt.lg ? 'sm' : 'md'"
 		glossy
 		push
 		:disable="joinDisabled"
@@ -11,7 +11,7 @@
 	>
 	<q-btn
 		color="negative"
-		:size="$q.screen.lt.lg ? 'sm' : 'md'"
+		:size="q.screen.lt.lg ? 'sm' : 'md'"
 		glossy
 		push
 		:disable="leaveDisabled"
@@ -25,8 +25,12 @@
 import { useSelectedLobby } from 'src/lib/composables';
 import { useLobbyStore } from 'src/stores/lobby';
 import { computed } from 'vue';
+import { useQuasar } from 'quasar';
+
 import { mutJoinLobby, mutLeaveLobby } from 'src/lib/composables';
 import { useMe } from 'src/lib/user';
+
+const q = useQuasar();
 
 const { data: me } = useMe();
 const lStore = useLobbyStore();

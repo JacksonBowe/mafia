@@ -18,5 +18,5 @@
 import { MCard } from '../ui/card';
 import MLobbyPreviewUsers from './MLobbyPreviewUsers.vue';
 import MLobbyPreviewActions from './MLobbyPreviewActions.vue';
-import MLobbyPreviewConfig from './MLobbyPreviewConfig.vue';
+// import MLobbyPreviewConfig from './MLobbyPreviewConfig.vue';
 </script>

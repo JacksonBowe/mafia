@@ -1,7 +1,7 @@
 <template>
 	<q-list class="column col">
 		<q-scroll-area class="col" dense :thumb-style="thumbStyle">
-			<q-list :dense="!$q.screen.gt.lg">
+			<q-list :dense="!q.screen.gt.lg">
 				<MLobbyPreviewUser
 					v-for="user in props.users"
 					:key="user.id"
@@ -15,9 +15,12 @@
 </template>
 
 <script setup lang="ts">
+import { useQuasar } from 'quasar';
 import MLobbyPreviewUser from './MLobbyPreviewUser.vue';
 import type { LobbyUser } from 'src/lib/api/lobby';
 import { useSelectedLobby } from 'src/lib/composables';
+
+const q = useQuasar();
 
 const props = defineProps<{
 	users?: LobbyUser[];

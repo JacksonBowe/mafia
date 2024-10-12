@@ -1,10 +1,10 @@
 <template>
 	<MCard class="fit text-white column">
-		<MCardHeader dense :denser="$q.screen.lt.md">
+		<MCardHeader dense :denser="q.screen.lt.md">
 			<q-tabs
 				v-model="tab"
 				active-class="active-tab"
-				:dense="$q.screen.lt.md"
+				:dense="q.screen.lt.md"
 				animated
 				no-caps
 				align="justify"
@@ -35,9 +35,12 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useQuasar } from 'quasar';
 import { MCard, MCardHeader, MCardContent } from 'src/components/ui/card';
 import MLobbyList from './MLobbyList.vue';
 import MLobbyHost from './MLobbyHost.vue';
+
+const q = useQuasar();
 
 const tab = ref('join');
 </script>
