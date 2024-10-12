@@ -58,7 +58,9 @@ const dataLoading = computed(() => {
 const { data: me } = useMe();
 
 const refreshLobbies = () => {
-	lStore.clearSelectedLobbyId();
+	if (!me.value?.lobby) {
+		lStore.clearSelectedLobbyId();
+	}
 	queryClient.invalidateQueries({ queryKey: ['lobbies'] });
 };
 </script>
