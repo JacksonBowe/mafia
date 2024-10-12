@@ -31,9 +31,8 @@ api.interceptors.response.use(
 					aStore.authenticate(tokens);
 
 					// Update the headers of the original request and retry
-					originalRequest.headers[
-						'Authorization'
-					] = `Bearer ${tokens.AccessToken}`;
+					originalRequest.headers['Authorization'] =
+						`Bearer ${tokens.AccessToken}`;
 					return api(originalRequest);
 				} catch (refreshError) {
 					console.error('Error refreshing session:', refreshError);
@@ -74,7 +73,7 @@ api.interceptors.response.use(
 						dense: true,
 						handler: () => {
 							navigator.clipboard.writeText(
-								JSON.stringify(error.response.data, null, 2)
+								JSON.stringify(error.response.data, null, 2),
 							);
 						},
 					},
@@ -101,7 +100,7 @@ api.interceptors.response.use(
 		}
 
 		return Promise.reject(error);
-	}
+	},
 );
 
 export default boot(() => {

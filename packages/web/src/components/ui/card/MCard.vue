@@ -10,7 +10,7 @@ const props = withDefaults(
 	defineProps<{
 		class?: string;
 	}>(),
-	{}
+	{},
 );
 </script>
 

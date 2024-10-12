@@ -45,7 +45,7 @@ const { data: me } = useMe();
 
 const input = ref('');
 
-const { send, isLoading, error } = useSendMessage();
+const { send } = useSendMessage();
 
 const submit = () => {
 	console.log(input.value);

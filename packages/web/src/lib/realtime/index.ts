@@ -38,26 +38,26 @@ const pollingInterval = ref<NodeJS.Timeout | null>(null);
 
 // Utility function to build and configure the websocket MQTT connection
 function build_websocket_mqtt_connection(
-	args: WebsocketMQTTArgs
+	args: WebsocketMQTTArgs,
 ): mqtt.MqttClientConnection {
 	const client_bootstrap = new io.ClientBootstrap();
 	const configBuilder =
-		iot.AwsIotMqttConnectionConfigBuilder.new_with_websockets();
-
-	configBuilder.with_clean_session(false);
-	configBuilder.with_client_id(args.clientId || '');
-	configBuilder.with_endpoint(args.endpoint);
-	configBuilder.with_will({
-		topic: `${args.iotBase}/disconnect`,
-		payload: JSON.stringify({ clientId: args.clientId }),
-		qos: mqtt.QoS.AtLeastOnce,
-		retain: false,
-	});
-	configBuilder.with_credentials(
-		args.region,
-		args.aws_access_id,
-		args.aws_secret_key
-	);
+		iot.AwsIotMqttConnectionConfigBuilder.new_with_websockets()
+			.with_clean_session(false)
+			.with_client_id(args.clientId || '')
+			.with_endpoint(args.endpoint)
+			.with_keep_alive_seconds(1200)
+			.with_will({
+				topic: `${args.iotBase}/disconnect`,
+				payload: JSON.stringify({ clientId: args.clientId }),
+				qos: mqtt.QoS.AtLeastOnce,
+				retain: false,
+			})
+			.with_credentials(
+				args.region,
+				args.aws_access_id,
+				args.aws_secret_key,
+			);
 
 	const config = configBuilder.build();
 	const client = new mqtt.MqttClient(client_bootstrap);
@@ -69,10 +69,10 @@ export function useRealtime() {
 	const prefix = `mafia/${import.meta.env.VITE_APP_STAGE}/`;
 
 	// Function to establish a connection if none exists
-	function connectIoT(userId: string) {
-		if (connection.value !== null) {
+	async function connectIoT(userId: string) {
+		if (connection.value) {
 			console.log('Using existing IoT connection');
-			return;
+			await connection.value.disconnect();
 		}
 
 		args.clientId = userId;
@@ -85,12 +85,14 @@ export function useRealtime() {
 			processQueuedSubscriptions();
 		});
 
-		connection.value.on('disconnect', () => {
-			console.log('IoT connection disconnected');
-		});
+		connection.value.on('resume', console.log);
+		connection.value.on('disconnect', console.log);
 
-		connection.value.on('closed', () => {
-			console.log('IoT connection closed');
+		connection.value.on('closed', console.log);
+
+		connection.value.on('interrupt', (e) => {
+			console.log('interrupted, restarting', e, JSON.stringify(e));
+			connectIoT(userId);
 		});
 
 		connection.value.on('message', (topic, payload) => {
@@ -120,7 +122,7 @@ export function useRealtime() {
 		if (!connection.value) {
 			console.log(
 				'Connection not ready. Queuing subscription to',
-				finalTopic
+				finalTopic,
 			);
 			subscriptionQueue.value.push(topic);
 			return;
@@ -140,12 +142,12 @@ export function useRealtime() {
 		if (connection.value && subscriptions.value.includes(finalTopic)) {
 			connection.value.unsubscribe(finalTopic);
 			subscriptions.value = subscriptions.value.filter(
-				(t) => t !== finalTopic
+				(t) => t !== finalTopic,
 			);
 			console.log('Unsubscribed from', finalTopic);
 		} else {
 			console.error(
-				'Cannot unsubscribe, no connection or not subscribed'
+				'Cannot unsubscribe, no connection or not subscribed',
 			);
 		}
 	}

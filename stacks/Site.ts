@@ -12,7 +12,7 @@ export function Site({ app, stack }: StackContext) {
 	const accessKey = new iam.AccessKey(stack, "iotAccessKey", { user: iotUser });
 
 	const site = new StaticSite(stack, "site", {
-		path: "packages/web2/",
+		path: "packages/web/",
 		buildOutput: "dist/spa",
 		buildCommand: "bun install --frozen-lockfile && bun run build",
 		errorPage: "index.html",

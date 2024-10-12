@@ -7,7 +7,7 @@ export interface SendMessageRequest {
 }
 
 export const sendMessage = async (
-	message: SendMessageRequest
+	message: SendMessageRequest,
 ): Promise<void> => {
 	return await api.post('/chat/message', message);
 };

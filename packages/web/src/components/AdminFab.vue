@@ -40,7 +40,6 @@
 <script setup lang="ts">
 // import { api } from 'src/boot/axios';
 import { terminateAllLobbies } from 'src/lib/api/admin';
-import { v4 as uuidv4 } from 'uuid';
 import { Message } from 'src/lib/chat';
 import { useChatStore } from 'src/stores/chat';
 // const seedLobbies = async () => {
@@ -50,47 +49,47 @@ const cStore = useChatStore();
 const seedMessages = (): void => {
 	const messages: Message[] = [
 		{
-			id: uuidv4(),
+			id: 'TODO',
 			type: 'GLOBAL',
 			target: 'GLOBAL',
 			content: 'This is a global message',
 			timestamp: new Date().getTime(),
 			sender: {
-				id: uuidv4(),
+				id: 'TODO',
 				username: 'GlobalSender',
 			},
 		},
 		{
-			id: uuidv4(),
+			id: 'TODO',
 			type: 'LOBBY',
 			target: 'Lobby123',
 			content: 'This is a lobby message',
 			timestamp: new Date().getTime(),
 			sender: {
-				id: uuidv4(),
+				id: 'TODO',
 				username: 'LobbySender',
 			},
 		},
 		{
-			id: uuidv4(),
+			id: 'TODO',
 			type: 'PRIVATE',
 			target: 'User123',
 			content: 'This is a private message',
 			timestamp: new Date().getTime(),
 			sender: {
-				id: uuidv4(),
+				id: 'TODO',
 				username: 'PrivateSender',
 			},
 		},
 		{
-			id: uuidv4(),
+			id: 'TODO',
 			type: 'SYSTEM',
 			target: 'User123',
 			content: 'This is a system message',
 			timestamp: new Date().getTime(),
 		},
 		{
-			id: uuidv4(),
+			id: 'TODO',
 			type: 'INFO',
 			target: 'User123',
 			content: 'This is an info message',

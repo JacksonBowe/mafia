@@ -39,7 +39,7 @@ const lStore = useLobbyStore();
 
 const me = useMe();
 const name = ref(`${me.data.value?.username}'s Lobby` || '');
-const config = ref('');
+// const config = ref('');
 
 const submit = () => {
 	mutation.mutate({ name: name.value }, { onSuccess: () => emit('submit') });

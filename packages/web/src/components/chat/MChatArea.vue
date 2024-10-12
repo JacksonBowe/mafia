@@ -22,6 +22,6 @@ watch(
 	() => {
 		chatArea.value?.setScrollPercentage('vertical', 100, 1000);
 	},
-	{ deep: true, immediate: true }
+	{ deep: true, immediate: true },
 );
 </script>

@@ -8,7 +8,7 @@ export const useLobbyStore = defineStore('lobby', {
 	}),
 
 	getters: {
-		lobbyActionPending(state): boolean {
+		lobbyActionPending(): boolean {
 			return this.joinLobbyPending || this.leaveLobbyPending;
 		},
 	},
