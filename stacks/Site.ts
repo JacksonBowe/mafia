@@ -12,9 +12,9 @@ export function Site({ app, stack }: StackContext) {
 	const accessKey = new iam.AccessKey(stack, "iotAccessKey", { user: iotUser });
 
 	const site = new StaticSite(stack, "site", {
-		path: "packages/web/",
+		path: "packages/web2/",
 		buildOutput: "dist/spa",
-		buildCommand: "npm ci && npm run build",
+		buildCommand: "bun install --frozen-lockfile && bun run build",
 		errorPage: "index.html",
 		environment: {
 			VITE_API_URL: api.url,
@@ -32,6 +32,28 @@ export function Site({ app, stack }: StackContext) {
 			},
 		},
 	});
+
+	// const site2 = new StaticSite(stack, "site2", {
+	// 	path: "packages/web2/",
+	// 	buildOutput: "dist/spa",
+	// 	buildCommand: "bun install --frozen-lockfile && bun run build",
+	// 	errorPage: "index.html",
+	// 	environment: {
+	// 		VITE_API_URL: api.url,
+	// 		VITE_APP_NAME: app.name,
+	// 		VITE_APP_STAGE: app.stage,
+	// 		VITE_APP_REGION: app.region,
+	// 		VITE_IOT_ENDPOINT: iotEndpoint,
+	// 		VITE_IOT_BASE: iotBase,
+	// 		VITE_IOT_ACCESS_KEY_ID: accessKey.accessKeyId,
+	// 		VITE_IOT_SECRET_ACCESS_KEY: accessKey.secretAccessKey.toString(),
+	// 	},
+	// 	cdk: {
+	// 		bucket: {
+	// 			removalPolicy: RemovalPolicy.DESTROY,
+	// 		},
+	// 	},
+	// });
 
 	stack.addOutputs({
 		SiteUrl: site.url || "http://localhost:9000",

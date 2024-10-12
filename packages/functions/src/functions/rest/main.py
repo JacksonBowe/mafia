@@ -2,13 +2,13 @@ import json
 import os
 
 # This is because Python was created by people with brain rot
-if os.getenv("PYTEST") or os.getenv("IS_LOCAL"):
-    from . import auth, lobbies, chat, users  # When Python is running "normally"
+if os.getenv("PYTEST"):
+    from . import auth, chat, lobbies, users  # When Python is running "normally"
 else:
     # When Python is being invoked via SST
     import auth
-    import lobbies
     import chat
+    import lobbies
     import users
 
 from aws_lambda_powertools.event_handler import (
