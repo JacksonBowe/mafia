@@ -11,6 +11,16 @@ class RealtimeEvent(Enum):
     # Chat Events
     CHAT_MESSAGE = "chat.message"
 
+    # Lobby Events
+    LOBBY_USER_JOIN = "lobby.user-join"
+    LOBBY_USER_LEAVE = "lobby.user-leave"
+    LOBBY_START = "lobby.start"
+    LOBBY_TERMINATE = "lobby.terminate"
+    LOBBY_NEW_HOST = "lobby.new-host"
+
+    # Game Events
+    # TODO: Add game events
+
 
 def publish_iot(
     topic: str, event_type: RealtimeEvent, payload: dict = None, qos: int = 1

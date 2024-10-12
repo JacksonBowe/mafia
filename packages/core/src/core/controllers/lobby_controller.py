@@ -34,7 +34,7 @@ class Events:
         event_name = "lobby.user_join"
 
         class Properties(BaseModel):
-            user: UserTable.Entities.User
+            user: LobbyTable.Entities.LobbyUser
             lobby: LobbyTable.Entities.Lobby
 
     class UserLeave(Event):
@@ -274,7 +274,7 @@ def add_user_to_lobby(
         raise InternalServerError(f"Error in DynamoDB operation: {e}")
 
     # Raise user join event
-    Events.UserJoin.publish({"user": user, "lobby": lobby})
+    Events.UserJoin.publish({"user": lobby_user, "lobby": lobby})
 
     return lobby
 
