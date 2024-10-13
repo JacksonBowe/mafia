@@ -12,7 +12,7 @@ class RealtimeEvent(Enum):
     CHAT_MESSAGE = "chat.message"
 
     # Lobby Events
-    LOBBY_USER_JOIN = "lobby.userjoin"
+    LOBBY_USER_JOIN = "lobby.user-join"
     LOBBY_USER_LEAVE = "lobby.user-leave"
     LOBBY_START = "lobby.start"
     LOBBY_TERMINATE = "lobby.terminate"

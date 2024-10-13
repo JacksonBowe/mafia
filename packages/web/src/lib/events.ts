@@ -1,5 +1,11 @@
-import { ChatEvents } from './chat';
-import * as lobby from './lobby/events';
-import 'src/lib/lobby/events';
+import type { EventBus } from 'quasar';
 
-export type Events = lobby.LobbyEvents & ChatEvents;
+import { ChatEvents, registerChatEvents } from './chat';
+import { LobbyEvents, registerLobbyEvents } from './lobby';
+
+export type Events = LobbyEvents & ChatEvents;
+
+export function registerEvents(bus: EventBus<Events>) {
+	registerChatEvents(bus);
+	registerLobbyEvents(bus);
+}
