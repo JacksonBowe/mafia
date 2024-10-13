@@ -72,6 +72,7 @@ export const useSelectedLobby = () => {
 export const mutJoinLobby = () => {
 	const queryClient = useQueryClient();
 	const lStore = useLobbyStore();
+	const { subscribe } = useRealtime();
 	return useMutation({
 		mutationFn: joinLobby,
 		onMutate: () => {
@@ -90,6 +91,7 @@ export const mutJoinLobby = () => {
 						}
 					: oldData,
 			);
+			subscribe(variables.lobbyId);
 		},
 		onError: (e) => {
 			console.error('Join Error', e);

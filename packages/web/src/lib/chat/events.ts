@@ -3,10 +3,12 @@ import { type Message, MessageSchema } from './models';
 import { bus } from 'src/boot/bus';
 
 export type ChatEvents = {
-	['chat.message']: (properties: Message) => void;
+	'chat.message': (properties: Message) => void;
 };
 
-bus.on('chat.message', (properties) => {
+console.log('LOADED CHAT EVENTS');
+
+bus.on('chat.message', (properties: Message) => {
 	console.log('Received message', properties);
 	const message = MessageSchema.parse(properties);
 
