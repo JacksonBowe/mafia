@@ -68,9 +68,14 @@
 <script setup lang="ts">
 import AdminFab from 'src/components/AdminFab.vue';
 import { MCard, MCardHeader } from 'src/components/ui/card';
+import { useChatEvents } from 'src/lib/chat';
+import { useLobbyEvents } from 'src/lib/lobby';
 import { useMe } from 'src/lib/user';
 
 const { data: me, isLoading } = useMe();
+
+useChatEvents();
+useLobbyEvents();
 </script>
 
 <style scoped>
