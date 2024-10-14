@@ -41,7 +41,7 @@ class Events:
         event_name = "lobby.user_leave"
 
         class Properties(BaseModel):
-            user_id: str
+            user: LobbyTable.Entities.LobbyUser
             lobby: LobbyTable.Entities.Lobby
 
 
@@ -326,6 +326,6 @@ def remove_user_from_lobby(
         raise InternalServerError(f"Error in DynamoDB operation: {e}")
 
     # Raise user leave event
-    Events.UserLeave.publish({"user_id": user.id, "lobby": lobby})
+    Events.UserLeave.publish({"user": lobby_user, "lobby": lobby})
 
     return lobby

@@ -106,6 +106,7 @@ export const mutLeaveLobby = () => {
 	const queryClient = useQueryClient();
 	const lStore = useLobbyStore();
 	const cStore = useChatStore();
+	const { unsubscribe } = useRealtime();
 	return useMutation({
 		mutationFn: leaveLobby,
 		onMutate: () => {
@@ -125,6 +126,7 @@ export const mutLeaveLobby = () => {
 					: oldData,
 			);
 
+			unsubscribe(lStore.selectedLobbyId);
 			lStore.clearSelectedLobbyId();
 
 			cStore.newInfoMessage('You have left the lobby');

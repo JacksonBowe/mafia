@@ -8,7 +8,6 @@ from core.realtime import RealtimeEvent, publish_iot
 def handler(event: EventBridgeEvent, context):
     details = LobbyController.Events.UserJoin.Properties(**event.detail)
 
-    # TODO: IoT Publish
     print(f"User {details.user.username} join lobby {details.lobby.name}")
 
     publish_iot(
