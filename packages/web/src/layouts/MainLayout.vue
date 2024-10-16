@@ -8,7 +8,9 @@
 			<MCard class="" style="width: 80%">
 				<MCardHeader dense class="row">
 					<div class="q-gutter-sm flex items-center">
-						<span class="text-subtitle1 text-mafia">Mafia</span>
+						<span class="text-subtitle1 text-mafia"
+							>Informed Minority</span
+						>
 						<q-btn
 							flat
 							dense
@@ -18,6 +20,16 @@
 							size="sm"
 							target="_blank"
 							href="https://github.com/JacksonBowe/mafia"
+						/>
+						<q-btn
+							flat
+							dense
+							icon="fa-brands fa-discord"
+							color="grey-6"
+							rounded
+							size="sm"
+							target="_blank"
+							href="https://discord.gg/kpdfPfVx"
 						/>
 					</div>
 
@@ -51,7 +63,6 @@
 								alt="Avatar"
 							/>
 						</q-avatar>
-						<q-btn size="sm" color="primary">Test</q-btn>
 					</div>
 				</MCardHeader>
 			</MCard>
