@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/vue-query';
 import { useChatStore } from 'src/stores/chat';
 import { type LobbyUser, LobbyUserSchema } from './models';
 import type { EventBus } from 'quasar';
+import { useMe } from '../user';
 
 export type LobbyEvents = {
 	'lobby.user-join': (properties: LobbyUser) => void;
@@ -15,6 +16,7 @@ export function useLobbyEvents() {
 	const bus = inject<EventBus<LobbyEvents>>('bus');
 	// Use QueryClient inside the reactive context
 	const queryClient = useQueryClient();
+	const { data: me } = useMe();
 
 	if (!bus) {
 		throw new Error('EventBus not provided');
@@ -31,9 +33,13 @@ export function useLobbyEvents() {
 			console.log(lobby_user);
 			const cStore = useChatStore();
 
-			cStore.newInfoMessage(
-				`${lobby_user.username} has joined the Lobby`,
-			);
+			if (me.value && me.value.id === lobby_user.id) {
+				cStore.newInfoMessage('You have joined the Lobby');
+			} else {
+				cStore.newInfoMessage(
+					`${lobby_user.username} has joined the Lobby`,
+				);
+			}
 
 			// Invalidate queries related to 'lobbies'
 			queryClient.invalidateQueries({ queryKey: ['lobbies'] });

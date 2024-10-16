@@ -1,10 +1,9 @@
-from typing import Optional, Literal, Self
+from typing import Literal, Optional, Self
 
 from aws_lambda_powertools.utilities.parser import BaseModel, model_validator
-from core.utils import new_id, timestamp
-
+from core.realtime import RealtimeEvent, publish_iot
 from core.tables import UserTable
-from core.realtime import publish_iot, RealtimeEvent
+from core.utils import new_id, timestamp
 
 
 class MessageSender(BaseModel):
@@ -50,5 +49,15 @@ def send_message(
         sender={"id": sender.id, "username": sender.username} if sender else None,
     )
 
-    publish_iot("chat", RealtimeEvent.CHAT_MESSAGE, msg.model_dump(exclude_none=True))
+    if type in ["LOBBY", "PRIVATE"]:
+        publish_iot(
+            target,
+            RealtimeEvent.CHAT_MESSAGE,
+            msg.model_dump(exclude_none=True),
+        )
+
+    else:
+        publish_iot(
+            "chat", RealtimeEvent.CHAT_MESSAGE, msg.model_dump(exclude_none=True)
+        )
     return
