@@ -10,6 +10,8 @@ import { useLobbyStore } from 'src/stores/lobby';
 import { type User } from 'src/lib/user';
 import { useChatStore } from 'src/stores/chat';
 import { useRealtime } from '../realtime';
+import { AxiosError } from 'axios';
+import { warningNotify } from '../util';
 
 export const useLobbies = () => {
 	return useQuery({
@@ -95,6 +97,12 @@ export const mutJoinLobby = () => {
 		},
 		onError: (e) => {
 			console.error('Join Error', e);
+			if (e instanceof AxiosError) {
+				if (e.response?.status === 404) {
+					warningNotify('Lobby not found');
+					queryClient.invalidateQueries({ queryKey: ['lobbies'] });
+				}
+			}
 		},
 		onSettled: () => {
 			lStore.clearJoinLobbyPending();

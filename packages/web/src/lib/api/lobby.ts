@@ -56,6 +56,7 @@ export type JoinLobbyProps = z.infer<typeof JoinLobbyPropsSchema>;
 export const joinLobby = async (props: JoinLobbyProps): Promise<Lobby> => {
 	const payload = JoinLobbyPropsSchema.parse(props);
 	const r = await api.post(`/lobbies/${payload.lobbyId}/join`);
+
 	return r.data;
 };
 
