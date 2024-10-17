@@ -22,5 +22,13 @@ def handler(event: EventBridgeEvent, context):
     if not lobby_users:
         LobbyController.delete_lobby(details.lobby)
         print(f"Lobby {details.lobby.id} deleted")
+        return
+
+    if details.user.id == details.lobby.host.id:
+        new_host = lobby_users[0]
+        print("Lobby here:", details.lobby)
+        LobbyController.promote_lobby_user_to_host(new_host, details.lobby)
+        print(f"New host {new_host.username} assigned to lobby {details.lobby.id}")
+        return
 
     return

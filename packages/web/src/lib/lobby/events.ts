@@ -8,6 +8,7 @@ import { useMe } from '../user';
 export type LobbyEvents = {
 	'lobby.user-join': (properties: LobbyUser) => void;
 	'lobby.user-leave': (properties: LobbyUser) => void;
+	'lobby.new-host': (properties: LobbyUser) => void;
 };
 
 // Function to register lobby event listeners
@@ -57,11 +58,24 @@ export function useLobbyEvents() {
 			// Invalidate queries related to 'lobbies'
 			queryClient.invalidateQueries({ queryKey: ['lobbies'] });
 		});
+
+		bus.on('lobby.new-host', (properties: LobbyUser) => {
+			console.log('New Host', properties);
+			const lobby_user = LobbyUserSchema.parse(properties);
+			console.log(lobby_user);
+			const cStore = useChatStore();
+
+			cStore.newInfoMessage(`${lobby_user.username} is the new Host`);
+
+			// Invalidate queries related to 'lobbies'
+			queryClient.invalidateQueries({ queryKey: ['lobbies'] });
+		});
 	});
 
 	// Clean up event listeners when the component is unmounted
 	onUnmounted(() => {
 		bus.off('lobby.user-join');
 		bus.off('lobby.user-leave');
+		bus.off('lobby.new-host');
 	});
 }

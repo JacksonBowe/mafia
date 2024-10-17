@@ -9,6 +9,7 @@ from aws_lambda_powertools.event_handler.exceptions import (
 )
 from botocore.exceptions import BotoCoreError, ClientError
 from core.events import Event
+from core.realtime import RealtimeEvent, publish_iot
 from core.tables import LobbyTable, UserTable
 from core.utils import Dynamo
 from pydantic import BaseModel, ValidationError
@@ -327,5 +328,55 @@ def remove_user_from_lobby(
 
     # Raise user leave event
     Events.UserLeave.publish({"user": lobby_user, "lobby": lobby})
+    return lobby
+
+
+def promote_lobby_user_to_host(
+    lobby_user: LobbyTable.Entities.LobbyUser, lobby: LobbyTable.Entities.Lobby
+):
+    if not lobby_user.lobbyId:
+        raise InternalServerError(f"User {lobby_user.id} is not in a lobby")
+
+    if not lobby_user.lobbyId == lobby.id:
+        raise InternalServerError(f"User {lobby_user.id} is not in lobby {lobby.id}")
+
+    # Update the Lobby
+    try:
+        operation = lobby.update(
+            {
+                "host": LobbyTable.Entities.Lobby.LobbyHost(
+                    id=lobby_user.id, username=lobby_user.username
+                )
+            }
+        )
+
+        LobbyTable.table.update_item(
+            Key={"PK": lobby.PK, "SK": lobby.SK},
+            UpdateExpression=operation.expression,
+            ExpressionAttributeNames=operation.names,
+            ExpressionAttributeValues=operation.values,
+        )
+
+    except ValidationError as e:
+        terminate_lobby(lobby)
+        raise InternalServerError(f"Error updating lobby. {str(e)}") from e
+    except ValueError as e:
+        terminate_lobby(lobby)
+        raise InternalServerError(f"Error updating lobby. {str(e)}") from e
+    except ClientError as e:
+        terminate_lobby(lobby)
+        raise InternalServerError(f"Error in DynamoDB operation: {e}")
+
+    # Publish a new host event
+    publish_iot(lobby.id, RealtimeEvent.LOBBY_NEW_HOST, lobby_user.serialize())
 
     return lobby
+
+
+def terminate_lobby(lobby: LobbyTable.Entities.Lobby):
+    # Remove all users from the lobby
+    lobby_users = get_lobby_users(lobby.id)
+    for user in lobby_users:
+        remove_user_from_lobby(user, lobby)
+
+    return
