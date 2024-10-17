@@ -32,6 +32,7 @@ UNAUTHORIZED = "Unauthorized"
 
 ENDPOINTS = [
     # UserController
+    ("ANY", "/"),
     ("GET", "users"),
     ("GET", "users/*"),
     # LobbyController

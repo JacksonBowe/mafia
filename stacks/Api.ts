@@ -13,6 +13,7 @@ export function API({ stack, app }: StackContext) {
 	const apiHandler = "packages/functions/src/functions/rest/main.handler";
 
 	const api = new Api(stack, "api", {
+		cors: true,
 		authorizers: {
 			token: {
 				type: "lambda",
@@ -31,7 +32,7 @@ export function API({ stack, app }: StackContext) {
 			},
 		},
 		defaults: {
-			authorizer: "token",
+			// authorizer: "token",
 			function: {
 				permissions: ["ssm", "iot:Publish"],
 				bind: [userTable, lobbyTable, bus, sessionTable],
@@ -48,20 +49,25 @@ export function API({ stack, app }: StackContext) {
 			"GET /auth/authorize/discord": { function: { handler: apiHandler, layers: [jose, requests] }, authorizer: "none" },
 			"POST /auth/token/discord": { function: { handler: apiHandler, layers: [jose, requests] }, authorizer: "none" },
 			"POST /auth/token/refresh": { function: { handler: apiHandler, layers: [jose, requests] }, authorizer: "none" },
-			// UserController
-			"GET /users/me": apiHandler,
-			"GET /users/{userId}": apiHandler,
-			// LobbyController
-			"POST /lobbies": apiHandler,
-			"GET /lobbies": apiHandler,
-			"POST /lobbies/terminate": apiHandler,
-			"GET /lobbies/{lobbyId}": apiHandler,
-			"POST /lobbies/{lobbyId}/join": apiHandler,
-			"POST /lobbies/{lobbyId}/terminate": apiHandler,
-			"POST /lobbies/leave": apiHandler,
-			"POST /lobbies/start": apiHandler,
-			// ChatController
-			"POST /chat/message": apiHandler,
+			// "ANY /auth/{proxy+}": { function: { handler: apiHandler, layers: [jose, requests] }, authorizer: "none" },
+			// // UserController
+			// "GET /users/me": apiHandler,
+			// "GET /users/{userId}": apiHandler,
+			// // // LobbyController
+			// "POST /lobbies": apiHandler,
+			// "GET /lobbies": apiHandler,
+			// "POST /lobbies/terminate": apiHandler,
+			// "GET /lobbies/{lobbyId}": apiHandler,
+			// "POST /lobbies/{lobbyId}/join": apiHandler,
+			// "POST /lobbies/{lobbyId}/terminate": apiHandler,
+			// "POST /lobbies/leave": apiHandler,
+			// "POST /lobbies/start": apiHandler,
+			// // // ChatController
+			// "POST /chat/message": apiHandler,
+			"POST /{proxy+}": apiHandler,
+			"GET /{proxy+}": apiHandler,
+
+			// $default: apiHandler,
 		},
 	});
 
