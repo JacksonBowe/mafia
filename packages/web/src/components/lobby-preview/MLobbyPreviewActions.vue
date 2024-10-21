@@ -22,12 +22,11 @@
 </template>
 
 <script setup lang="ts">
-import { useSelectedLobby } from 'src/lib/composables';
 import { useLobbyStore } from 'src/stores/lobby';
 import { computed } from 'vue';
 import { useQuasar } from 'quasar';
 
-import { mutJoinLobby, mutLeaveLobby } from 'src/lib/composables';
+import { useJoinLobby, useLeaveLobby, useSelectedLobby } from 'src/lib/lobby';
 import { useMe } from 'src/lib/user';
 
 const q = useQuasar();
@@ -48,13 +47,13 @@ const leaveDisabled = computed(() => {
 // 	return false;
 // });
 
-const mutJoin = mutJoinLobby();
+const mutJoin = useJoinLobby();
 const joinLobby = () => {
 	console.log('Join lobby', lStore.selectedLobbyId);
 	mutJoin.mutate({ lobbyId: lStore.selectedLobbyId });
 };
 
-const mutLeave = mutLeaveLobby();
+const mutLeave = useLeaveLobby();
 const leaveLobby = () => {
 	console.log('Leave lobby', me.value?.lobby);
 	mutLeave.mutate();

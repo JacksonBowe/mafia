@@ -18,7 +18,7 @@
 import { useQuasar } from 'quasar';
 import MLobbyPreviewUser from './MLobbyPreviewUser.vue';
 import type { LobbyUser } from 'src/lib/api/lobby';
-import { useSelectedLobby } from 'src/lib/composables';
+import { useSelectedLobby } from 'src/lib/lobby';
 
 const q = useQuasar();
 

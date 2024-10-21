@@ -28,12 +28,12 @@ import { ref, defineEmits } from 'vue';
 import { MCard } from '../ui/card';
 
 import { useLobbyStore } from 'src/stores/lobby';
-import { mutHostLobby } from 'src/lib/composables';
+import { useHostLobby } from 'src/lib/lobby';
 import { useMe } from 'src/lib/user';
 
 const emit = defineEmits(['submit']);
 
-const mutation = mutHostLobby();
+const mutation = useHostLobby();
 
 const lStore = useLobbyStore();
 
