@@ -36,4 +36,3 @@ const thumbStyle = {
 	opacity: '0.75',
 };
 </script>
-src/lib/api/lobby src/lib/composables

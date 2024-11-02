@@ -1,24 +1,36 @@
 <template>
-	<q-btn
-		color="positive"
-		:size="q.screen.lt.lg ? 'sm' : 'md'"
-		glossy
-		push
-		:disable="joinDisabled"
-		:loading="mutJoin.isPending.value"
-		@click="joinLobby"
-		>Put me in Coach!</q-btn
-	>
-	<q-btn
-		color="negative"
-		:size="q.screen.lt.lg ? 'sm' : 'md'"
-		glossy
-		push
-		:disable="leaveDisabled"
-		:loading="mutLeave.isPending.value"
-		@click="leaveLobby"
-		>Get me out!</q-btn
-	>
+	<div class="flex justify-between">
+		<q-btn
+			v-if="leaveDisabled"
+			color="positive"
+			:size="q.screen.lt.lg ? 'sm' : 'md'"
+			glossy
+			push
+			:disable="joinDisabled"
+			:loading="mutJoin.isPending.value"
+			@click="joinLobby"
+			>Put me in Coach!</q-btn
+		>
+		<q-btn
+			v-else-if="joinDisabled"
+			color="primary"
+			:size="q.screen.lt.lg ? 'sm' : 'md'"
+			glossy
+			push
+			>Start!
+		</q-btn>
+
+		<q-btn
+			color="negative"
+			:size="q.screen.lt.lg ? 'sm' : 'md'"
+			glossy
+			push
+			:disable="leaveDisabled"
+			:loading="mutLeave.isPending.value"
+			@click="leaveLobby"
+			>Get me out!</q-btn
+		>
+	</div>
 </template>
 
 <script setup lang="ts">

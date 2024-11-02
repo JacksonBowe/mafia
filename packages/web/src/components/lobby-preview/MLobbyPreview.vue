@@ -3,8 +3,8 @@
 		<q-card-section class="col column">
 			<MLobbyPreviewUsers class="col" />
 
-			<q-card-actions class="">
-				<MLobbyPreviewActions />
+			<q-card-actions class="q-px-none">
+				<MLobbyPreviewActions class="fit" />
 			</q-card-actions>
 		</q-card-section>
 		<q-card-section class="col">
