@@ -30,7 +30,13 @@ DENY_POLICY = {
 
 UNAUTHORIZED = "Unauthorized"
 
-ENDPOINTS = [
+NOAUTH_ENDPOINTS = [
+    ("GET", "/auth/authorize/discord"),
+    ("POST", "/auth/token/discord"),
+    ("POST", "/auth/token/refresh"),
+]
+
+AUTH_ENDPOINTS = [
     # UserController
     # ("ANY", "/"),
     ("GET", "users"),
@@ -54,7 +60,7 @@ ENDPOINTS = [
     ("POST", "lobbies/*/terminate"),
 ]
 
-ADMIN_ENDPOINTS = [
+ADMIN_AUTH_ENDPOINTS = [
     # UserController
     # LobbyController
     ("POST", "lobby/*/terminate")
@@ -83,8 +89,8 @@ def extract_authentication_credentials(
 
 @event_source(data_class=APIGatewayAuthorizerRequestEvent)
 def handler(event: APIGatewayAuthorizerRequestEvent, context):
+    print("YOOOOO")
     arn = event.parsed_arn
-
     # Determine the authentication method
     auth_type, auth_key = extract_authentication_credentials(event)
     if not auth_type:
@@ -110,9 +116,35 @@ def handler(event: APIGatewayAuthorizerRequestEvent, context):
         )
 
         # Construct the policy
-        for method, resource in ENDPOINTS:
+        for method, resource in AUTH_ENDPOINTS:
             policy.allow_route(method, resource)
 
         return policy.asdict()
 
     raise Exception("Unauthorized")
+
+
+def is_authorized(event: dict):
+    event = APIGatewayAuthorizerRequestEvent(event)
+    try:
+        method, path = event["requestContext"]["http"]["method"], event["rawPath"]
+    except KeyError:
+        return False
+
+    if (method, path) in NOAUTH_ENDPOINTS:
+        return True
+
+    # Determine the authentication method
+    auth_type, auth_key = extract_authentication_credentials(event)
+    if not auth_type:
+        return False
+
+    if auth_type == AuthController.AuthMethods.TOKEN:
+        # Token-based authentication
+        claims = AuthController.validate_token(auth_key)
+        if not claims:
+            return False
+
+        return True
+
+    return False
