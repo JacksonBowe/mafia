@@ -1,6 +1,5 @@
 import json
 import os
-from typing import Callable
 
 # This is because Python was created by people with brain rot
 if os.getenv("PYTEST"):
@@ -24,14 +23,12 @@ from aws_lambda_powertools.event_handler import (
     Response,
     content_types,
 )
+from aws_lambda_powertools.event_handler.exceptions import UnauthorizedError
+from aws_lambda_powertools.event_handler.middlewares import NextMiddleware
 from aws_lambda_powertools.event_handler.openapi.exceptions import (
     RequestValidationError,
 )
-from aws_lambda_powertools.event_handler.exceptions import UnauthorizedError
 from aws_lambda_powertools.logging import Logger
-from aws_lambda_powertools.middleware_factory import NextMiddleWare
-from aws_lambda_powertools.middleware_factory import lambda_handler_decorator
-from aws_lambda_powertools.utilities.typing import LambdaContext
 
 logger = Logger()
 
@@ -80,22 +77,20 @@ def handle_unauthorized_error(ex: UnauthorizedError):
     )
 
 
-@lambda_handler_decorator
-def middleware_handler(
-    handler: Callable[[dict, LambdaContext], dict], event: dict, context: LambdaContext
-) -> dict:
-    if authorizer.is_authorized(event):
-        print("Authorized")
-        return handler(event, context)
+def middleware_authorizer(
+    app: APIGatewayHttpResolver, next_middleware: NextMiddleware
+) -> Response:
+    authorized, claims = authorizer.is_authorized(app.current_event)
+    if authorized:
+        if claims:
+            app.append_context(caller_id=claims["sub"])
+        return next_middleware(app)
     else:
-        print("here")
         raise UnauthorizedError("Unauthorized")
 
-    return handler(event, context)
 
-def middleware_authorizer(app: APIGatewayHttpResolver, next_middleware: NextMiddleWare)
+app.use(middlewares=[middleware_authorizer])
 
 
-@middleware_handler
 def handler(event, context):
     return app.resolve(event, context)

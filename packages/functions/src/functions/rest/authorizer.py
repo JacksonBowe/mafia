@@ -6,6 +6,7 @@ if os.getenv("IS_LOCAL"):
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from typing import Tuple
+from fnmatch import fnmatch
 
 from aws_lambda_powertools.utilities.data_classes import event_source
 from aws_lambda_powertools.utilities.data_classes.api_gateway_authorizer_event import (
@@ -13,8 +14,6 @@ from aws_lambda_powertools.utilities.data_classes.api_gateway_authorizer_event i
     APIGatewayAuthorizerResponse,
 )
 from core.controllers import AuthController
-
-# from core.utils import Session
 
 DENY_POLICY = {
     "principalId": "abc123",
@@ -39,14 +38,14 @@ NOAUTH_ENDPOINTS = [
 AUTH_ENDPOINTS = [
     # UserController
     # ("ANY", "/"),
-    ("GET", "users"),
-    ("GET", "users/*"),
+    ("GET", "/users"),
+    ("GET", "/users/*"),
     # LobbyController
-    ("POST", "lobbies"),
-    ("GET", "lobbies"),
-    ("GET", "lobbies/*"),
-    ("POST", "lobbies/*/join"),
-    ("POST", "lobbies/leave"),
+    ("POST", "/lobbies"),
+    ("GET", "/lobbies"),
+    ("GET", "/lobbies/*"),
+    ("POST", "/lobbies/*/join"),
+    ("POST", "/lobbies/leave"),
     # ('POST', 'lobbies/start'),
     # ('GET', 'games'),
     # ('GET', 'games/actor'),
@@ -54,16 +53,17 @@ AUTH_ENDPOINTS = [
     # ('POST', 'games/verdict'),
     # ('POST', 'games/targets'),
     # MessageController
-    ("POST", "chat/message"),
+    ("POST", "/chat/message"),
     # ('POST', 'games/chat')
-    ("POST", "lobbies/terminate"),
-    ("POST", "lobbies/*/terminate"),
+    # ("POST", "lobbies/terminate"),
+    # ("POST", "lobbies/*/terminate"),
 ]
 
 ADMIN_AUTH_ENDPOINTS = [
     # UserController
     # LobbyController
-    ("POST", "lobby/*/terminate")
+    ("POST", "/lobbies/terminate"),
+    ("POST", "/lobby/*/terminate"),
 ]
 
 
@@ -87,9 +87,9 @@ def extract_authentication_credentials(
     return None, None
 
 
+# TODO: DEPRECATED - This is from when we were using ApiGateway. May need to revert in future
 @event_source(data_class=APIGatewayAuthorizerRequestEvent)
 def handler(event: APIGatewayAuthorizerRequestEvent, context):
-    print("YOOOOO")
     arn = event.parsed_arn
     # Determine the authentication method
     auth_type, auth_key = extract_authentication_credentials(event)
@@ -124,27 +124,29 @@ def handler(event: APIGatewayAuthorizerRequestEvent, context):
     raise Exception("Unauthorized")
 
 
-def is_authorized(event: dict):
+def is_authorized(event: dict) -> Tuple[bool, dict]:
+    # TODO: Implement some route protection
     event = APIGatewayAuthorizerRequestEvent(event)
+
     try:
         method, path = event["requestContext"]["http"]["method"], event["rawPath"]
     except KeyError:
-        return False
+        return False, None
 
     if (method, path) in NOAUTH_ENDPOINTS:
-        return True
+        return True, None
 
     # Determine the authentication method
     auth_type, auth_key = extract_authentication_credentials(event)
     if not auth_type:
-        return False
+        return False, None
 
     if auth_type == AuthController.AuthMethods.TOKEN:
         # Token-based authentication
         claims = AuthController.validate_token(auth_key)
         if not claims:
-            return False
+            return False, None
 
-        return True
+        return True, claims
 
     return False

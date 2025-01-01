@@ -22,11 +22,13 @@ api.interceptors.response.use(
 		const aStore = useAuthStore();
 
 		// 401 Unauthorized
+		console.log(error)
 		if (error.response.status === 401) {
-			if (!originalRequest._retry && aStore.refreshToken) {
+			if (!originalRequest._retry && aStore.refreshToken && error.config.url !== '/auth/token/refresh') {
 				console.log('Unauthorized, attempting to refresh');
 				originalRequest._retry = true;
 				try {
+					// This can get stuck in a loop if the refresh call returns 401
 					const tokens = await refreshSession(aStore.refreshToken);
 					aStore.authenticate(tokens);
 
@@ -45,6 +47,12 @@ api.interceptors.response.use(
 				}
 			}
 			console.log('Unauthorized');
+			Notify.create({
+				message:
+					'Unauthorized',
+				color: 'negative',
+				timeout: 2000,
+			});
 			aStore.doLogout();
 		}
 

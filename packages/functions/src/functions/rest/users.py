@@ -1,7 +1,7 @@
 import os
 
-from aws_lambda_powertools.event_handler.router import APIGatewayHttpRouter
 from aws_lambda_powertools.event_handler.exceptions import BadRequestError
+from aws_lambda_powertools.event_handler.router import APIGatewayHttpRouter
 from core.controllers import UserController
 from core.tables import UserTable
 
@@ -12,7 +12,7 @@ router = APIGatewayHttpRouter()
 @router.get("/users/me")
 def get_me() -> UserTable.Entities.User:
     try:
-        user_id = router.current_event.request_context.authorizer.get_lambda["CallerID"]
+        user_id = router.context.get("caller_id")
     except KeyError:
         raise BadRequestError("Missing CallerID")
 

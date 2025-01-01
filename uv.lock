@@ -47,15 +47,15 @@ wheels = [
 
 [[package]]
 name = "aws-lambda-powertools"
-version = "3.0.0"
+version = "3.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jmespath" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5a/e4/4505d90727e4b2459abafd9e9a5856a898c76e696f8c430a098e53263b60/aws_lambda_powertools-3.0.0.tar.gz", hash = "sha256:b171e393858b7c45c08811e280304b9ff29e4fdc9b7b1aa896b49342451677f9", size = 646373 }
+sdist = { url = "https://files.pythonhosted.org/packages/5e/c3/0327777504050f27545fca243e0436e044e01344800210cb2f1dfab9d636/aws_lambda_powertools-3.4.0.tar.gz", hash = "sha256:794a41a7595a98e7798bebaf957d37ad60a9736577c0a5ac66a1198742b4b109", size = 650322 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/99/63/4fd080caad09f907ce9041c7944fd27130fd773d6ac26384acd49d19c9fd/aws_lambda_powertools-3.0.0-py3-none-any.whl", hash = "sha256:0769ca6b6ee7d4a6fc2978f91bcfa39c963c694bd8f5a7407543bc72722247ed", size = 759789 },
+    { url = "https://files.pythonhosted.org/packages/cf/3e/9c08a6faa69dc64e35d69e0cf9454c095a1b3853180554da7fa71b06c69b/aws_lambda_powertools-3.4.0-py3-none-any.whl", hash = "sha256:503e66b488e397085a819acf20816e1867214c0d163a1f9f8e550df932fca699", size = 765009 },
 ]
 
 [package.optional-dependencies]
@@ -65,6 +65,7 @@ all = [
     { name = "fastjsonschema" },
     { name = "jsonpath-ng" },
     { name = "pydantic" },
+    { name = "pydantic-settings" },
 ]
 
 [[package]]
@@ -343,6 +344,7 @@ name = "mafia"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "aws-lambda-powertools", extra = ["all"] },
     { name = "core" },
     { name = "functions" },
 ]
@@ -361,13 +363,14 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "aws-lambda-powertools", extras = ["all"], specifier = ">=3.0.0" },
     { name = "core", editable = "packages/core" },
     { name = "functions", editable = "packages/functions" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "aws-lambda-powertools", extras = ["all"], specifier = ">=3.0.0" },
+    { name = "aws-lambda-powertools", extras = ["all"], specifier = "==3.4.0" },
     { name = "boto3", specifier = ">=1.35.35" },
     { name = "boto3-stubs", extras = ["full"], specifier = ">=1.35.36" },
     { name = "botocore", specifier = ">=1.35.35" },
@@ -530,6 +533,19 @@ wheels = [
 ]
 
 [[package]]
+name = "pydantic-settings"
+version = "2.7.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "python-dotenv" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/86/41/19b62b99e7530cfa1d6ccd16199afd9289a12929bef1a03aa4382b22e683/pydantic_settings-2.7.0.tar.gz", hash = "sha256:ac4bfd4a36831a48dbf8b2d9325425b549a0a6f18cea118436d728eb4f1c4d66", size = 79743 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f9/00/57b4540deb5c3a39ba689bb519a4e03124b24ab8589e618be4aac2c769bd/pydantic_settings-2.7.0-py3-none-any.whl", hash = "sha256:e00c05d5fa6cbbb227c84bd7487c5c1065084119b750df7c8c1a554aed236eb5", size = 29549 },
+]
+
+[[package]]
 name = "pytest"
 version = "8.3.3"
 source = { registry = "https://pypi.org/simple" }
@@ -554,6 +570,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/66/c0/0c8b6ad9f17a802ee498c46e004a0eb49bc148f2fd230864601a86dcf6db/python-dateutil-2.9.0.post0.tar.gz", hash = "sha256:37dd54208da7e1cd875388217d5e00ebd4179249f90fb72437e91a35459a0ad3", size = 342432 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ec/57/56b9bcc3c9c6a792fcbaf139543cee77261f3651ca9da0c93f5c1221264b/python_dateutil-2.9.0.post0-py2.py3-none-any.whl", hash = "sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427", size = 229892 },
+]
+
+[[package]]
+name = "python-dotenv"
+version = "1.0.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/bc/57/e84d88dfe0aec03b7a2d4327012c1627ab5f03652216c63d49846d7a6c58/python-dotenv-1.0.1.tar.gz", hash = "sha256:e324ee90a023d808f1959c46bcbc04446a10ced277783dc6ee09987c37ec10ca", size = 39115 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6a/3e/b68c118422ec867fa7ab88444e1274aa40681c606d59ac27de5a5588f082/python_dotenv-1.0.1-py3-none-any.whl", hash = "sha256:f7b63ef50f1b690dddf550d03497b66d609393b40b564ed0d674909a68ebf16a", size = 19863 },
 ]
 
 [[package]]

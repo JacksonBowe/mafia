@@ -28,7 +28,7 @@ class CreateLobbyPayload(BaseModel):
 @router.post("/lobbies")
 def create_lobby(payload: CreateLobbyPayload) -> LobbyTable.Entities.Lobby:
     try:
-        user_id = router.current_event.request_context.authorizer.get_lambda["CallerID"]
+        user_id = router.context.get("caller_id")
     except KeyError:
         raise BadRequestError("Missing CallerID")
 
@@ -66,7 +66,7 @@ def get_lobby(
 
 @router.post("/lobbies/<lobby_id>/join")
 def join_lobby(lobby_id) -> None:
-    user_id = router.current_event.request_context.authorizer.get_lambda["CallerID"]
+    user_id = router.context.get("caller_id")
     user = UserController.get_user_by_id(user_id)
     lobby = LobbyController.get_lobby_by_id(lobby_id)
     LobbyController.add_user_to_lobby(user, lobby)
@@ -76,7 +76,7 @@ def join_lobby(lobby_id) -> None:
 @router.post("/lobbies/leave")
 def leave_lobby():
     # Verify User
-    user_id = router.current_event.request_context.authorizer.get_lambda["CallerID"]
+    user_id = router.context.get("caller_id")
     user = UserController.get_user_by_id(user_id)
     if not user.lobby:
         raise BadRequestError("User is not in a lobby")

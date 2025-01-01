@@ -26,7 +26,7 @@ class SendMessagePayload(BaseModel):
 
 @router.post("/chat/message")
 def send_message(payload: SendMessagePayload) -> None:
-    user_id = router.current_event.request_context.authorizer.get_lambda["CallerID"]
+    user_id = router.context.get("caller_id")
     user = UserController.get_user_by_id(user_id)
 
     ChatController.send_message(
