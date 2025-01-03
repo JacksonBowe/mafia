@@ -17,6 +17,7 @@
 			:size="q.screen.lt.lg ? 'sm' : 'md'"
 			glossy
 			push
+			@click="startLobby"
 			>Start!
 		</q-btn>
 
@@ -55,6 +56,7 @@ const leaveDisabled = computed(() => {
 	return !me.value?.lobby;
 });
 
+// TODO: ??
 // const startDisabled = computed(() => {
 // 	return false;
 // });
@@ -71,7 +73,7 @@ const leaveLobby = () => {
 	mutLeave.mutate();
 };
 
-// const startLobby = () => {
-// 	console.log('Start lobby', me.value?.lobby);
-// };
+const startLobby = () => {
+	console.log('Start lobby', me.value?.lobby);
+};
 </script>

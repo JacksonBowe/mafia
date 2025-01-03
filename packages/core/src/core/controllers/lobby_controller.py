@@ -45,6 +45,12 @@ class Events:
             user: LobbyTable.Entities.LobbyUser
             lobby: LobbyTable.Entities.Lobby
 
+    class LobbyStart(Event):
+        event_name = "lobby.start"
+
+        class Properties(BaseModel):
+            lobby: LobbyWithUsers
+
 
 def create_lobby(
     name, host: UserTable.Entities.User, config: dict
@@ -380,3 +386,8 @@ def terminate_lobby(lobby: LobbyTable.Entities.Lobby):
         remove_user_from_lobby(user, lobby)
 
     return
+
+
+def start_lobby(lobby: LobbyWithUsers) -> None:
+    # Publish EventBus Event
+    Events.LobbyStart.publish({"lobby": lobby})

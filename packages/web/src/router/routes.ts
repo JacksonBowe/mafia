@@ -18,6 +18,13 @@ const routes: RouteRecordRaw[] = [
 		],
 	},
 	{
+		path: '/game',
+		component: () => import('layouts/GameLayout.vue'),
+		children: [
+			{ path: '', component: () => import('pages/GamePage.vue') },
+		],
+	},
+	{
 		path: '',
 		component: () => import('layouts/MainLayout.vue'),
 		children: [

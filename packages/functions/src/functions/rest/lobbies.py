@@ -114,3 +114,22 @@ def terminate_all_lobbies() -> None:
             LobbyController.remove_user_from_lobby(
                 UserController.get_user_by_id(user.id), lobby
             )
+
+
+@router.post("/lobbies/start")
+def start_lobby():
+    caller_id = router.context.get("caller_id")
+    user = UserController.get_user_by_id(caller_id)
+
+    # Get the lobby
+    lobby = LobbyController.get_lobby_by_id(user.lobby, with_users=True)
+
+    # Validate
+    if not lobby.host:
+        raise InternalServerError(f"Lobby {lobby.id} has no host")
+    if not lobby.users:
+        raise InternalServerError(f"Lobby {lobby.id} has no users")
+    if lobby.host.id != user.id:
+        raise BadRequestError("Only the host can start the game")
+
+    LobbyController.start_lobby(lobby)
