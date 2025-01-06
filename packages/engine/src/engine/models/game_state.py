@@ -1,9 +1,5 @@
-import json
 from typing import List
 from pydantic import BaseModel, ConfigDict
-
-from engine.roles import Actor
-from engine.utils.logging import logger
 
 
 class StatePlayer(BaseModel):

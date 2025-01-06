@@ -93,7 +93,7 @@ class Game:
         self.actors.sort(key=lambda actor: ROLE_LIST.index(actor.__class__))
 
         # Prelim check to ensure that players are only targetting valid options
-        # This needs to happen BEFORE resolution as Witch can then fuck with the targetting as god intended
+        # This needs to happen BEFORE resolution as Witch can then fuck with the targetting... as God intended
         for actor in self.actors:
             if not actor.targets:
                 continue
@@ -133,9 +133,16 @@ class Game:
         pass
 
     def check_for_win(self):
-        return [
+        logger.info("--- Checking for win conditions ---")
+        winners = [
             actor for actor in self.actors if actor.check_for_win(self.alive_actors)
         ]
+        if winners:
+            logger.info(f"Winners: {winners}")
+            return winners
+        else:
+            logger.info("No winners found")
+            return None
 
     def get_actor_by_number(self, number: int) -> Actor:
         return next((actor for actor in self.actors if actor.number == number), None)
@@ -146,9 +153,9 @@ class Game:
 
     @property
     def dead_actors(self) -> List[Actor]:
-        print(
-            "DEADIED:", [actor.dump_state() for actor in self.actors if not actor.alive]
-        )
+        # print(
+        #     "DEADIED:", [actor.dump_state() for actor in self.actors if not actor.alive]
+        # )
         return [actor for actor in self.actors if not actor.alive]
 
     @property

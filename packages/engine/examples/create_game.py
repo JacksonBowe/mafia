@@ -5,7 +5,9 @@ from _ import dummy_config, dummy_players
 
 def create():
     players = dummy_players(3)
-    config = dummy_config(roles=["Citizen", "Bodyguard", "Mafioso"])
+    config = dummy_config(
+        roles=["Citizen", "Bodyguard", "Mafioso"]
+    )  # If no roles provided it will use all roles
 
     game = engine.new_game(players, config)
 
