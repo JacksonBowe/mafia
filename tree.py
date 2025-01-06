@@ -6,7 +6,10 @@ import pathspec
 # Argument parser for input arguments
 parser = argparse.ArgumentParser(description="Script so useful.")
 parser.add_argument("--path", type=str, default=".")
-parser.add_argument("--exclude", type=str, default="")
+parser.add_argument("--exclude", type=str, default=".git,python")
+parser.add_argument(
+    "--level", type=int, default=None, help="Limit the depth of the displayed tree."
+)
 
 args = parser.parse_args()
 
@@ -39,6 +42,9 @@ class DisplayablePath(object):
 
         displayable_root = cls(root, parent, is_last)
         yield displayable_root
+
+        if args.level is not None and displayable_root.depth >= args.level:
+            return
 
         children = sorted(
             list(path for path in root.iterdir() if criteria(path)),

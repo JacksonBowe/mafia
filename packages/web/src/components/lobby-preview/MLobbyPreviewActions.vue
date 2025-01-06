@@ -41,6 +41,7 @@ import { useQuasar } from 'quasar';
 
 import { useJoinLobby, useLeaveLobby, useSelectedLobby } from 'src/lib/lobby';
 import { useMe } from 'src/lib/user';
+import { api } from 'src/boot/axios';
 
 const q = useQuasar();
 
@@ -75,5 +76,6 @@ const leaveLobby = () => {
 
 const startLobby = () => {
 	console.log('Start lobby', me.value?.lobby);
+	api.post('/lobbies/start');
 };
 </script>

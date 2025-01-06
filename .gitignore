@@ -15,7 +15,11 @@ node_modules
 __pycache__
 .ruff_cache
 .pytest_cache
+.quasar
 
 # local env files
 .env*.local
+
+# build files
+dist
 
