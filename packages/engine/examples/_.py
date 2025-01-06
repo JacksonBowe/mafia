@@ -1,9 +1,17 @@
-def dummy_users(n):
-    users = []
+from typing import List
+
+from engine.models import GameConfig, Player
+
+
+def dummy_players(n) -> List[Player]:
+    players = []
     for i in range(1, n + 1):
-        users.append(
-            {"id": f"user-{i}", "name": f"UserName{i}", "alias": f"UserAlias{i}"}
+        players.append(
+            Player(id=f"user-{i}", name=f"User{i}", alias=f"Alias{i}")
+            # {"id": f"user-{i}", "name": f"UserName{i}", "alias": f"UserAlias{i}"}
         )
+
+    return players
 
 
 def dummy_config(tags=[], roles=[]):
@@ -51,6 +59,4 @@ def dummy_config(tags=[], roles=[]):
             role: details for role, details in config["roles"].items() if role in roles
         }
 
-    return config
-
-    return config
+    return GameConfig(**config)

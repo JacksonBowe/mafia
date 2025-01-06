@@ -22,4 +22,4 @@ __pycache__
 
 # build files
 dist
-
+log.txt
