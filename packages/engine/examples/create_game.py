@@ -1,4 +1,5 @@
 import engine
+from engine.utils.logging import log_to_terminal
 
 from _ import dummy_config, dummy_players
 
@@ -21,4 +22,5 @@ def create():
 
 
 if __name__ == "__main__":
+    log_to_terminal()
     create()

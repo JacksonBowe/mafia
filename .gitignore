@@ -23,4 +23,5 @@ __pycache__
 # build files
 dist
 log.txt
+*.log
 pytest-log.txt
