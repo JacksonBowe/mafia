@@ -1,3 +1,4 @@
+import core.utils.dynamo as Dynamo
 from aws_lambda_powertools import Logger
 from aws_lambda_powertools.event_handler.exceptions import (
     InternalServerError,
@@ -6,7 +7,6 @@ from aws_lambda_powertools.event_handler.exceptions import (
 from aws_lambda_powertools.utilities.parser import ValidationError
 from botocore.exceptions import BotoCoreError
 from core.tables import UserTable
-from core.utils import Dynamo
 from core.utils.auth import DiscordUser
 
 logger = Logger()
@@ -42,18 +42,16 @@ def discord_post_auth_update_user(
         "lastLogin": Dynamo.timestamp(),
     }
     try:
-        user.update(attrs)
+        op = user.update(attrs)
     except ValidationError as e:
         raise InternalServerError(f"Error updating user. {str(e)}") from e
-
-    expr, names, vals = Dynamo.build_update_expression(user._updated_attributes)
 
     try:
         update = UserTable.table.update_item(
             Key={"PK": discord_user.id, "SK": "A"},
-            UpdateExpression=expr,
-            ExpressionAttributeNames=names,
-            ExpressionAttributeValues=vals,
+            UpdateExpression=op.expression,
+            ExpressionAttributeNames=op.names,
+            ExpressionAttributeValues=op.values,
         )
     except BotoCoreError as e:
         raise InternalServerError(f"Error in DybnamoDB operation: {e}")
@@ -83,18 +81,18 @@ def get_user_by_id(id: str) -> UserTable.Entities.User:
 
 def clear_lobby(user: UserTable.Entities.User):
     try:
-        user.update({"lobby": None})
+        op = user.update({"lobby": None})
     except ValidationError as e:
         logger.exception(e)
         raise InternalServerError(f"Error updating user. {str(e)}") from e
 
     try:
-        expr, names, vals = Dynamo.build_update_expression(user._updated_attributes)
+        # op = Dynamo.build_update_expression(user._updated_attributes)
         UserTable.table.update_item(
             Key={"PK": user.id, "SK": "A"},
-            UpdateExpression=expr,
-            ExpressionAttributeNames=names,
-            ExpressionAttributeValues=vals,
+            UpdateExpression=op.expression,
+            ExpressionAttributeNames=op.names,
+            ExpressionAttributeValues=op.values,
         )
     except ValidationError as e:
         logger.exception(e)

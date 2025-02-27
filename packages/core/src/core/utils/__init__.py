@@ -2,7 +2,6 @@ import uuid
 from datetime import UTC, datetime
 
 import core.utils.config as Config  # noqa: F401
-import core.utils.dynamo as Dynamo  # noqa: F401
 
 
 def new_id():

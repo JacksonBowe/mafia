@@ -317,7 +317,7 @@ class SimpleEntity(BaseModel, ABC):
             # Recursively update the nested attribute
             self._update_attribute(nested_object, attribute_parts[1:], value)
 
-    def update(self, values: Dict[str, Any]):
+    def update(self: Self, values: Dict[str, Any]):
         """
         Update attributes with values from the given dictionary.
 
@@ -330,12 +330,11 @@ class SimpleEntity(BaseModel, ABC):
             attribute_parts = key.split(".")
             # Start the recursive update from the current instance
             self._update_attribute(self, attribute_parts, value)
-        after = self.serialize()
 
-        return build_update_operation(before, after)
+        return build_update_operation(before, values)
 
     def serialize(self) -> dict:
-        raw = self.model_dump(exclude_none=True)
+        raw = self.model_dump(exclude_none=True, mode="json")
         [raw.update({key: getattr(self, key) for key in self._primary_index_keys})]
         return raw
 

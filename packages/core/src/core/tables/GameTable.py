@@ -1,13 +1,9 @@
 from __future__ import annotations
 
 import os
-from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Any, Mappying, Self
 
 import boto3
-from aws_lambda_powertools.utilities.parser import BaseModel
-from core.utils import collapse_dict
 from core.utils.dynamo import CompositeEntity
 
 table_name = os.environ.get("SST_TABLE_TABLENAME_GAMETABLE")

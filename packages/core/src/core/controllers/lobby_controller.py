@@ -11,7 +11,7 @@ from botocore.exceptions import BotoCoreError, ClientError
 from core.events import Event
 from core.realtime import RealtimeEvent, publish_iot
 from core.tables import LobbyTable, UserTable
-from core.utils import Dynamo
+import core.utils.dynamo as Dynamo
 from pydantic import BaseModel, ValidationError
 
 ddb_client = boto3.client("dynamodb")
@@ -76,13 +76,9 @@ def create_lobby(
 
     # Update the host with the new lobby id
     try:
-        host.update({"lobby": lobby.id})
+        op = host.update({"lobby": lobby.id})
     except ValidationError as e:
         raise InternalServerError(f"Error updating user. {str(e)}") from e
-
-    host_expr, host_names, host_vals = Dynamo.build_update_expression(
-        host._updated_attributes
-    )
 
     try:
         # Transaction to put lobby and update user
@@ -103,9 +99,9 @@ def create_lobby(
                 {
                     "Update": {
                         "Key": Dynamo.serialize({"PK": host.PK, "SK": host.SK}),
-                        "UpdateExpression": host_expr,
-                        "ExpressionAttributeNames": host_names,
-                        "ExpressionAttributeValues": Dynamo.serialize(host_vals),
+                        "UpdateExpression": op.expression,
+                        "ExpressionAttributeNames": op.names,
+                        "ExpressionAttributeValues": Dynamo.serialize(op.values),
                         "TableName": UserTable.table_name,
                     }
                 },
@@ -234,7 +230,7 @@ def add_user_to_lobby(
     user: UserTable.Entities.User, lobby: LobbyTable.Entities.Lobby
 ) -> None:
     try:
-        user.update({"lobby": lobby.id})
+        op = user.update({"lobby": lobby.id})
     except ValidationError as e:
         raise InternalServerError(f"Error updating user. {str(e)}") from e
 
@@ -244,9 +240,6 @@ def add_user_to_lobby(
         username=user.username,
         lobbyId=lobby.id,
     )
-
-    # Update the User
-    expr, names, vals = Dynamo.build_update_expression(user._updated_attributes)
 
     try:
         # Transaction to delete LobbyUser and update User
@@ -261,9 +254,9 @@ def add_user_to_lobby(
                 {
                     "Update": {
                         "Key": Dynamo.serialize({"PK": user.PK, "SK": user.SK}),
-                        "UpdateExpression": expr,
-                        "ExpressionAttributeNames": names,
-                        "ExpressionAttributeValues": Dynamo.serialize(vals),
+                        "UpdateExpression": op.expression,
+                        "ExpressionAttributeNames": op.names,
+                        "ExpressionAttributeValues": Dynamo.serialize(op.values),
                         "TableName": UserTable.table_name,
                     }
                 },
@@ -290,14 +283,11 @@ def remove_user_from_lobby(
     user: UserTable.Entities.User, lobby: LobbyTable.Entities.Lobby
 ):
     try:
-        user.update({"lobby": None})
+        op = user.update({"lobby": None})
     except ValidationError as e:
         raise InternalServerError(f"Error updating user. {str(e)}") from e
 
     lobby_user = get_lobby_user(lobby.id, user.id)
-
-    # Update the User
-    expr, names, vals = Dynamo.build_update_expression(user._updated_attributes)
 
     try:
         # Transaction to delete LobbyUser and update User
@@ -314,8 +304,8 @@ def remove_user_from_lobby(
                 {
                     "Update": {
                         "Key": Dynamo.serialize({"PK": user.PK, "SK": user.SK}),
-                        "UpdateExpression": expr,
-                        "ExpressionAttributeNames": names,
+                        "UpdateExpression": op.expression,
+                        "ExpressionAttributeNames": op.names,
                         "TableName": UserTable.table_name,
                     }
                 },
@@ -325,12 +315,13 @@ def remove_user_from_lobby(
         logger.exception(
             f"Leave lobby failed transaction. {e.response['CancellationReasons']}"
         )
+
         raise InternalServerError(
             f"Leave lobby failed transaction. {e.response['CancellationReasons']}"
         )
     except ClientError as e:
-        logger.error(f"Error in DynamoDB operation: {e}")
-        raise InternalServerError(f"Error in DynamoDB operation: {e}")
+        logger.error(f"Error in DynamoDB operation: {e}. Operation {op}")
+        raise InternalServerError(f"Error in DynamoDB operation: {e}. Operation {op}")
 
     # Raise user leave event
     Events.UserLeave.publish({"user": lobby_user, "lobby": lobby})

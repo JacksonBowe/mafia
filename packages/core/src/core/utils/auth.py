@@ -1,6 +1,6 @@
 from urllib.parse import urlencode
 
-from core.utils import Config
+import core.utils.config as Config
 from pydantic import BaseModel
 
 
