@@ -18,9 +18,3 @@ def new_game(players: List[Player], config: GameConfig, tries=1) -> Game:
 
 def load_game(players: List[Player], config: GameConfig, state: GameState) -> Game:
     return Game.load(players, config, state)
-
-
-def hello() -> str:
-    return "Hello from engine!"
-
-    pass

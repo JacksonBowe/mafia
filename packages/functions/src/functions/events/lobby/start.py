@@ -1,4 +1,3 @@
-import json
 from aws_lambda_powertools.utilities.data_classes import EventBridgeEvent, event_source
 from core.controllers import LobbyController, GameController
 from core.realtime import RealtimeEvent, publish_iot
@@ -19,7 +18,7 @@ def handler(event: EventBridgeEvent, context):
     # Create a Game from the Lobby
     try:
         GameController.create_game_from_lobby(details.lobby, details.lobby.users)
-    except Exception as e:
+    except Exception:
         print(f"Failed to create game from lobby {details.lobby.id}")
         LobbyController.terminate_lobby(details.lobby)
     # if anything goes wrong terminate the Lobby and return

@@ -7,7 +7,8 @@ from typing import Any, Mapping, Self
 
 import boto3
 from aws_lambda_powertools.utilities.parser import BaseModel
-from core.utils import collapse_dict, Dynamo
+from core.utils import collapse_dict
+from core.utils.dynamo import build_update_operation
 
 table_name = os.environ.get("SST_TABLE_TABLENAME_LOBBYTABLE")
 if table_name:
@@ -92,7 +93,7 @@ class Entities:
                 self._updated_attributes[key] = value
             after = self.serialize()
 
-            return Dynamo.build_update_operation(before, after)
+            return build_update_operation(before, after)
 
         def serialize(self) -> dict:
             raw = self.model_dump(exclude_none=True)

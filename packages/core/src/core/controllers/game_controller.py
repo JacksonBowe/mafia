@@ -9,7 +9,8 @@ from aws_lambda_powertools.event_handler.exceptions import (
     BadRequestError,
 )
 
-from core.tables import LobbyTable
+from core.tables import LobbyTable, GameTable
+import engine
 
 
 def create_game_from_lobby(
@@ -23,3 +24,10 @@ def create_game_from_lobby(
         }
         for user in users
     ]
+
+    engine_game = engine.new_game(players, lobby.config)
+    ddb_game = GameTable.Entities.Game(
+        id=lobby.id,
+        config=json.dumps(lobby.config.dict()),
+        state=json.dumps(engine_game.dump_state()),
+    )
