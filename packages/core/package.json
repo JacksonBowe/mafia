@@ -1,0 +1,29 @@
+{
+    "name": "@mafia/core",
+    "module": "index.ts",
+    "type": "module",
+    "scripts": {
+        "db": "sst shell drizzle-kit"
+    },
+    "exports": {
+        "./*": "./src/*.ts",
+        "./db*": "./src/db/index.ts"
+    },
+    "devDependencies": {
+        "@types/bun": "latest",
+        "@types/ws": "^8.18.1",
+        "drizzle-kit": "^0.31.4"
+    },
+    "peerDependencies": {
+        "typescript": "^5.0.0"
+    },
+    "dependencies": {
+        "@neondatabase/serverless": "^1.0.1",
+        "drizzle-orm": "^0.44.2",
+        "sst": "3.17.23",
+        "ulid": "^3.0.1",
+        "valibot": "^1.1.0",
+        "ws": "^8.18.3",
+        "zod": "^4.0.5"
+    }
+}
