@@ -12,7 +12,16 @@ class Resource:
     class DatabaseMigrator:
         name: str
         type: str
+    class DiscordClientId:
+        type: str
+        value: str
+    class DiscordClientSecret:
+        type: str
+        value: str
     class NeonDatabaseUrl:
         type: str
         value: str
+    class UNSAuth:
+        type: str
+        url: str
 

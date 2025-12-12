@@ -13,9 +13,21 @@ declare module "sst" {
       "name": string
       "type": "sst.aws.Function"
     }
+    "DiscordClientId": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "DiscordClientSecret": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
     "NeonDatabaseUrl": {
       "type": "sst.sst.Linkable"
       "value": string
+    }
+    "UNSAuth": {
+      "type": "sst.aws.Auth"
+      "url": string
     }
   }
 }

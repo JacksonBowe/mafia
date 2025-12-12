@@ -1,81 +1,99 @@
 <template>
-  <q-layout view="lHh Lpr lFf">
-    <q-header elevated>
-      <q-toolbar>
-        <q-btn flat dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer" />
+	<q-layout view="hHh Lpr fFf">
+		<!-- Be sure to play with the Layout demo on docs -->
+		<div class="bg-splash">
+			<img src="~assets/mafia-village-night.png" class="fit" />
+		</div>
+		<q-header class="bg-transparent flex justify-center" height-hint="98">
+			<!-- <MCard class="" style="width: 80%">
+				<MCardHeader dense class="row">
+					<div class="q-gutter-sm flex items-center">
+						<span class="text-subtitle1 text-mafia"
+							>Informed Minority</span
+						>
+						<q-btn
+							flat
+							dense
+							icon="fa-brands fa-github"
+							color="grey-6"
+							rounded
+							size="sm"
+							target="_blank"
+							href="https://github.com/JacksonBowe/mafia"
+						/>
+						<q-btn
+							flat
+							dense
+							icon="fa-brands fa-discord"
+							color="grey-6"
+							rounded
+							size="sm"
+							target="_blank"
+							href="https://discord.gg/kpdfPfVx"
+						/>
+					</div>
 
-        <q-toolbar-title> Quasar App </q-toolbar-title>
+					<q-space />
+					<div class="q-gutter-sm flex items-cente">
+						<q-skeleton
+							v-if="isLoading"
+							type="rect"
+							dark
+							class="q-mr-sm"
+							width="100px"
+						/>
+						<span v-else class="text-subtitle1 q-mr-sm">{{
+							me?.username
+						}}</span>
 
-        <div>Quasar v{{ $q.version }}</div>
-      </q-toolbar>
-    </q-header>
+						<q-skeleton
+							v-if="isLoading"
+							type="QAvatar"
+							dense
+							size="24px"
+							dark
+							class="q-mr-sm"
+						/>
+						<q-avatar v-else size="sm" class="">
+							<img
+								:src="
+									me?.avatar ||
+									'https://cdn.quasar.dev/img/boy-avatar.png'
+								"
+								alt="Avatar"
+							/>
+						</q-avatar>
+					</div>
+				</MCardHeader>
+			</MCard> -->
+		</q-header>
 
-    <q-drawer v-model="leftDrawerOpen" show-if-above bordered>
-      <q-list>
-        <q-item-label header> Essential Links </q-item-label>
-
-        <EssentialLink v-for="link in linksList" :key="link.title" v-bind="link" />
-      </q-list>
-    </q-drawer>
-
-    <q-page-container>
-      <router-view />
-    </q-page-container>
-  </q-layout>
+		<q-page-container>
+			<!-- This is where pages get injected -->
+			<router-view />
+			<AdminFab />
+		</q-page-container>
+	</q-layout>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import EssentialLink, { type EssentialLinkProps } from 'components/EssentialLink.vue';
+// import AdminFab from 'src/components/AdminFab.vue';
+// import { MCard, MCardHeader } from 'src/components/ui/card';
+// import { useChatEvents } from 'src/lib/chat';
+// import { useLobbyEvents } from 'src/lib/lobby';
+// import { useMe } from 'src/lib/user';
 
-const linksList: EssentialLinkProps[] = [
-  {
-    title: 'Docs',
-    caption: 'quasar.dev',
-    icon: 'school',
-    link: 'https://quasar.dev',
-  },
-  {
-    title: 'Github',
-    caption: 'github.com/quasarframework',
-    icon: 'code',
-    link: 'https://github.com/quasarframework',
-  },
-  {
-    title: 'Discord Chat Channel',
-    caption: 'chat.quasar.dev',
-    icon: 'chat',
-    link: 'https://chat.quasar.dev',
-  },
-  {
-    title: 'Forum',
-    caption: 'forum.quasar.dev',
-    icon: 'record_voice_over',
-    link: 'https://forum.quasar.dev',
-  },
-  {
-    title: 'Twitter',
-    caption: '@quasarframework',
-    icon: 'rss_feed',
-    link: 'https://twitter.quasar.dev',
-  },
-  {
-    title: 'Facebook',
-    caption: '@QuasarFramework',
-    icon: 'public',
-    link: 'https://facebook.quasar.dev',
-  },
-  {
-    title: 'Quasar Awesome',
-    caption: 'Community Quasar projects',
-    icon: 'favorite',
-    link: 'https://awesome.quasar.dev',
-  },
-];
+// const { data: me, isLoading } = useMe();
 
-const leftDrawerOpen = ref(false);
-
-function toggleLeftDrawer() {
-  leftDrawerOpen.value = !leftDrawerOpen.value;
-}
+// useChatEvents();
+// useLobbyEvents();
 </script>
+
+<style scoped>
+.bg-splash {
+	position: fixed;
+	height: 100%;
+	width: 100%;
+	z-index: 0;
+}
+</style>
