@@ -14,7 +14,7 @@
 // import { useLobbyEvents } from 'src/lib/lobby'
 // import { useMe } from 'src/lib/user'
 
-import MenuHeader from 'src/components/Menu/MenuHeader.vue';
+import MenuHeader from 'src/components/MenuHeader/MenuHeader.vue';
 import BackgroundSplash from 'src/components/ui/Background/BackgroundSplash.vue';
 
 // const { data: me, isLoading } = useMe()

@@ -1,127 +1,122 @@
 // boot/axios.ts
 import { defineBoot } from '#q-app/wrappers';
-import axios, { type AxiosInstance } from 'axios';
+import { type PublicError } from '@mafia/core/error';
+import axios, { type AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
 import { Notify } from 'quasar';
 import { useAuthStore } from 'src/stores/auth';
 
 declare module 'vue' {
     interface ComponentCustomProperties {
-        $axios: AxiosInstance
-        $api: AxiosInstance
+        $axios: AxiosInstance;
+        $api: AxiosInstance;
     }
 }
 
-declare module 'axios' {
-    export interface InternalAxiosRequestConfig {
-        metadata?: {
-            startTime: number;
-        };
-    }
+type RequestMeta = { startTime: number };
+type RetryableConfig = InternalAxiosRequestConfig & { _retry?: boolean; metadata?: RequestMeta };
+type TimedAxiosError = AxiosError & { duration?: number };
 
-    export interface AxiosError {
-        duration?: number;
-    }
+const api = axios.create({
+    baseURL: import.meta.env.VITE_API_ENDPOINT!,
+});
+
+function nowMs() {
+    return Date.now();
 }
 
-const api = axios.create({ baseURL: import.meta.env.VITE_API_ENDPOINT! })
+function notifyValidation(payload: unknown) {
+    Notify.create({
+        message: 'Validation error',
+        caption: 'Please report this to support',
+        color: 'negative',
+        timeout: 0,
+        actions: [
+            {
+                label: 'Copy',
+                color: 'white',
+                handler: () => void navigator.clipboard.writeText(JSON.stringify(payload, null, 2)),
+            },
+        ],
+    });
+}
 
+function notifyBadRequest(data: PublicError) {
+    Notify.create({
+        message: data?.message ?? 'Bad request',
+        caption: data?.details ? JSON.stringify(data.details) : '',
+        color: 'warning',
+        icon: 'warning',
+        timeout: 4000,
+    });
+}
 
+function notifyServerError(err: TimedAxiosError) {
+    Notify.create({
+        message: err.duration && err.duration > 10_000
+            ? 'Request timed out'
+            : (err.response?.data as PublicError)?.message ?? 'Server error',
+        color: 'negative',
+        timeout: 2000,
+    });
+}
 
+export default defineBoot(({ app, router }) => {
+    const authStore = useAuthStore();
 
-export default defineBoot(({ router }) => {
+    api.interceptors.request.use((config) => {
+        const cfg = config as RetryableConfig;
+        cfg.metadata = { startTime: nowMs() };
 
-    // Attach request/response interceptors
-    api.interceptors.request.use(
-        (config) => {
-            config.metadata = { startTime: new Date().getTime() };
-            const authStore = useAuthStore();
-            const token = authStore.session?.accessToken;
+        const token = authStore.session?.accessToken;
+        if (token) {
+            cfg.headers = cfg.headers ?? {};
+            cfg.headers.Authorization = `Bearer ${token}`;
+        }
 
-            if (token) {
-                config.headers.Authorization = `Bearer ${token}`;
-            }
-
-            return config;
-        },
-        (error) => Promise.reject(new Error(error?.message ?? 'Request error')),
-    );
-
+        return cfg;
+    });
 
     api.interceptors.response.use(
-        (response) => response,
-        async (error) => {
-            const authStore = useAuthStore();
-            const originalRequest = error.config;
+        (res) => res,
+        async (e: TimedAxiosError) => {
+            const err = e;
+            const cfg = err.config as RetryableConfig | undefined;
 
-            if (error.config?.metadata?.startTime) {
-                error.duration = new Date().getTime() - error.config.metadata.startTime;
+            if (cfg?.metadata?.startTime) {
+                err.duration = nowMs() - cfg.metadata.startTime;
             }
 
-            const status = error.response?.status;
-            // 401 – try refresh
-            if (status === 401 && !originalRequest._retry && authStore.session?.refreshToken) {
-                console.log("Unauthorized", error)
-                if (error.response.data.code === 'user_not_found' || error.response.data.code === 'invalid_access_token') {
-                    authStore.clearSession()
-                    await router.push('/start')
+            const status = err.response?.status;
+            const data = err.response?.data as PublicError;
+
+            // 401 – your current behaviour: clear + bounce on specific codes
+            if (status === 401 && !cfg?._retry && authStore.session?.refreshToken) {
+                const code = data?.code;
+                if (code === 'user_not_found' || code === 'invalid_access_token') {
+                    authStore.clearSession();
+                    await router.push('/start');
                 }
-
-
+                // If you later add refresh here, set cfg._retry = true before retrying.
             }
 
-            // 403 – Forbidden
             if (status === 403) {
                 Notify.create({ message: 'Access denied', color: 'negative', timeout: 2000 });
                 authStore.clearSession();
+            } else if (status === 422) {
+                notifyValidation(data);
+            } else if (status === 400) {
+                notifyBadRequest(data);
+            } else if (status === 500) {
+                notifyServerError(err);
             }
 
-            // 422 – Validation
-            if (status === 422) {
-                Notify.create({
-                    message: 'Validation error',
-                    caption: 'Please report this to support',
-                    color: 'negative',
-                    timeout: 0,
-                    actions: [
-                        {
-                            label: 'Copy',
-                            color: 'white',
-                            handler: () => {
-                                void navigator.clipboard.writeText(JSON.stringify(error.response.data, null, 2));
-                            },
-                        },
-                    ],
-                });
-            }
-
-            // 400 – Bad request
-            if (status === 400) {
-                Notify.create({
-                    message: error.response.data.message ?? 'Bad request',
-                    caption: error.response.data.details,
-                    color: 'warning',
-                    icon: 'warning',
-                    timeout: 4000,
-                });
-            }
-
-            // 500 – Server error
-            if (status === 500) {
-                Notify.create({
-                    message:
-                        error.duration > 10000
-                            ? 'Request timed out'
-                            : (error.response?.data?.message ?? 'Server error'),
-                    color: 'negative',
-                    timeout: 2000,
-                });
-            }
-
-            return Promise.reject(new Error(error?.message ?? 'Request error'));
+            // Preserve Axios error for callers (don’t wrap/lose response/config)
+            return Promise.reject(err);
         },
     );
 
-})
+    // Optional: make it available as this.$api in Options API components
+    app.config.globalProperties.$api = api;
+});
 
 export { api };
-

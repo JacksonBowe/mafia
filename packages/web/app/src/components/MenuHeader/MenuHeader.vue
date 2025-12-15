@@ -26,7 +26,7 @@
 
 				<q-space />
 
-				<div class="q-gutter-sm flex items-cente">
+				<div class="q-gutter-sm flex items-center">
 					<q-skeleton v-if="isLoading" type="rect" dark class="q-mr-sm" width="100px" />
 					<span v-else class="text-subtitle1 q-mr-sm">{{ actor?.name }}</span>
 
