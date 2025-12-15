@@ -5,8 +5,17 @@
 
 declare module "sst" {
   export interface Resource {
+    "Api": {
+      "name": string
+      "type": "sst.aws.Function"
+      "url": string
+    }
     "AppSite": {
       "type": "sst.aws.StaticSite"
+      "url": string
+    }
+    "Auth": {
+      "type": "sst.aws.Auth"
       "url": string
     }
     "DatabaseMigrator": {
@@ -24,10 +33,6 @@ declare module "sst" {
     "NeonDatabaseUrl": {
       "type": "sst.sst.Linkable"
       "value": string
-    }
-    "UNSAuth": {
-      "type": "sst.aws.Auth"
-      "url": string
     }
   }
 }

@@ -18,10 +18,12 @@
         "typescript": "^5.0.0"
     },
     "dependencies": {
+        "@hono/zod-validator": "^0.7.5",
         "@neondatabase/serverless": "^1.0.1",
         "drizzle-orm": "^0.44.2",
+        "hono": "^4.11.1",
         "sst": "3.17.23",
-        "ulid": "^3.0.1",
+        "ulid": "^3.0.2",
         "valibot": "^1.1.0",
         "ws": "^8.18.3",
         "zod": "^4.0.5"

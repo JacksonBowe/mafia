@@ -1,9 +1,9 @@
 {
-    "name": "@mafia/web-app",
+    "name": "@mafia/app",
     "version": "0.0.1",
-    "description": "A Quasar Project",
-    "productName": "IoT Platform",
-    "author": "jacksonbowe98@gmail.com",
+    "description": "A Web Game",
+    "productName": "Mafia",
+    "author": "JacksonBowe <jacksonbowe98@gmail.com>",
     "type": "module",
     "private": true,
     "scripts": {
@@ -15,14 +15,16 @@
         "postinstall": "quasar prepare"
     },
     "dependencies": {
+        "@mafia/core": "workspace:^",
+        "@mafia/functions": "workspace:^",
+        "@openauthjs/openauth": "^0.4.3",
+        "@quasar/extras": "^1.16.4",
+        "@tanstack/vue-query": "^5.92.1",
         "axios": "^1.2.1",
         "pinia": "^3.0.1",
-        "@quasar/extras": "^1.16.4",
         "quasar": "^2.16.0",
         "vue": "^3.5.22",
-        "vue-router": "^4.0.12",
-        "@mafia/core": "workspace:^",
-        "@mafia/functions": "workspace:^"
+        "vue-router": "^4.0.12"
     },
     "devDependencies": {
         "@eslint/js": "^9.14.0",

@@ -27,7 +27,7 @@ export const PublicActor = z.object({
     properties: z.object({}),
 });
 
-export const Actor = z.discriminatedUnion('type', [SystemActor, AdminUserActor, PublicActor]);
+export const Actor = z.discriminatedUnion('type', [SystemActor, AdminUserActor, UserActor, PublicActor]);
 export type Actor = z.infer<typeof Actor>;
 
 export const ActorContext = createContext<Actor>();

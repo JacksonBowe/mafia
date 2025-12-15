@@ -154,7 +154,7 @@
 </template>
 
 <script setup lang="ts">
-import MCard from 'src/components/MCard.vue';
+import MCard from 'src/components/ui/Card/MCard.vue';
 import { ref } from 'vue';
 
 const t = ref('');

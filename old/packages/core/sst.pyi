@@ -3,10 +3,17 @@
 from typing import Any
 
 class Resource:
+    class Api:
+        name: str
+        type: str
+        url: str
     class App:
         name: str
         stage: str
     class AppSite:
+        type: str
+        url: str
+    class Auth:
         type: str
         url: str
     class DatabaseMigrator:
@@ -21,7 +28,4 @@ class Resource:
     class NeonDatabaseUrl:
         type: str
         value: str
-    class UNSAuth:
-        type: str
-        url: str
 

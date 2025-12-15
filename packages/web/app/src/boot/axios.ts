@@ -1,31 +1,127 @@
+// boot/axios.ts
 import { defineBoot } from '#q-app/wrappers';
 import axios, { type AxiosInstance } from 'axios';
+import { Notify } from 'quasar';
+import { useAuthStore } from 'src/stores/auth';
 
 declare module 'vue' {
-  interface ComponentCustomProperties {
-    $axios: AxiosInstance;
-    $api: AxiosInstance;
-  }
+    interface ComponentCustomProperties {
+        $axios: AxiosInstance
+        $api: AxiosInstance
+    }
 }
 
-// Be careful when using SSR for cross-request state pollution
-// due to creating a Singleton instance here;
-// If any client changes this (global) instance, it might be a
-// good idea to move this instance creation inside of the
-// "export default () => {}" function below (which runs individually
-// for each client)
-const api = axios.create({ baseURL: 'https://api.example.com' });
+declare module 'axios' {
+    export interface InternalAxiosRequestConfig {
+        metadata?: {
+            startTime: number;
+        };
+    }
 
-export default defineBoot(({ app }) => {
-  // for use inside Vue files (Options API) through this.$axios and this.$api
+    export interface AxiosError {
+        duration?: number;
+    }
+}
 
-  app.config.globalProperties.$axios = axios;
-  // ^ ^ ^ this will allow you to use this.$axios (for Vue Options API form)
-  //       so you won't necessarily have to import axios in each vue file
+const api = axios.create({ baseURL: import.meta.env.VITE_API_ENDPOINT! })
 
-  app.config.globalProperties.$api = api;
-  // ^ ^ ^ this will allow you to use this.$api (for Vue Options API form)
-  //       so you can easily perform requests against your app's API
-});
+
+
+
+export default defineBoot(({ router }) => {
+
+    // Attach request/response interceptors
+    api.interceptors.request.use(
+        (config) => {
+            config.metadata = { startTime: new Date().getTime() };
+            const authStore = useAuthStore();
+            const token = authStore.session?.accessToken;
+
+            if (token) {
+                config.headers.Authorization = `Bearer ${token}`;
+            }
+
+            return config;
+        },
+        (error) => Promise.reject(new Error(error?.message ?? 'Request error')),
+    );
+
+
+    api.interceptors.response.use(
+        (response) => response,
+        async (error) => {
+            const authStore = useAuthStore();
+            const originalRequest = error.config;
+
+            if (error.config?.metadata?.startTime) {
+                error.duration = new Date().getTime() - error.config.metadata.startTime;
+            }
+
+            const status = error.response?.status;
+            // 401 – try refresh
+            if (status === 401 && !originalRequest._retry && authStore.session?.refreshToken) {
+                console.log("Unauthorized", error)
+                if (error.response.data.code === 'user_not_found' || error.response.data.code === 'invalid_access_token') {
+                    authStore.clearSession()
+                    await router.push('/start')
+                }
+
+
+            }
+
+            // 403 – Forbidden
+            if (status === 403) {
+                Notify.create({ message: 'Access denied', color: 'negative', timeout: 2000 });
+                authStore.clearSession();
+            }
+
+            // 422 – Validation
+            if (status === 422) {
+                Notify.create({
+                    message: 'Validation error',
+                    caption: 'Please report this to support',
+                    color: 'negative',
+                    timeout: 0,
+                    actions: [
+                        {
+                            label: 'Copy',
+                            color: 'white',
+                            handler: () => {
+                                void navigator.clipboard.writeText(JSON.stringify(error.response.data, null, 2));
+                            },
+                        },
+                    ],
+                });
+            }
+
+            // 400 – Bad request
+            if (status === 400) {
+                Notify.create({
+                    message: error.response.data.message ?? 'Bad request',
+                    caption: error.response.data.details,
+                    color: 'warning',
+                    icon: 'warning',
+                    timeout: 4000,
+                });
+            }
+
+            // 500 – Server error
+            if (status === 500) {
+                Notify.create({
+                    message:
+                        error.duration > 10000
+                            ? 'Request timed out'
+                            : (error.response?.data?.message ?? 'Server error'),
+                    color: 'negative',
+                    timeout: 2000,
+                });
+            }
+
+            return Promise.reject(new Error(error?.message ?? 'Request error'));
+        },
+    );
+
+})
 
 export { api };
+

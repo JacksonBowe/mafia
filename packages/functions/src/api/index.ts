@@ -6,6 +6,7 @@ import { handle } from "hono/aws-lambda"
 import { PublicError } from "@mafia/core/error"
 import { HTTPException } from "hono/http-exception"
 import { authorize } from "./authorizer"
+import { metaRoutes } from "./meta"
 
 type Bindings = {
     event: LambdaEvent;
@@ -19,7 +20,7 @@ app.get('/', (c) => c.text('Welcome to the API!'));
 
 const protectedRoutes = app.basePath('/').use('*', authorize);
 
-// protectedRoutes.route('/', metaRoutes);
+protectedRoutes.route('/', metaRoutes);
 
 app.onError((err, c) => {
     if (err instanceof PublicError) {

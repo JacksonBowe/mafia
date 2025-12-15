@@ -1,99 +1,36 @@
 <template>
-	<q-layout view="hHh Lpr fFf">
-		<!-- Be sure to play with the Layout demo on docs -->
-		<div class="bg-splash">
-			<img src="~assets/mafia-village-night.png" class="fit" />
-		</div>
-		<q-header class="bg-transparent flex justify-center" height-hint="98">
-			<!-- <MCard class="" style="width: 80%">
-				<MCardHeader dense class="row">
-					<div class="q-gutter-sm flex items-center">
-						<span class="text-subtitle1 text-mafia"
-							>Informed Minority</span
-						>
-						<q-btn
-							flat
-							dense
-							icon="fa-brands fa-github"
-							color="grey-6"
-							rounded
-							size="sm"
-							target="_blank"
-							href="https://github.com/JacksonBowe/mafia"
-						/>
-						<q-btn
-							flat
-							dense
-							icon="fa-brands fa-discord"
-							color="grey-6"
-							rounded
-							size="sm"
-							target="_blank"
-							href="https://discord.gg/kpdfPfVx"
-						/>
-					</div>
+	<q-layout view="hHh Lpr fFf" class="layout-root">
+		<BackgroundSplash />
 
-					<q-space />
-					<div class="q-gutter-sm flex items-cente">
-						<q-skeleton
-							v-if="isLoading"
-							type="rect"
-							dark
-							class="q-mr-sm"
-							width="100px"
-						/>
-						<span v-else class="text-subtitle1 q-mr-sm">{{
-							me?.username
-						}}</span>
-
-						<q-skeleton
-							v-if="isLoading"
-							type="QAvatar"
-							dense
-							size="24px"
-							dark
-							class="q-mr-sm"
-						/>
-						<q-avatar v-else size="sm" class="">
-							<img
-								:src="
-									me?.avatar ||
-									'https://cdn.quasar.dev/img/boy-avatar.png'
-								"
-								alt="Avatar"
-							/>
-						</q-avatar>
-					</div>
-				</MCardHeader>
-			</MCard> -->
-		</q-header>
-
+		<MenuHeader />
 		<q-page-container>
-			<!-- This is where pages get injected -->
 			<router-view />
-			<AdminFab />
 		</q-page-container>
 	</q-layout>
 </template>
 
 <script setup lang="ts">
-// import AdminFab from 'src/components/AdminFab.vue';
-// import { MCard, MCardHeader } from 'src/components/ui/card';
-// import { useChatEvents } from 'src/lib/chat';
-// import { useLobbyEvents } from 'src/lib/lobby';
-// import { useMe } from 'src/lib/user';
+// import { useChatEvents } from 'src/lib/chat'
+// import { useLobbyEvents } from 'src/lib/lobby'
+// import { useMe } from 'src/lib/user'
 
-// const { data: me, isLoading } = useMe();
+import MenuHeader from 'src/components/Menu/MenuHeader.vue';
+import BackgroundSplash from 'src/components/ui/Background/BackgroundSplash.vue';
 
-// useChatEvents();
-// useLobbyEvents();
+// const { data: me, isLoading } = useMe()
+
+// useChatEvents()
+// useLobbyEvents()
 </script>
 
 <style scoped>
-.bg-splash {
-	position: fixed;
-	height: 100%;
-	width: 100%;
-	z-index: 0;
+.layout-root {
+	position: relative;
 }
+
+.header-card {
+	width: min(960px, 92vw);
+}
+
+/* background handled by BackgroundSplash */
 </style>

@@ -1,1 +1,115 @@
 // app global css in SCSS form
+@font-face {
+    font-family: Risque;
+    src: url('./fonts/Risque-Regular.ttf');
+}
+
+* {
+    font-family: Risque;
+}
+
+.font-risque {
+    font-family: Risque;
+}
+
+.text-global {
+    color: white;
+}
+
+.text-lobby {
+    color: orange;
+}
+
+.text-private {
+    color: #d4b5ff;
+    /* A purple-ish color that looks good on a glossy blue background */
+}
+
+.text-info {
+    color: grey;
+}
+
+.text-system {
+    color: #00ff00;
+    /* Bright green for visibility */
+}
+
+.text-town {
+    color: var(--town);
+}
+
+.text-mafia {
+    color: var(--mafia);
+}
+
+.text-cult {
+    color: var(--cult);
+}
+
+.text-neutral {
+    color: var(--neutral);
+}
+
+.text-role {
+    color: var(--role);
+}
+
+.text-player-1 {
+    color: var(--player-1);
+}
+
+.text-player-2 {
+    color: var(--player-2);
+}
+
+.text-player-3 {
+    color: var(--player-3);
+}
+
+.text-player-4 {
+    color: var(--player-4);
+}
+
+.text-player-5 {
+    color: var(--player-5);
+}
+
+.text-player-6 {
+    color: var(--player-6);
+}
+
+.text-player-7 {
+    color: var(--player-7);
+}
+
+.text-player-8 {
+    color: var(--player-8);
+}
+
+.text-player-9 {
+    color: var(--player-9);
+}
+
+.text-player-10 {
+    color: var(--player-10);
+}
+
+.text-player-11 {
+    color: var(--player-11);
+}
+
+.text-player-12 {
+    color: var(--player-12);
+}
+
+.text-player-13 {
+    color: var(--player-13);
+}
+
+.text-player-14 {
+    color: var(--player-14);
+}
+
+.text-player-15 {
+    color: var(--player-15);
+}

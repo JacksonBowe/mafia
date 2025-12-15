@@ -1,13 +1,12 @@
 import { NeonDatabaseUrl } from "./neon"
 
 export const discordClientId = new sst.Secret("DiscordClientId")
-export const discordSecret = new sst.Secret("DiscordClientSecret")
+export const discordClientSecret = new sst.Secret("DiscordClientSecret")
 
 
-export const auth = new sst.aws.Auth("UNSAuth", {
-    // authorizer: "packages/functions/src/api/uns/auth.handler",
+export const auth = new sst.aws.Auth("Auth", {
     issuer: {
-        handler: "packages/functions/src/api/uns/auth.handler",
-        link: [discordClientId, discordSecret, NeonDatabaseUrl]
+        handler: "packages/functions/src/api/auth.handler",
+        link: [discordClientId, discordClientSecret, NeonDatabaseUrl]
     }
 })

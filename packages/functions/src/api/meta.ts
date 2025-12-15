@@ -1,0 +1,19 @@
+import { assertActor } from '@mafia/core/actor';
+import { User } from '@mafia/core/user/index';
+import { Hono } from 'hono';
+
+type Bindings = {};
+
+const metaRoutes = new Hono<{ Bindings: Bindings }>();
+
+/**
+ * Meta: Get Me
+ */
+
+metaRoutes.get('/me', async (c) => {
+    const user = await User.get({ userId: assertActor('user').properties.userId });
+    return c.json(user);
+});
+
+export { metaRoutes };
+

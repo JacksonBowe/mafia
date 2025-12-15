@@ -5,10 +5,11 @@ import { InvalidAccessTokenError } from '@openauthjs/openauth/error';
 import type { MiddlewareHandler } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { Resource } from 'sst/resource';
+import { subjects } from '../subjects';
 
 export const client = createClient({
     clientID: 'web-app',
-    issuer: Resource.UNSAuth.url
+    issuer: Resource.Auth.url
 })
 
 export const authorize: MiddlewareHandler = async (c, next) => {
@@ -24,16 +25,18 @@ export const authorize: MiddlewareHandler = async (c, next) => {
 
         if (!claims.err) {
             return withActor({
-                type: 'internal_user',
+                type: 'user',
                 properties: {
                     userId: claims.subject.properties.userId
                 }
             }, () => next())
         } else {
+            console.log('Token verification failed:', claims.err)
             throw claims.err
         }
 
     } catch (err) {
+        console.error('Authorization error:', err)
         if (err instanceof (InvalidAccessTokenError)) throw new AuthError('invalid_access_token', 'Unauthorized')
         else throw new HTTPException(401, { message: 'Authorization Error' })
     }
