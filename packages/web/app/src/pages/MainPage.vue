@@ -12,7 +12,19 @@
 					</div>
 
 					<div class="col-5">
-						<MenuChatCard />
+						<!-- <MenuChatCard /> -->
+						<MCard tone="primary" glo clickable>
+							<MCardHeader eyebrow="Lobby" title="Informed Minority" subtitle="Join a game" />
+
+							<MCardContent>
+								<div>Card body goes here…</div>
+							</MCardContent>
+
+							<MCardActions align="right">
+								<q-btn flat label="Cancel" />
+								<q-btn color="primary" label="Continue" />
+							</MCardActions>
+						</MCard>
 					</div>
 				</div>
 			</div>
@@ -23,5 +35,5 @@
 <script setup lang="ts">
 import LobbiesCard from 'src/components/Lobbies/LobbiesCard.vue';
 import LobbyPreviewCard from 'src/components/LobbyPreview/LobbyPreviewCard.vue';
-import MenuChatCard from 'src/components/MenuChat/MenuChatCard.vue';
+import { MCard, MCardActions, MCardContent, MCardHeader } from 'src/components/ui/Card';
 </script>

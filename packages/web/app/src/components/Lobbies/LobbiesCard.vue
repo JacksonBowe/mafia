@@ -1,39 +1,49 @@
 <template>
-	<MCard title="Lobbies" class="column">
-		<div class="bg-pink full-height">
+	<MCard class="fit text-white column" variant="glass" size="lg">
+		<MCardHeader class="bg-blue" title="Lobby Finder" subtitle="Join or Host a lobby" />
+
+		<MCardContent>
 			<q-tabs
 				v-model="tab"
 				active-class="active-tab"
-				indicator-color="accent"
-				:dense="$q.screen.lt.md"
+				:dense="q.screen.lt.md"
+				animated
+				no-caps
 				align="justify"
-				class="q-mb-md"
+				indicator-color="transparent"
+				class="text-h6 tab-title"
 			>
-				<q-tab name="join" label="All Lobbies" :ripple="false" />
+				<q-tab name="join" :ripple="false">Join</q-tab>
 				<span class="tab-title">|</span>
-				<q-tab name="host" label="Favorites" :ripple="false" />
+				<q-tab name="host" :ripple="false">Host</q-tab>
 			</q-tabs>
-		</div>
-		<!-- <div class="fit"> -->
+		</MCardContent>
 
-		<!-- <div class="bg-green col full-height"></div>
-		<q-tab-panels v-model="tab" animated class="full-heigh bg-red col">
-			<q-tab-panel name="join">
-				<div class="text-body2 text-grey-4">List of all available lobbies to join.</div>
-			</q-tab-panel>
+		<MCardContent class="col">
+			<q-tab-panels v-model="tab" animated class="full-height bg-transparent">
+				<q-tab-panel name="join" class="q-pa-none">
+					fdgfg
+					<!-- <MLobbyList class="fit" /> -->
+				</q-tab-panel>
 
-			<q-tab-panel name="host">
-				<div class="text-body2 text-grey-4">List of your favorite lobbies.</div>
-			</q-tab-panel>
-		</q-tab-panels> -->
+				<q-tab-panel name="host" class="q-pa-none">
+					dfdf
+					<!-- <MLobbyHost class="fit" @submit="tab = 'join'" /> -->
+				</q-tab-panel>
+			</q-tab-panels>
+		</MCardContent>
 	</MCard>
 </template>
 
 <script setup lang="ts">
+import { useQuasar } from 'quasar';
+import { MCard, MCardContent, MCardHeader } from 'src/components/ui/Card';
 import { ref } from 'vue';
-import MCard from '../ui/Card/MCard.vue';
+// import MLobbyHost from './MLobbyHost.vue';
+// import MLobbyList from './MLobbyList.vue';
 
-const tab = ref('join');
+const q = useQuasar();
+const tab = ref<'join' | 'host'>('join');
 </script>
 
 <style>

@@ -1,77 +1,92 @@
 <template>
 	<q-card
 		class="mafia-card"
-		:class="[`mafia-card--${tone}`, { 'mafia-card--clickable': clickable }]"
+		:class="[
+			`mafia-card--${tone}`,
+			`mafia-card--${variant}`,
+			`mafia-card--size-${size}`,
+			`mafia-card--tone-${tonePlacement}`,
+			{
+				'mafia-card--clickable': clickable && !disabled,
+				'mafia-card--hoverable': hoverable && !disabled,
+				'mafia-card--disabled': disabled,
+				'mafia-card--has-tone': tonePlacement !== 'none',
+				'mafia-card--has-glow': glow && variant === 'glass',
+			},
+		]"
+		:style="{ '--tone-size': `${toneSize}px` }"
 		flat
 		bordered
-		@click="clickable ? $emit('click') : undefined"
+		:role="clickable && !disabled ? 'button' : undefined"
+		:tabindex="clickable && !disabled ? 0 : undefined"
+		:aria-disabled="disabled || undefined"
+		@click="onClick"
+		@keydown.enter.prevent="onKeyActivate"
+		@keydown.space.prevent="onKeyActivate"
 	>
-		<!-- Optional chrome -->
-		<div v-if="glow" class="mafia-card__glow" />
+		<!-- Optional chrome (only meaningful in glass variant) -->
+		<div v-if="glow && variant === 'glass'" class="mafia-card__glow" />
 
-		<q-card-section v-if="title || $slots.header" class="mafia-card__header">
-			<slot name="header">
-				<div class="row items-start justify-between q-gutter-sm">
-					<div class="col">
-						<div v-if="eyebrow" class="text-overline mafia-card__eyebrow">
-							{{ eyebrow }}
-						</div>
-						<div v-if="title" class="text-h6 mafia-card__title">
-							{{ title }}
-						</div>
-						<div v-if="subtitle" class="text-caption mafia-card__subtitle">
-							{{ subtitle }}
-						</div>
-					</div>
-
-					<div v-if="$slots.topRight" class="col-auto">
-						<slot name="topRight" />
-					</div>
-				</div>
-			</slot>
-		</q-card-section>
-
-		<q-separator v-if="(title || $slots.header) && separated" dark />
-
-		<q-card-section class="mafia-card__content">
+		<div class="mafia-card__inner">
 			<slot />
-		</q-card-section>
-
-		<q-separator v-if="$slots.actions && separated" dark />
-
-		<q-card-actions v-if="$slots.actions" class="mafia-card__actions" :align="actionsAlign">
-			<slot name="actions" />
-		</q-card-actions>
+		</div>
 	</q-card>
 </template>
 
 <script setup lang="ts">
-type Tone = 'default' | 'primary' | 'accent' | 'success' | 'warning' | 'danger';
+export type Tone = 'default' | 'primary' | 'accent' | 'success' | 'warning' | 'danger';
+export type Variant = 'solid' | 'glass' | 'flat';
+export type TonePlacement = 'top' | 'left' | 'none';
+export type CardSize = 'sm' | 'md' | 'lg';
 
-withDefaults(
+const props = withDefaults(
 	defineProps<{
-		title?: string;
-		eyebrow?: string;
-		subtitle?: string;
-
 		tone?: Tone;
 		glow?: boolean;
 
-		separated?: boolean;
-		actionsAlign?: 'left' | 'right' | 'center' | 'between' | 'around' | 'evenly';
+		variant?: Variant;
 
 		clickable?: boolean;
+		hoverable?: boolean;
+		disabled?: boolean;
+
+		tonePlacement?: TonePlacement;
+		toneSize?: number; // px
+
+		size?: CardSize;
 	}>(),
 	{
 		tone: 'default',
 		glow: false,
-		separated: true,
-		actionsAlign: 'right',
+
+		// boring-by-default is ideal, but keeping your current defaults:
+		variant: 'glass',
+
 		clickable: false,
+		hoverable: false,
+		disabled: false,
+
+		tonePlacement: 'top',
+		toneSize: 3,
+
+		size: 'md',
 	},
 );
 
-defineEmits<{ (e: 'click'): void }>();
+const emit = defineEmits<{ (e: 'click'): void }>();
+
+function onClick() {
+	if (props.disabled) return;
+	if (!props.clickable) return;
+	emit('click');
+}
+
+function onKeyActivate() {
+	// only activates when "button-like"
+	if (props.disabled) return;
+	if (!props.clickable) return;
+	emit('click');
+}
 </script>
 
 <style scoped lang="scss">
@@ -79,6 +94,8 @@ defineEmits<{ (e: 'click'): void }>();
 	position: relative;
 	overflow: hidden;
 	border-radius: var(--radius-md, 12px);
+	font-size: 16px; /* was effectively ~14 in many Quasar contexts */
+	line-height: 1.55;
 
 	/* Theme-driven knobs (override anywhere) */
 	--tone: rgba(255, 255, 255, 0.12);
@@ -86,38 +103,131 @@ defineEmits<{ (e: 'click'): void }>();
 	--tone-alpha: 0.95;
 	--glow-alpha: 0.35;
 
+	/* Sizing knobs */
+	--card-pad: 16px;
+
 	/* Text tokens */
 	--text-main: rgba(255, 255, 255, 0.92);
 	--text-body: rgba(255, 255, 255, 0.85);
 	--text-muted: rgba(255, 255, 255, 0.65);
+}
 
-	/* Surface token (define globally if you want: --surface-glass) */
+.mafia-card__inner {
+	padding: var(--card-pad);
+}
+
+/* size presets */
+.mafia-card--size-sm {
+	--card-pad: 12px;
+	font-size: 14px;
+}
+.mafia-card--size-md {
+	--card-pad: 16px;
+	font-size: 15px;
+}
+.mafia-card--size-lg {
+	--card-pad: 20px;
+	font-size: 16px;
+}
+
+/* Make Quasar sections not “double pad” */
+.mafia-card :deep(.q-card__section),
+.mafia-card :deep(.q-card__actions) {
+	padding: 0;
+}
+
+/* ---- Variants ---- */
+
+/* Glass (your current default look) */
+.mafia-card--glass {
 	background: var(--surface-glass, rgba(10, 15, 30, 0.66));
 	backdrop-filter: blur(10px);
 	-webkit-backdrop-filter: blur(10px);
 
-	/* consistent border + depth */
 	box-shadow:
 		0 10px 30px rgba(0, 0, 0, 0.38),
 		inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
 
-	/* Quasar bordered draws its own border; keep it subtle */
+/* Solid (boring, versatile) */
+.mafia-card--solid {
+	background: var(--surface-solid, rgba(12, 16, 26, 0.92));
+	box-shadow:
+		0 6px 18px rgba(0, 0, 0, 0.28),
+		inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+/* Flat (embedded/list cards) */
+.mafia-card--flat {
+	background: var(--surface-flat, rgba(0, 0, 0, 0));
+	box-shadow: none;
 	:deep(.q-card__section) {
-		color: var(--text-main);
+		padding: var(--card-pad);
 	}
 }
 
-/* Tone strip (top bar) */
+/* ---- Size presets ---- */
+.mafia-card--size-sm {
+	--card-pad: 12px;
+}
+
+.mafia-card--size-md {
+	--card-pad: 16px;
+}
+
+.mafia-card--size-lg {
+	--card-pad: 20px;
+}
+
+/* ---- Tone indicator (top or left) ---- */
+
+/* default: no tone strip unless enabled */
 .mafia-card::before {
 	content: '';
 	position: absolute;
-	inset: 0 0 auto 0;
-	height: 3px;
-	opacity: var(--tone-alpha);
+	opacity: 0;
+	pointer-events: none;
 	background: var(--tone);
 }
 
-/* Optional glow */
+/* turn on tone */
+.mafia-card--has-tone::before {
+	opacity: var(--tone-alpha);
+}
+
+/* top strip */
+.mafia-card--tone-top::before {
+	inset: 0 0 auto 0;
+	height: calc(var(--tone-size, 3px));
+}
+
+/* left strip */
+.mafia-card--tone-left::before {
+	inset: 0 auto 0 0;
+	width: calc(var(--tone-size, 3px));
+}
+
+/* none */
+.mafia-card--tone-none::before {
+	display: none;
+}
+
+/* Wire prop into CSS var */
+.mafia-card {
+	--tone-size: 3px;
+}
+.mafia-card--tone-top,
+.mafia-card--tone-left {
+	/* kept for clarity */
+}
+
+/* Because scoped styles can’t read props directly, use inline style if you want dynamic:
+   <q-card :style="{ '--tone-size': `${toneSize}px` }" ... />
+*/
+</style>
+
+<style scoped lang="scss">
+/* Optional glow (only meaningful on glass) */
 .mafia-card__glow {
 	position: absolute;
 	inset: -40% -30% auto -30%;
@@ -126,47 +236,41 @@ defineEmits<{ (e: 'click'): void }>();
 	opacity: var(--glow-alpha);
 	pointer-events: none;
 	background: radial-gradient(circle, var(--tone), transparent 60%);
-	/* Optional: helps bright tones look nicer on dark */
 	mix-blend-mode: screen;
+}
+
+/* ---- Interaction states ---- */
+
+.mafia-card--hoverable,
+.mafia-card--clickable {
+	transition:
+		transform 120ms ease,
+		box-shadow 120ms ease;
+}
+
+.mafia-card--hoverable:hover,
+.mafia-card--clickable:hover {
+	transform: translateY(-1px);
+	box-shadow:
+		0 14px 36px rgba(0, 0, 0, 0.45),
+		inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .mafia-card--clickable {
 	cursor: pointer;
-	transition:
-		transform 120ms ease,
-		box-shadow 120ms ease;
-
-	&:hover {
-		transform: translateY(-1px);
-		box-shadow:
-			0 14px 36px rgba(0, 0, 0, 0.45),
-			inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-	}
 }
 
-.mafia-card__header {
-	padding-bottom: 10px;
+.mafia-card--disabled {
+	opacity: 0.55;
+	filter: saturate(0.85);
+	cursor: not-allowed;
+
+	/* Prevent hover lift even if classes exist */
+	transform: none !important;
+	box-shadow: inherit !important;
 }
 
-.mafia-card__content {
-	color: var(--text-body);
-	line-height: 1.55;
-}
-
-.mafia-card__actions {
-	padding-top: 8px;
-}
-
-.mafia-card__eyebrow {
-	color: var(--tone-text); /* follows tone */
-	letter-spacing: 0.08em;
-}
-
-.mafia-card__subtitle {
-	color: var(--text-muted);
-}
-
-/* Tone mapping: lean on Quasar theme vars */
+/* ---- Tone mapping ---- */
 .mafia-card--default {
 	--tone: rgba(255, 255, 255, 0.12);
 	--tone-text: var(--text-main);
