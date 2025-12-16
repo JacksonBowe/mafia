@@ -20,6 +20,7 @@
         "@openauthjs/openauth": "^0.4.3",
         "@quasar/extras": "^1.16.4",
         "@tanstack/vue-query": "^5.92.1",
+        "aws-iot-device-sdk-v2": "^1.24.0",
         "axios": "^1.2.1",
         "deep-object-diff": "^1.1.9",
         "loglevel": "^1.9.2",

@@ -32,4 +32,8 @@ class Resource:
     class NeonDatabaseUrl:
         type: str
         value: str
+    class Realtime:
+        authorizer: str
+        endpoint: str
+        type: str
 

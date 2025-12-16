@@ -39,6 +39,11 @@ declare module "sst" {
       "type": "sst.sst.Linkable"
       "value": string
     }
+    "Realtime": {
+      "authorizer": string
+      "endpoint": string
+      "type": "sst.aws.Realtime"
+    }
   }
 }
 /// <reference path="sst-env.d.ts" />
