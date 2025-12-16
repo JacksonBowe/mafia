@@ -49,11 +49,26 @@ lobbyRoutes.get('/:lobbyId',
     });
 
 // TODO: Join
-
-// TODO: Leave
-export const LeaveLobbyParamsSchema = z.object({
+export const JoinLobbyParamsSchema = z.object({
     lobbyId: isULID(),
 });
+
+export type JoinLobbyParams = z.infer<typeof JoinLobbyParamsSchema>;
+
+lobbyRoutes.post('/:lobbyId/join',
+    zValidator('param', JoinLobbyParamsSchema),
+    async (c) => {
+        const { lobbyId } = c.req.valid('param');
+
+        const actor = assertActor('user');
+
+        await Lobby.Member.add({ lobbyId, userId: actor.properties.userId });
+
+        return c.json({ success: true });
+    }
+)
+
+// TODO: Leave
 lobbyRoutes.post('/leave',
     async (c) => {
         const actor = assertActor('user');

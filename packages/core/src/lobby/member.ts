@@ -15,6 +15,13 @@ export enum Errors {
 }
 
 export const Events = {
+    MemberJoin: defineEvent(
+        'lobby.member.join',
+        z.object({
+            lobbyId: isULID(),
+            userId: isULID(),
+        }),
+    ),
     MemberLeave: defineEvent(
         'lobby.member.leave',
         z.object({
@@ -38,13 +45,21 @@ export const add = fn(z
         lobbyId: isULID(),
         userId: isULID(),
     }),
-    async ({ lobbyId, userId }) => useTransaction(async (tx) =>
+    async ({ lobbyId, userId }) => useTransaction(async (tx) => {
+
         await tx.insert(lobbyMemberTable).values({
             id: ulid(),
             lobbyId,
             userId,
         })
-    )
+
+        afterTx(() => {
+            bus.publish(Resource.Bus, Events.MemberJoin, {
+                lobbyId,
+                userId,
+            })
+        })
+    })
 );
 
 export const remove = fn(

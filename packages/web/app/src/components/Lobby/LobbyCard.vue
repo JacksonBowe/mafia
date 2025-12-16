@@ -34,7 +34,13 @@
 
 			<q-tab-panels v-model="tab" animated class="col rounded-borders">
 				<q-tab-panel name="players" class="q-pa-none">
-					<LobbyPlayerList class="fit" :members="lobby?.members || []" :loading="isLobbyLoading" />
+					<LobbyPlayerList
+						v-if="lobby"
+						class="fit"
+						:members="lobby?.members || []"
+						:host="lobby?.host"
+						:loading="isLobbyLoading"
+					/>
 				</q-tab-panel>
 
 				<q-tab-panel name="config" class="q-pa-none">

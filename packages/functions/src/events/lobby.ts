@@ -4,10 +4,16 @@ import { bus } from "sst/aws/bus";
 
 export const handler = bus.subscriber(
     [
+        Lobby.Member.Events.MemberJoin,
         Lobby.Member.Events.MemberLeave
     ],
     async (evt) => {
         switch (evt.type) {
+            case Lobby.Member.Events.MemberJoin.type: {
+                // TODO: Currently no-op
+                console.log("MemberJoin event received:", evt.properties);
+                break;
+            }
             case Lobby.Member.Events.MemberLeave.type: {
 
                 const { lobbyId, userId } = evt.properties

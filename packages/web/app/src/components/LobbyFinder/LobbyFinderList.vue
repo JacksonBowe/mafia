@@ -12,7 +12,7 @@
 				:selected="lobby.id === lStore.selectedLobbyId"
 				:disable="dataLoading || presence?.lobby !== null"
 				@preview="lStore.setSelectedLobbyId(lobby.id)"
-				@join="console.log('Join lobby', lobby.id)"
+				@join="doJoin(lobby.id)"
 			/>
 		</q-list>
 		<q-btn
@@ -33,7 +33,7 @@
 <script setup lang="ts">
 import { useQueryClient } from '@tanstack/vue-query';
 import { useQuasar } from 'quasar';
-import { useLobbies } from 'src/lib/lobby/hooks';
+import { useJoinLobby, useLobbies } from 'src/lib/lobby/hooks';
 import { usePresence } from 'src/lib/meta/hooks';
 import { useLobbyStore } from 'src/stores/lobby';
 import { computed } from 'vue';
@@ -47,12 +47,23 @@ const lStore = useLobbyStore();
 const { data: lobbies, isFetching } = useLobbies();
 
 const { data: presence, isLoading } = usePresence();
+const { mutateAsync: joinLobby, isPending: isJoinPending } = useJoinLobby();
 
 const dataLoading = computed(() => {
-	return isFetching.value || lStore.joinLobbyPending || lStore.leaveLobbyPending || isLoading.value;
+	return (
+		isFetching.value ||
+		lStore.joinLobbyPending ||
+		lStore.leaveLobbyPending ||
+		isLoading.value ||
+		isJoinPending.value
+	);
 });
 
 const refreshLobbies = async () => {
 	await queryClient.invalidateQueries({ queryKey: ['lobbies'] });
+};
+
+const doJoin = async (lobbyId: string) => {
+	await joinLobby(lobbyId);
 };
 </script>
