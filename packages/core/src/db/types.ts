@@ -48,10 +48,48 @@ export const EntityBaseSchema = z.object({
 
 export type RelatedEntity = z.infer<typeof RelatedEntitySchema>;
 
-export function isUniqueConstraintError(err: unknown): boolean {
-    if (typeof err !== 'object' || err === null) return false;
-    // PostgreSQL unique_violation error code
-    return (err as any).code === '23505';
+// Postgres unique violation code
+const PG_UNIQUE_VIOLATION = '23505'
+
+export type PgLikeError = {
+    code?: string
+    constraint?: string
+    detail?: string
+    message?: string
+    cause?: unknown
+}
+
+export function unwrapCause(e: unknown): unknown {
+    let cur: unknown = e
+    for (let i = 0; i < 5; i++) {
+        const c = (cur as any)?.cause
+        if (!c) break
+        cur = c
+    }
+    return cur
+}
+
+export function getPgError(e: unknown): PgLikeError | null {
+    const cur = unwrapCause(e)
+    if (cur && typeof cur === 'object') return cur as PgLikeError
+    return null
+}
+
+export function isUniqueViolation(e: unknown): boolean {
+    const pg = getPgError(e)
+    return pg?.code === PG_UNIQUE_VIOLATION
+}
+
+export function getConstraintName(e: unknown): string | undefined {
+    const pg = getPgError(e)
+    // best case: driver provides constraint explicitly
+    if (pg?.constraint) return pg.constraint
+
+    // fallback: sometimes only message has it
+    const msg = pg?.message ?? ''
+    // e.g. 'duplicate key value violates unique constraint "lobby_name_uq"'
+    const m = msg.match(/unique constraint "([^"]+)"/i)
+    return m?.[1]
 }
 
 export type Page<T> = {

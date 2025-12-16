@@ -4,8 +4,9 @@ import { z } from 'zod'
 import { createTransaction, useTransaction } from '../db/transaction'
 import {
     EntityBaseSchema,
-    isUniqueConstraintError,
-    RelatedEntitySchema,
+    getConstraintName,
+    isUniqueViolation,
+    RelatedEntitySchema
 } from '../db/types'
 import { InputError, isULID } from '../error'
 import { userTable } from '../user/user.sql'
@@ -64,20 +65,24 @@ export const create = fn(
             })
         } catch (err) {
             if (err instanceof DrizzleQueryError) {
-                const cause = err.cause as { detail?: string }
-                if (isUniqueConstraintError(err.cause)) {
-                    if (cause.detail?.includes('lobby_name_uq')) {
+                if (isUniqueViolation(err)) {
+                    const constraint = getConstraintName(err)
+
+                    if (constraint === 'lobby_name_uq') {
                         throw new InputError(Errors.LobbyExists, 'Lobby name already in use')
                     }
-                    if (cause.detail?.includes('lobby_host_uq')) {
+
+                    if (constraint === 'lobby_host_uq') {
                         throw new InputError(
                             Errors.LobbyDuplicateHost,
-                            'User is already hosting a lobby',
+                            'User is already hosting a lobby'
                         )
                     }
                 }
+
+                // if it wasn't a unique violation, rethrow and let onError handle it
+                throw err
             }
-            throw err
         }
     },
 )

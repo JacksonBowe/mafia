@@ -1,7 +1,7 @@
 <template>
 	<q-scroll-area>
 		<q-list>
-			<LobbiesListItem
+			<LobbyFinderListItem
 				v-for="(lobby, index) in lobbies"
 				:key="lobby.id"
 				class="q-ma-xs"
@@ -11,7 +11,8 @@
 				clickable
 				:selected="lobby.id === lStore.selectedLobbyId"
 				:disable="dataLoading || presence?.lobby !== null"
-				@click="lStore.setSelectedLobbyId(lobby.id)"
+				@preview="lStore.setSelectedLobbyId(lobby.id)"
+				@join="console.log('Join lobby', lobby.id)"
 			/>
 		</q-list>
 		<q-btn
@@ -36,6 +37,7 @@ import { useLobbies } from 'src/lib/lobby/hooks';
 import { usePresence } from 'src/lib/meta/hooks';
 import { useLobbyStore } from 'src/stores/lobby';
 import { computed } from 'vue';
+import LobbyFinderListItem from './LobbyFinderListItem.vue';
 
 const $q = useQuasar();
 

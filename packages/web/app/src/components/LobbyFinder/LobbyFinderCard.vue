@@ -22,11 +22,11 @@
 		<MCardContent class="fit">
 			<q-tab-panels v-model="tab" animated class="full-height bg-transparent rounded-borders">
 				<q-tab-panel name="join" class="q-pa-none bg-dark">
-					<LobbiesList class="fit bg-re" />
+					<LobbyFinderList class="fit bg-re" />
 				</q-tab-panel>
 
 				<q-tab-panel name="host" class="q-pa-none">
-					<LobbyHostForm class="fit" @submit="tab = 'join'" />
+					<LobbyFinderHostForm class="fit" @submit="tab = 'join'" />
 				</q-tab-panel>
 			</q-tab-panels>
 		</MCardContent>
@@ -37,8 +37,8 @@
 import { useQuasar } from 'quasar';
 import { MCard, MCardContent, MCardHeader } from 'src/components/ui/Card';
 import { ref } from 'vue';
-import LobbiesList from './LobbiesList.vue';
-import LobbyHostForm from './LobbyHostForm.vue';
+import LobbyFinderHostForm from './LobbyFinderHostForm.vue';
+import LobbyFinderList from './LobbyFinderList.vue';
 
 const q = useQuasar();
 const tab = ref<'join' | 'host'>('join');

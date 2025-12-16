@@ -43,7 +43,7 @@ export const getPresence = fn(
             //   .limit(1)
 
             return PresenceSchema.parse({
-                lobbyId: row?.lobby ?? null,
+                lobby: row?.lobby ?? null,
                 // gameId: gameRow?.gameId ?? null,
             })
         }),
