@@ -7,7 +7,7 @@ import { fn } from "../util/fn";
 import { lobbyMemberTable } from "./lobby.sql";
 
 export const LobbyMembberInfoSchema = EntityBaseSchema.extend(
-    z.object({})
+    {}
 )
 
 export const add = fn(z

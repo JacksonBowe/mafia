@@ -7,6 +7,7 @@ import { InputError, isULID } from '../error'
 import { fn } from '../util/fn'
 import { userTable } from './user.sql'
 export * as User from './'
+export { getPresence } from './presence'
 
 export enum Errors {
     UserExists = 'user.exists',

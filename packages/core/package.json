@@ -20,6 +20,7 @@
     "dependencies": {
         "@hono/zod-validator": "^0.7.5",
         "@neondatabase/serverless": "^1.0.1",
+        "deep-object-diff": "^1.1.9",
         "drizzle-orm": "^0.44.2",
         "hono": "^4.11.1",
         "sst": "3.17.23",

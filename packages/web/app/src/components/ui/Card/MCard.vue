@@ -114,6 +114,11 @@ function onKeyActivate() {
 
 .mafia-card__inner {
 	padding: var(--card-pad);
+
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
 }
 
 /* size presets */

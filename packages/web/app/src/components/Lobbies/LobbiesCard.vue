@@ -1,6 +1,6 @@
 <template>
-	<MCard class="fit text-white column" variant="glass" size="lg">
-		<MCardHeader class="bg-blue" title="Lobby Finder" subtitle="Join or Host a lobby" />
+	<MCard class="fit text-white" variant="glass" size="lg">
+		<MCardHeader title="Lobby Finder" subtitle="Join or Host a lobby" />
 
 		<MCardContent>
 			<q-tabs
@@ -19,16 +19,14 @@
 			</q-tabs>
 		</MCardContent>
 
-		<MCardContent class="col">
-			<q-tab-panels v-model="tab" animated class="full-height bg-transparent">
-				<q-tab-panel name="join" class="q-pa-none">
-					fdgfg
-					<!-- <MLobbyList class="fit" /> -->
+		<MCardContent class="fit">
+			<q-tab-panels v-model="tab" animated class="full-height bg-transparent rounded-borders">
+				<q-tab-panel name="join" class="q-pa-none bg-dark">
+					<LobbiesList class="fit bg-re" />
 				</q-tab-panel>
 
 				<q-tab-panel name="host" class="q-pa-none">
-					dfdf
-					<!-- <MLobbyHost class="fit" @submit="tab = 'join'" /> -->
+					<LobbyHostForm class="fit" @submit="tab = 'join'" />
 				</q-tab-panel>
 			</q-tab-panels>
 		</MCardContent>
@@ -39,8 +37,8 @@
 import { useQuasar } from 'quasar';
 import { MCard, MCardContent, MCardHeader } from 'src/components/ui/Card';
 import { ref } from 'vue';
-// import MLobbyHost from './MLobbyHost.vue';
-// import MLobbyList from './MLobbyList.vue';
+import LobbiesList from './LobbiesList.vue';
+import LobbyHostForm from './LobbyHostForm.vue';
 
 const q = useQuasar();
 const tab = ref<'join' | 'host'>('join');
