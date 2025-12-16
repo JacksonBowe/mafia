@@ -85,12 +85,12 @@ const emit = defineEmits<{
 	(e: 'join', lobby: LobbyInfo): void;
 }>();
 
-const maxPlayers = computed(() => props.maxPlayers ?? 15);
+const MAX_PLAYERS = 15;
 const memberCount = computed(() => props.lobby.members?.length ?? 0);
 
-const isFull = computed(() => memberCount.value >= maxPlayers.value);
+const isFull = computed(() => memberCount.value >= MAX_PLAYERS);
 const occupancy = computed(() =>
-	maxPlayers.value <= 0 ? 0 : Math.min(1, memberCount.value / maxPlayers.value),
+	MAX_PLAYERS <= 0 ? 0 : Math.min(1, memberCount.value / MAX_PLAYERS),
 );
 const occupancyPct = computed(() => Math.round(occupancy.value * 100));
 

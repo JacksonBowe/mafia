@@ -2,7 +2,7 @@
 	<MCard class="fit text-white" variant="glass" size="lg">
 		<MCardHeader title="Lobby Finder" subtitle="Join or Host a lobby" />
 
-		<MCardContent>
+		<MCardContent class="fit column">
 			<q-tabs
 				v-model="tab"
 				active-class="active-tab"
@@ -13,14 +13,14 @@
 				indicator-color="transparent"
 				class="text-h6 tab-title"
 			>
-				<q-tab name="join" :ripple="false">Join</q-tab>
+				<q-tab name="join" :ripple="false" label="Join" />
 				<span class="tab-title">|</span>
-				<q-tab name="host" :ripple="false">Host</q-tab>
+				<q-tab name="host" :ripple="false" label="Host" />
 			</q-tabs>
-		</MCardContent>
+			<!-- </MCardContent> -->
 
-		<MCardContent class="fit">
-			<q-tab-panels v-model="tab" animated class="full-height bg-transparent rounded-borders">
+			<!-- <MCardContent class="fit"> -->
+			<q-tab-panels v-model="tab" animated class="col bg-transparent rounded-borders">
 				<q-tab-panel name="join" class="q-pa-none bg-dark">
 					<LobbyFinderList class="fit bg-re" />
 				</q-tab-panel>
@@ -44,7 +44,7 @@ const q = useQuasar();
 const tab = ref<'join' | 'host'>('join');
 </script>
 
-<style>
+<style scoped>
 .q-tab .q-focus-helper {
 	visibility: hidden;
 }

@@ -10,3 +10,8 @@ export const listLobbies = async (): Promise<LobbyInfo[]> => {
     const res = await api.get<LobbyInfo[]>("/lobby");
     return res.data;
 }
+
+export const fetchLobby = async (lobbyId: string): Promise<LobbyInfo> => {
+    const res = await api.get<LobbyInfo>(`/lobby/${lobbyId}`);
+    return res.data;
+}

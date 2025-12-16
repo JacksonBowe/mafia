@@ -1,7 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
+import { useMutation, useQuery, useQueryClient, type UseQueryOptions } from "@tanstack/vue-query";
 import { useLobbyStore } from "src/stores/lobby";
-import { computed } from "vue";
-import { hostLobby, listLobbies } from "./api";
+import { computed, type MaybeRef, unref } from "vue";
+import { fetchLobby, hostLobby, listLobbies } from "./api";
 
 
 export const useHostLobby = () => {
@@ -42,6 +42,20 @@ export const useLobbies = () => {
         retry: false,
         staleTime: Infinity,
     })
+}
+
+export const useLobby = (id: MaybeRef<string | null>, options?: Omit<
+    UseQueryOptions,
+    'queryKey' | 'queryFn'
+>) => {
+    const idRef = computed(() => unref(id));
+    
+    return useQuery({
+        queryKey: computed(() => ['lobby', idRef.value ?? ''] as const),
+        queryFn: () => fetchLobby(idRef.value!),
+        enabled: computed(() => !!idRef.value),
+        ...options,
+    });
 }
 
 export const useSelectedLobby = () => {
