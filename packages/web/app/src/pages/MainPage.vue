@@ -15,7 +15,7 @@
 					</div>
 
 					<div class="col-5">
-						<!-- <MenuChatCard /> -->
+						<MenuChatCard class="fit" />
 						<!-- <MCard tone="primary" glow clickable>
 							<MCardHeader eyebrow="Lobby" title="Informed Minority" subtitle="Join a game" />
 
@@ -40,6 +40,7 @@
 import LobbyCard from 'src/components/Lobby/LobbyCard.vue';
 import LobbyFinderCard from 'src/components/LobbyFinder/LobbyFinderCard.vue';
 import LobbyPreviewCard from 'src/components/LobbyPreview/LobbyPreviewCard.vue';
+import MenuChatCard from 'src/components/MenuChat/MenuChatCard.vue';
 import { usePresence } from 'src/lib/meta/hooks';
 
 const { data: presence } = usePresence();

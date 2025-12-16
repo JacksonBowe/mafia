@@ -32,7 +32,7 @@
 
 			<!-- <q-separator class="q-mt-sm q-mb-md" dark /> -->
 
-			<q-tab-panels v-model="tab" animated class="col rounded-borders bg-transparen">
+			<q-tab-panels v-model="tab" animated class="col rounded-borders">
 				<q-tab-panel name="players" class="q-pa-none">
 					<LobbyPlayerList class="fit" :members="lobby?.members || []" :loading="isLobbyLoading" />
 				</q-tab-panel>

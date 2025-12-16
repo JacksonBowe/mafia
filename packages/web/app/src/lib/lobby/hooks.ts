@@ -142,8 +142,7 @@ export const useLeaveLobby = () => {
                                 ? { ...l, members: l.members.filter((m: RelatedEntity) => m.id !== ctx.userId) }
                                 : l,
                         )
-                    // optionally drop empty lobbies:
-                    // .filter(l => l.members.length > 0)
+                        .filter(l => l.members.length > 0)
                 })
             }
 

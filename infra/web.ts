@@ -9,6 +9,7 @@ export const appSite = new sst.aws.StaticSite("AppSite", {
     },
     environment: {
         VITE_AUTH_ENDPOINT: auth.url,
-        VITE_API_ENDPOINT: api.url
+        VITE_API_ENDPOINT: api.url,
+        VITE_STAGE: $app.stage
     }
 })

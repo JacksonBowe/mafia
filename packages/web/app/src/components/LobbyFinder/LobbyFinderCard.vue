@@ -11,10 +11,10 @@
 				no-caps
 				align="justify"
 				indicator-color="transparent"
-				class="text-h6 tab-title"
+				class="text-h6 lobby-tabs"
 			>
 				<q-tab name="join" :ripple="false" label="Join" />
-				<span class="tab-title">|</span>
+				<span class="lobby-tabs">|</span>
 				<q-tab name="host" :ripple="false" label="Host" />
 			</q-tabs>
 			<!-- </MCardContent> -->
@@ -22,7 +22,7 @@
 			<!-- <MCardContent class="fit"> -->
 			<q-tab-panels v-model="tab" animated class="col bg-transparent rounded-borders">
 				<q-tab-panel name="join" class="q-pa-none bg-dark">
-					<LobbyFinderList class="fit bg-re" />
+					<LobbyFinderList class="fit" />
 				</q-tab-panel>
 
 				<q-tab-panel name="host" class="q-pa-none">
@@ -44,16 +44,22 @@ const q = useQuasar();
 const tab = ref<'join' | 'host'>('join');
 </script>
 
-<style scoped>
-.q-tab .q-focus-helper {
+<style scoped lang="scss">
+/* only affect tabs inside this component */
+.lobby-tabs :deep(.q-tab .q-focus-helper) {
 	visibility: hidden;
 }
 
-.tab-title {
-	color: rgba(255, 255, 255, 0.3);
+.lobby-tabs :deep(.q-tab) {
+	color: rgba(255, 255, 255, 0.38);
 }
 
-.active-tab {
-	color: rgba(255, 255, 255, 1);
+.lobby-tabs :deep(.q-tab--active) {
+	color: rgba(255, 255, 255, 0.95);
+}
+
+/* make Quasar separator between tabs subtle */
+.lobby-tabs :deep(.q-tabs__separator) {
+	opacity: 0.25;
 }
 </style>

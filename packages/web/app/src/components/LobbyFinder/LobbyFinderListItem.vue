@@ -36,7 +36,7 @@
 			<!-- Meta row -->
 			<div class="row items-center q-mt-xs">
 				<q-item-label caption class="lobby-item__meta">
-					Players: {{ memberCount }} / {{ maxPlayers }}
+					Players: {{ memberCount }} / {{ MAX_PLAYERS }}
 				</q-item-label>
 
 				<q-space />
@@ -198,7 +198,7 @@ function onJoin() {
 }
 
 .lobby-item__title {
-	font-weight: 700;
+	font-weight: 500;
 	color: rgba(255, 255, 255, 0.94);
 }
 
