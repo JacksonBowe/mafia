@@ -1,6 +1,7 @@
 import { assertActor } from '@mafia/core/actor';
 import { isULID, zValidator } from '@mafia/core/error';
 import { Lobby } from '@mafia/core/lobby/index';
+import { User } from '@mafia/core/user/index';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
@@ -50,7 +51,22 @@ lobbyRoutes.get('/:lobbyId',
 // TODO: Join
 
 // TODO: Leave
+export const LeaveLobbyParamsSchema = z.object({
+    lobbyId: isULID(),
+});
+lobbyRoutes.post('/leave',
+    async (c) => {
+        const actor = assertActor('user');
+        const presence = await User.getPresence({ userId: actor.properties.userId });
 
+        if (!presence.lobby) {
+            return c.json({ success: true });
+        }
+
+        await Lobby.Member.remove({ lobbyId: presence.lobby?.id, userId: actor.properties.userId });
+        return c.json({ success: true });
+    }
+)
 // TODO: Start
 export { lobbyRoutes };
 

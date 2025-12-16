@@ -16,6 +16,10 @@ class Resource:
     class Auth:
         type: str
         url: str
+    class Bus:
+        arn: str
+        name: str
+        type: str
     class DatabaseMigrator:
         name: str
         type: str

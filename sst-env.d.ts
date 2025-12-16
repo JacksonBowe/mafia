@@ -18,6 +18,11 @@ declare module "sst" {
       "type": "sst.aws.Auth"
       "url": string
     }
+    "Bus": {
+      "arn": string
+      "name": string
+      "type": "sst.aws.Bus"
+    }
     "DatabaseMigrator": {
       "name": string
       "type": "sst.aws.Function"

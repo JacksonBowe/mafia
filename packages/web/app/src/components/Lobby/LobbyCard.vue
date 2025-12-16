@@ -1,6 +1,18 @@
 <template>
 	<MCard class="fit" variant="glass" size="lg" tone="warning" tone-placement="top" glow>
-		<MCardHeader eyebrow="In Lobby" :title="lobby?.name ?? 'Lobby'" :subtitle="lobbyMeta" />
+		<MCardHeader eyebrow="In Lobby" :title="lobby?.name ?? 'Lobby'" :subtitle="lobbyMeta">
+			<template #topRight>
+				<q-btn
+					color="negative"
+					label="Leave"
+					no-caps
+					glossy
+					size="md"
+					@click="doLeave"
+					:loading="isLeavePending"
+				/>
+			</template>
+		</MCardHeader>
 
 		<MCardContent class="fit column">
 			<q-tabs
@@ -22,11 +34,11 @@
 
 			<q-tab-panels v-model="tab" animated class="col rounded-borders bg-transparen">
 				<q-tab-panel name="players" class="q-pa-none">
-					<!-- <LobbyPlayerList class="fit" /> -->
+					<LobbyPlayerList class="fit" :members="lobby?.members || []" :loading="isLobbyLoading" />
 				</q-tab-panel>
 
 				<q-tab-panel name="config" class="q-pa-none">
-					<!-- <LobbyConfig class="fit" /> -->
+					<LobbyConfig class="fit" />
 				</q-tab-panel>
 			</q-tab-panels>
 		</MCardContent>
@@ -35,9 +47,11 @@
 
 <script setup lang="ts">
 import { MCard, MCardContent, MCardHeader } from 'src/components/ui/Card';
-import { useLobby } from 'src/lib/lobby/hooks';
+import { useLeaveLobby, useLobby } from 'src/lib/lobby/hooks';
 import { usePresence } from 'src/lib/meta/hooks';
 import { computed, ref } from 'vue';
+import LobbyConfig from './LobbyConfig.vue';
+import LobbyPlayerList from './LobbyPlayerList.vue';
 
 const tab = ref<'players' | 'config'>('players');
 
@@ -46,7 +60,7 @@ const MAX_PLAYERS = 15;
 const { data: presence } = usePresence();
 const lobbyId = computed(() => presence.value?.lobby?.id ?? null);
 
-const { data: lobby } = useLobby(lobbyId, { retry: 0 });
+const { data: lobby, isLoading: isLobbyLoading } = useLobby(lobbyId, { retry: 0 });
 
 const memberCount = computed(() => lobby.value?.members?.length ?? 0);
 const occupancyPct = computed(() =>
@@ -57,6 +71,13 @@ const lobbyMeta = computed(() => {
 	if (!lobby.value) return 'Loading…';
 	return `${memberCount.value}/${MAX_PLAYERS} players · ${occupancyPct.value}%`;
 });
+
+const { mutateAsync: leaveLobby, isPending: isLeavePending } = useLeaveLobby();
+
+const doLeave = async () => {
+	if (isLeavePending.value) return;
+	await leaveLobby();
+};
 </script>
 
 <style scoped lang="scss">

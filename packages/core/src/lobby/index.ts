@@ -174,3 +174,31 @@ export const get = fn(
             })
         }),
 )
+
+export const terminate = fn(
+    z.object({
+        lobbyId: isULID(),
+    }),
+    async ({ lobbyId }) =>
+        useTransaction(async (tx) => {
+            const [lobby] = await tx
+                .select({ id: lobbyTable.id })
+                .from(lobbyTable)
+                .where(eq(lobbyTable.id, lobbyId))
+                .limit(1)
+
+            if (!lobby) {
+                throw new InputError(Errors.LobbyNotFound, 'Lobby does not exist')
+            }
+
+            await tx
+                .delete(lobbyMemberTable)
+                .where(eq(lobbyMemberTable.lobbyId, lobbyId))
+
+            await tx
+                .delete(lobbyTable)
+                .where(eq(lobbyTable.id, lobbyId))
+
+            return { lobbyId }
+        }),
+)

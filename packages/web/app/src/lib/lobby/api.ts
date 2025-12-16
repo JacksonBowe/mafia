@@ -15,3 +15,11 @@ export const fetchLobby = async (lobbyId: string): Promise<LobbyInfo> => {
     const res = await api.get<LobbyInfo>(`/lobby/${lobbyId}`);
     return res.data;
 }
+
+export const joinLobby = async (lobbyId: string): Promise<void> => {
+    await api.post(`/lobby/${lobbyId}/join`);
+}
+
+export const leaveLobby = async (): Promise<void> => {
+    await api.post(`/lobby/leave`);
+}
