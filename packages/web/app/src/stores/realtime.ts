@@ -1,13 +1,10 @@
 // src/stores/realtime.ts
-import { iot, mqtt } from "aws-iot-device-sdk-v2/dist/browser";
+import mqtt, { type IClientOptions, type IConnackPacket, type MqttClient } from "mqtt";
 import { acceptHMRUpdate, defineStore } from "pinia";
-
 import { uid } from "quasar";
 import { bus } from "src/boot/bus";
-import { useAuthStore } from "src/stores/auth";
-
-// import { RealtimeMessageSchema } from "@mafia/core/realtime/index";
 import { getLogger } from "src/lib/log";
+import { useAuthStore } from "src/stores/auth";
 import { z } from "zod";
 
 const log = getLogger("realtime");
@@ -15,7 +12,7 @@ const log = getLogger("realtime");
 type ConnectionStatus = "idle" | "connecting" | "connected" | "disconnected" | "error";
 
 type State = {
-    connection: mqtt.MqttClientConnection | null;
+    connection: MqttClient | null;
     status: ConnectionStatus;
     lastError: unknown;
 
@@ -40,6 +37,18 @@ function errToCtx(err: unknown): { error: unknown } {
     return { error: err };
 }
 
+function decodePayload(payload: unknown): string {
+    if (typeof payload === "string") return payload;
+    // mqtt.js in browser typically gives Buffer-like (Uint8Array)
+    if (payload instanceof Uint8Array) return new TextDecoder("utf-8").decode(payload);
+    // fallback
+    try {
+        return String(payload);
+    } catch {
+        return "";
+    }
+}
+
 export const useRealtime = defineStore("realtime", {
     state: (): State => ({
         connection: null,
@@ -62,7 +71,7 @@ export const useRealtime = defineStore("realtime", {
     },
 
     actions: {
-        async connect() {
+        connect() {
             const a = useAuthStore();
             const token = a.session?.accessToken;
 
@@ -71,10 +80,16 @@ export const useRealtime = defineStore("realtime", {
                 return;
             }
 
-            await this.disconnect();
+            this.disconnect();
 
             this.status = "connecting";
             this.lastError = null;
+
+            // Fresh clientId on each connect helps avoid ghost sessions during dev/HMR
+            this.clientId = "client_" + uid();
+
+            const authorizerName = encodeURIComponent(this.authorizer);
+            const url = `wss://${this.endpoint}/mqtt?x-amz-customauthorizer-name=${authorizerName}`;
 
             log.info("Connecting…", {
                 clientId: this.clientId,
@@ -83,98 +98,84 @@ export const useRealtime = defineStore("realtime", {
                 prefix: this.prefix,
             });
 
-            const config = iot.AwsIotMqttConnectionConfigBuilder.new_with_websockets()
-                .with_clean_session(true)
-                .with_client_id(this.clientId)
-                .with_endpoint(this.endpoint)
-                .with_custom_authorizer("", this.authorizer, "", "PLACEHOLDER_TOKEN")
-                .with_keep_alive_seconds(1200)
-                .build();
+            // mqtt.js options for AWS IoT custom authorizer:
+            // - protocolVersion 5 (matches SST Next.js example)
+            // - username must be empty string
+            // - password is treated as your token (your authorizer reads it)
+            const options: IClientOptions = {
+                protocolVersion: 5,
+                manualConnect: true,
+                clientId: this.clientId,
+                username: "",
+                password: "PLACEHOLDER_TOKEN", // token, // if you truly want placeholder: "PLACEHOLDER_TOKEN"
+                reconnectPeriod: 0, // we handle reconnect ourselves
+                keepalive: 60, // seconds (mqtt.js uses seconds)
+                connectTimeout: 10_000, // ms
+                clean: true,
+            };
 
-            const client = new mqtt.MqttClient();
-            const connection = client.new_connection(config);
+            const connection = mqtt.connect(url, options);
             this.connection = connection;
 
-            connection.on("connect", () => {
-                log.info("WS connected", { clientId: this.clientId });
+            connection.on("connect", (packet: IConnackPacket) => {
+                log.info("WS connected", { clientId: this.clientId, packet });
                 this.status = "connected";
                 this.reconnecting = false;
                 this._processQueuedSubscriptions();
             });
 
-            connection.on("interrupt", (e) => {
-                // interrupt isn't "info" in practice; it's a warning signal
-                log.warn("WS interrupted; will attempt reconnect", { ...errToCtx(e) });
-                void this._reconnect();
+            connection.on("reconnect", () => {
+                // should not happen with reconnectPeriod: 0, but log in case
+                log.warn("mqtt.js reconnect event fired unexpectedly");
             });
 
-            connection.on("resume", (...args: unknown[]) => {
-                log.info("WS resumed", { args });
-            });
-
-            connection.on("disconnect", (...args: unknown[]) => {
-                log.warn("WS disconnected", { args });
+            connection.on("close", () => {
+                log.warn("WS closed");
                 if (this.status !== "disconnected") this.status = "disconnected";
             });
 
-            connection.on("closed", (...args: unknown[]) => {
-                log.warn("WS closed", { args });
+            connection.on("offline", () => {
+                log.warn("WS offline");
+            });
+
+            connection.on("end", () => {
+                log.warn("WS ended");
                 if (this.status !== "disconnected") this.status = "disconnected";
             });
 
-            connection.on("error", (e) => {
+            connection.on("error", (e: unknown) => {
                 log.error("WS connection error", { ...errToCtx(e) });
                 this.lastError = e;
                 this.status = "error";
             });
 
-            // connection.on("message", (topic, payload) => {
-            //     const text = new TextDecoder("utf-8").decode(new Uint8Array(payload));
+            connection.on("message", (topic: string, payload: unknown) => {
+                const text = decodePayload(payload);
 
-            //     try {
-            //         const raw: unknown = JSON.parse(text);
-            //         const msg = RealtimeMessageSchema.parse(raw);
-
-            //         log.debug("Message received", { topic, type: msg.type });
-
-            //         // Avoid `any`: emit via a safe string event name.
-            //         // If you want typing, we can add a typed wrapper for bus.emit later.
-            //         bus.emit(msg.type, msg.properties);
-            //     } catch (err) {
-            //         log.warn("Failed to parse realtime message", {
-            //             topic,
-            //             text,
-            //             ...errToCtx(err),
-            //         });
-            //     }
-            // });
-
-            connection.on("message", (topic, payload) => {
-                const text = new TextDecoder("utf-8").decode(new Uint8Array(payload));
+                console.log(text)
 
                 try {
-                    const raw = JSON.parse(text);
+                    const raw: unknown = JSON.parse(text);
                     const msg = RealtimeMessageSchema.parse(raw); // envelope only
-
-                    // msg.type is "lobby.member.join"
-                    // bus will map it to "realtime.lobby.member.join"
                     bus.emitFromRealtime(msg.type, msg.properties);
                 } catch (err) {
+                    // keep this as console to avoid recursion if logger depends on realtime
                     console.warn("[realtime] Failed to parse realtime message", { topic, text, err });
                 }
             });
 
+            // Actually initiate the connection
             try {
-                await connection.connect();
+                connection.connect();
             } catch (e) {
-                log.error("Connect failed", { ...errToCtx(e) });
+                log.error("Connect threw synchronously", { ...errToCtx(e) });
                 this.lastError = e;
                 this.status = "error";
                 throw e;
             }
         },
 
-        async disconnect() {
+        disconnect() {
             const conn = this.connection;
             this.connection = null;
             this.status = "disconnected";
@@ -185,7 +186,8 @@ export const useRealtime = defineStore("realtime", {
             log.info("Disconnecting…");
 
             try {
-                await conn.disconnect();
+                // Force close immediately, don’t keep reconnect timers around.
+                conn.end(true);
                 log.info("Disconnected");
             } catch (e) {
                 log.warn("Disconnect failed (ignored)", { ...errToCtx(e) });
@@ -208,13 +210,14 @@ export const useRealtime = defineStore("realtime", {
                 return;
             }
 
-            void this.connection.subscribe(full, mqtt.QoS.AtLeastOnce).then(
-                () => {
-                    this.subscriptions.add(full);
-                    log.info("Subscribed", { full });
-                },
-                (err) => log.warn("Subscribe error", { full, ...errToCtx(err) }),
-            );
+            this.connection.subscribe(full, { qos: 1 }, (err) => {
+                if (err) {
+                    log.warn("Subscribe error", { full, ...errToCtx(err) });
+                    return;
+                }
+                this.subscriptions.add(full);
+                log.info("Subscribed", { full });
+            });
         },
 
         unsubscribe(topic: string) {
@@ -228,16 +231,19 @@ export const useRealtime = defineStore("realtime", {
                 return;
             }
 
-            void this.connection.unsubscribe(full).then(
-                () => {
-                    this.subscriptions.delete(full);
-                    log.info("Unsubscribed", { full });
-                },
-                (err) => log.warn("Unsubscribe error", { full, ...errToCtx(err) }),
-            );
+            this.connection.unsubscribe(full, (err) => {
+                if (err) {
+                    log.warn("Unsubscribe error", { full, ...errToCtx(err) });
+                    return;
+                }
+                this.subscriptions.delete(full);
+                log.info("Unsubscribed", { full });
+            });
         },
 
         _finalTopic(topic: string) {
+            if (!topic) throw new Error("Topic cannot be empty");
+
             if (topic.startsWith(this.prefix)) return topic;
             return `${this.prefix}/${topic}`;
         },
@@ -252,11 +258,10 @@ export const useRealtime = defineStore("realtime", {
             });
 
             queued.forEach((t) => this.subscribe(t));
-
             for (const full of this.subscriptions) this.subscribe(full);
         },
 
-        async _reconnect() {
+        _reconnect() {
             if (this.reconnecting) return;
             this.reconnecting = true;
 
@@ -264,8 +269,8 @@ export const useRealtime = defineStore("realtime", {
 
             const topics = Array.from(this.subscriptions);
 
-            await this.disconnect();
-            await this.connect();
+            this.disconnect();
+            this.connect();
 
             topics.forEach((t) => this.subscribe(t));
 

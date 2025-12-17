@@ -18,7 +18,6 @@ metaRoutes.get('/me', async (c) => {
 metaRoutes.get('/precense', async (c) => {
     // try {
     const presence = await User.getPresence({ userId: assertActor('user').properties.userId });
-    console.log('user presence', presence);
     return c.json(presence);
     // } catch (error) {
     //     console.error('Error fetching presence', error);

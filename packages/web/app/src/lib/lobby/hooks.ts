@@ -3,6 +3,7 @@ import type { LobbyInfo } from "@mafia/core/lobby/index";
 import type { Presence } from "@mafia/core/user/presence";
 import { useMutation, useQuery, useQueryClient, type UseQueryOptions } from "@tanstack/vue-query";
 import { useLobbyStore } from "src/stores/lobby";
+import { useRealtime } from "src/stores/realtime";
 import { computed, type MaybeRef, unref } from "vue";
 import { fetchLobby, hostLobby, joinLobby, leaveLobby, listLobbies } from "./api";
 
@@ -10,7 +11,7 @@ import { fetchLobby, hostLobby, joinLobby, leaveLobby, listLobbies } from "./api
 export const useHostLobby = () => {
     const queryClient = useQueryClient();
     const lStore = useLobbyStore();
-    // const { subscripte } = useRealtime(); // TODO
+    const rt = useRealtime();
     // const mStore = useMessageStore() // TODO
     return useMutation({
         mutationFn: hostLobby,
@@ -26,8 +27,9 @@ export const useHostLobby = () => {
 
             lStore.setSelectedLobbyId(data.id);
 
-            // cStore.newInfoMessage('You have created a Lobby'); // TODO
-            // subscribe(lobby.id); // TODO
+            console.log(data)
+            // cStore.newInfoMessage('You have created a Lobby');
+            rt.subscribe(`lobby/${data.id}`);
         },
         onError: (e) => {
             console.error('Host error', e);
@@ -78,21 +80,20 @@ export const useSelectedLobby = () => {
 export const useJoinLobby = () => {
     const queryClient = useQueryClient();
     const lStore = useLobbyStore();
-    // const { subscribe } = useRealtime(); // TODO
+    const rt = useRealtime();
     return useMutation({
         mutationFn: joinLobby,
         onMutate: () => {
             lStore.setJoinLobbyPending();
         },
-        onSuccess: async (_data, variables) => {
+        onSuccess: async (_data, lobbyId) => {
             console.log('Join Success');
             await queryClient.invalidateQueries({ queryKey: ['lobbies'] });
             await queryClient.invalidateQueries({ queryKey: ['presence'] });
             await queryClient.invalidateQueries({ queryKey: ['actor'] });
 
-            console.log('Variables', variables);
 
-            // subscribe(variables.lobbyId); // TODO
+            rt.subscribe(`lobby/${lobbyId}`);
         },
         onError: (e) => {
             console.error('Join Error', e);
@@ -113,7 +114,7 @@ export const useJoinLobby = () => {
 export const useLeaveLobby = () => {
     const queryClient = useQueryClient()
     const lStore = useLobbyStore()
-
+    const rt = useRealtime();
     return useMutation({
         mutationFn: leaveLobby,
 
@@ -150,6 +151,7 @@ export const useLeaveLobby = () => {
             await queryClient.invalidateQueries({ queryKey: ['presence'] })
             await queryClient.invalidateQueries({ queryKey: ['lobbies'] })
 
+            rt.unsubscribe(lStore.selectedLobbyId);
             lStore.clearSelectedLobbyId()
         },
 

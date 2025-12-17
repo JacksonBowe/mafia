@@ -1,8 +1,11 @@
 import type { LobbyInfo } from "@mafia/core/lobby/index";
+import type { CreateLobbyJson } from "@mafia/functions/src/api/lobby";
 import { api } from "src/boot/axios";
 
-export const hostLobby = async (lobby: Partial<LobbyInfo>): Promise<LobbyInfo> => {
+export const hostLobby = async (lobby: CreateLobbyJson): Promise<LobbyInfo> => {
     const res = await api.post<LobbyInfo>("/lobby", lobby);
+
+    console.log('hostLobby', res.data);
     return res.data;
 }
 

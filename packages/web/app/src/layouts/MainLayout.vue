@@ -16,11 +16,12 @@
 
 import MenuHeader from 'src/components/MenuHeader/MenuHeader.vue';
 import BackgroundSplash from 'src/components/ui/Background/BackgroundSplash.vue';
+import { useLobbyEvents } from 'src/lib/lobby/events';
 
 // const { data: me, isLoading } = useMe()
 
 // useChatEvents()
-// useLobbyEvents()
+useLobbyEvents();
 </script>
 
 <style scoped>

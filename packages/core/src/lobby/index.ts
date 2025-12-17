@@ -58,11 +58,7 @@ export const create = fn(
                 return newLobby
             })
 
-            // At creation time we did not load members; we just know the rule was enforced.
-            return LobbyInfoSchema.parse({
-                ...lobby,
-                membersLoaded: false,
-            })
+            return get({ lobbyId: id })
         } catch (err) {
             if (err instanceof DrizzleQueryError) {
                 if (isUniqueViolation(err)) {
@@ -79,10 +75,9 @@ export const create = fn(
                         )
                     }
                 }
-
-                // if it wasn't a unique violation, rethrow and let onError handle it
-                throw err
             }
+
+            throw err;
         }
     },
 )
