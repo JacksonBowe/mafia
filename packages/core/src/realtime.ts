@@ -67,7 +67,7 @@ export type RealtimeMessage = z.infer<typeof RealtimeMessageSchema>;
 
 const encoder = new TextEncoder();
 
-function topicPrefix(): string {
+export function topicPrefix(): string {
     return `${Resource.App.name}/${Resource.App.stage}`;
 }
 

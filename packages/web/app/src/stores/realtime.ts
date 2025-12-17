@@ -1,5 +1,5 @@
 // src/stores/realtime.ts
-import { iot, mqtt } from "aws-iot-device-sdk-v2";
+import { iot, mqtt } from "aws-iot-device-sdk-v2/dist/browser";
 import { acceptHMRUpdate, defineStore } from "pinia";
 
 import { uid } from "quasar";
@@ -7,8 +7,8 @@ import { bus } from "src/boot/bus";
 import { useAuthStore } from "src/stores/auth";
 
 // import { RealtimeMessageSchema } from "@mafia/core/realtime/index";
-import { RealtimeMessageSchema } from "@mafia/core/realtime";
 import { getLogger } from "src/lib/log";
+import { z } from "zod";
 
 const log = getLogger("realtime");
 
@@ -29,6 +29,11 @@ type State = {
     clientId: string;
     reconnecting: boolean;
 };
+
+export const RealtimeMessageSchema = z.object({
+    type: z.string(),
+    properties: z.looseObject({}),
+});
 
 // Narrow unknown -> safe log context
 function errToCtx(err: unknown): { error: unknown } {
@@ -79,10 +84,10 @@ export const useRealtime = defineStore("realtime", {
             });
 
             const config = iot.AwsIotMqttConnectionConfigBuilder.new_with_websockets()
-                .with_clean_session(false)
+                .with_clean_session(true)
                 .with_client_id(this.clientId)
                 .with_endpoint(this.endpoint)
-                .with_custom_authorizer("", this.authorizer, "", token)
+                .with_custom_authorizer("", this.authorizer, "", "PLACEHOLDER_TOKEN")
                 .with_keep_alive_seconds(1200)
                 .build();
 

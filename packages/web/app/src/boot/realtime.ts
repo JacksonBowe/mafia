@@ -4,11 +4,11 @@ import { useRealtime } from 'src/stores/realtime'
 // "async" is optional;
 // more info on params: https://v2.quasar.dev/quasar-cli-vite/boot-files
 export default defineBoot(({ router }) => {
-    router.afterEach((to) => {
+    router.afterEach(async (to) => {
         const realtime = useRealtime()
         if (to.meta?.requiresAuth) {
             if (!realtime.isConnected) {
-                realtime.connect().catch((err) => {
+                await realtime.connect().catch((err) => {
                     console.error('Failed to connect to realtime:', err)
                 })
             }

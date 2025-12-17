@@ -11,7 +11,7 @@ export default defineConfig((/* ctx */) => {
         // app boot file (/src/boot)
         // --> boot files are part of "main.js"
         // https://v2.quasar.dev/quasar-cli-vite/boot-files
-        boot: ['logging', 'auth-guard', 'axios', 'vue-query', 'realtime', 'bus'],
+        boot: ['logging', 'auth-guard', 'axios', 'vue-query', 'realtime'],
 
         // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#css
         css: ['app.scss'],
@@ -59,7 +59,20 @@ export default defineConfig((/* ctx */) => {
             // polyfillModulePreload: true,
             // distDir
 
-            // extendViteConf (viteConf) {},
+            // extendViteConf(viteConf) {
+            //     viteConf.resolve = {
+            //         ...(viteConf.resolve || {}),
+            //         alias: {
+            //             ...(viteConf.resolve?.alias || {}),
+            //             url: path.resolve(__dirname, "node_modules/url/url.js"),
+            //             util: path.resolve(__dirname, "node_modules/util/util.js"),
+            //             "aws-iot-device-sdk-v2": path.resolve(
+            //                 __dirname,
+            //                 "node_modules/aws-iot-device-sdk-v2/dist/browser",
+            //             ),
+            //         },
+            //     }
+            // },
             // viteVuePluginOptions: {},
 
             vitePlugins: [
