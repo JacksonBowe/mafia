@@ -9,6 +9,7 @@ import { InputError, isULID } from "../error";
 import { defineEvent } from "../event";
 import { fn } from "../util/fn";
 import { lobbyMemberTable, lobbyTable } from "./lobby.sql";
+import { defineRealtimeEvent, realtime } from "../realtime";
 
 export enum Errors {
     LobbyMemberNotFound = 'lobby.member.not_found',
@@ -28,6 +29,20 @@ export const Events = {
             lobbyId: isULID(),
             userId: isULID(),
         }),
+    )
+}
+
+export const RealtimeEvents = {
+    MemberJoin: defineRealtimeEvent(
+        'lobby.member.join',
+        z.object({
+            lobbyId: isULID(),
+            user: z.object({
+                id: isULID(),
+                name: z.string(),
+            }),
+        }),
+        (p) => `lobby/${p.lobbyId}`
     )
 }
 
@@ -57,6 +72,14 @@ export const add = fn(z
             bus.publish(Resource.Bus, Events.MemberJoin, {
                 lobbyId,
                 userId,
+            })
+
+            realtime.publish(Resource.Realtime, RealtimeEvents.MemberJoin, {
+                lobbyId,
+                user: {
+                    id: userId,
+                    name: 'Unknown', // In a real implementation, fetch the user's name from the users table
+                },
             })
         })
     })

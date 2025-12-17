@@ -7,7 +7,7 @@
 //     messages: Array<Message>;
 // }
 
-// export const useChatStore = defineStore('chat', {
+// export const useMessageStore = defineStore('message', {
 //     state: (): MessageState => ({
 //         channel: 'GLOBAL',
 //         messages: [],
