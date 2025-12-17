@@ -1,4 +1,5 @@
 import { IoTDataPlaneClient, PublishCommand } from "@aws-sdk/client-iot-data-plane";
+import { Resource } from "sst";
 import { z } from "zod";
 import { fn } from "./util/fn";
 
@@ -9,7 +10,7 @@ import { fn } from "./util/fn";
 export type RealtimeResource = {
     authorizer: string;
     endpoint: string; // hostname, no protocol
-    type: "sst.aws.Realtime";
+    type?: string;
 };
 
 export type RealtimeEventDef<Type extends string, Schema extends z.ZodTypeAny> = {
@@ -66,13 +67,8 @@ export type RealtimeMessage = z.infer<typeof RealtimeMessageSchema>;
 
 const encoder = new TextEncoder();
 
-/**
- * If you have a global prefix you want on every topic, set it via env and keep it here.
- * Leave empty string for none.
- */
 function topicPrefix(): string {
-    // optional — delete if you don't want prefixing
-    return process.env.REALTIME_PREFIX ?? "";
+    return `${Resource.App.name}/${Resource.App.stage}`;
 }
 
 function joinTopic(prefix: string, topic: string): string {
@@ -96,7 +92,7 @@ export namespace realtime {
             resource: z.object({
                 authorizer: z.string(),
                 endpoint: z.string(),
-                type: z.literal("sst.aws.Realtime"),
+                type: z.string().optional(),
             }),
             topic: z.string(),
             type: z.string(),

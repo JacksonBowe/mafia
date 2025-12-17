@@ -47,6 +47,7 @@
       "name": "@mafia/functions",
       "version": "0.0.0",
       "dependencies": {
+        "@aws-sdk/client-iot-data-plane": "^3.953.0",
         "@hono/zod-validator": "^0.7.1",
         "@mafia/core": "workspace:",
         "@openauthjs/openauth": "^0.4.3",

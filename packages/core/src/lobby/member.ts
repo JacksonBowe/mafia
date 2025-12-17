@@ -7,9 +7,9 @@ import { afterTx, useTransaction } from "../db/transaction";
 import { EntityBaseSchema } from "../db/types";
 import { InputError, isULID } from "../error";
 import { defineEvent } from "../event";
+import { defineRealtimeEvent, realtime } from "../realtime";
 import { fn } from "../util/fn";
 import { lobbyMemberTable, lobbyTable } from "./lobby.sql";
-import { defineRealtimeEvent, realtime } from "../realtime";
 
 export enum Errors {
     LobbyMemberNotFound = 'lobby.member.not_found',
@@ -29,7 +29,7 @@ export const Events = {
             lobbyId: isULID(),
             userId: isULID(),
         }),
-    )
+    ),
 }
 
 export const RealtimeEvents = {
@@ -41,6 +41,22 @@ export const RealtimeEvents = {
                 id: isULID(),
                 name: z.string(),
             }),
+        }),
+        (p) => `lobby/${p.lobbyId}`
+    ),
+    MemberLeave: defineRealtimeEvent(
+        'lobby.member.leave',
+        z.object({
+            lobbyId: isULID(),
+            userId: isULID(),
+        }),
+        (p) => `lobby/${p.lobbyId}`
+    ),
+    MemberPromote: defineRealtimeEvent(
+        'lobby.member.promote',
+        z.object({
+            lobbyId: isULID(),
+            userId: isULID(),
         }),
         (p) => `lobby/${p.lobbyId}`
     )
@@ -73,14 +89,6 @@ export const add = fn(z
                 lobbyId,
                 userId,
             })
-
-            realtime.publish(Resource.Realtime, RealtimeEvents.MemberJoin, {
-                lobbyId,
-                user: {
-                    id: userId,
-                    name: 'Unknown', // In a real implementation, fetch the user's name from the users table
-                },
-            })
         })
     })
 );
@@ -89,9 +97,8 @@ export const remove = fn(
     z.object({
         lobbyId: isULID(),
         userId: isULID(),
-        notifyEvent: z.boolean().optional().default(true),
     }),
-    async ({ lobbyId, userId, notifyEvent }) =>
+    async ({ lobbyId, userId }) =>
         useTransaction(async (tx) => {
             const [deleted] = await tx
                 .delete(lobbyMemberTable)
@@ -110,11 +117,14 @@ export const remove = fn(
                 throw new InputError(Errors.LobbyMemberNotFound, 'User is not in this lobby')
             }
 
-            if (notifyEvent) {
-                afterTx(() => {
-                    bus.publish(Resource.Bus, Events.MemberLeave, deleted)
-                })
-            }
+            afterTx(() => {
+                bus.publish(Resource.Bus, Events.MemberLeave, deleted)
+            })
+
+            realtime.publish(Resource.Realtime, RealtimeEvents.MemberLeave, {
+                lobbyId,
+                userId,
+            })
 
             return deleted
         }),
@@ -147,6 +157,13 @@ export const promote = fn(
                 .set({ hostId: member.userId })
                 .where(eq(lobbyTable.id, lobbyId))
                 .returning({ id: lobbyTable.id, hostId: lobbyTable.hostId })
+
+            afterTx(() => {
+                realtime.publish(Resource.Realtime, RealtimeEvents.MemberPromote, {
+                    lobbyId,
+                    userId: member.userId,
+                })
+            })
 
             return updated
         }),

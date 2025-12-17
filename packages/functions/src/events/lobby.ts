@@ -1,4 +1,7 @@
 import { Lobby } from "@mafia/core/lobby/index";
+import { realtime } from "@mafia/core/realtime";
+import { User } from "@mafia/core/user/index";
+import { Resource } from "sst";
 import { bus } from "sst/aws/bus";
 
 
@@ -10,13 +13,26 @@ export const handler = bus.subscriber(
     async (evt) => {
         switch (evt.type) {
             case Lobby.Member.Events.MemberJoin.type: {
-                // TODO: Currently no-op
-                console.log("MemberJoin event received:", evt.properties);
+                console.log("Handling MemberJoin event:", evt);
+                const { lobbyId, userId } = evt.properties
+                const user = await User.get({ userId })
+
+                const { topic } = await realtime.publish(Resource.Realtime, Lobby.Member.RealtimeEvents.MemberJoin, {
+                    lobbyId,
+                    user: {
+                        id: user.id,
+                        name: user.name,
+                    },
+                })
+
+                console.log("Published MemberJoin to topic:", topic)
                 break;
             }
             case Lobby.Member.Events.MemberLeave.type: {
 
                 const { lobbyId, userId } = evt.properties
+
+
 
                 try {
                     const lobby = await Lobby.get({ lobbyId })

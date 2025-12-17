@@ -6,7 +6,7 @@ import { uid } from "quasar";
 import { bus } from "src/boot/bus";
 import { useAuthStore } from "src/stores/auth";
 
-import { RealtimeMessageSchema } from "@mafia/core/realtime/index";
+// import { RealtimeMessageSchema } from "@mafia/core/realtime/index";
 import { getLogger } from "src/lib/log";
 
 const log = getLogger("realtime");
@@ -127,7 +127,8 @@ export const useRealtime = defineStore("realtime", {
 
                 try {
                     const raw: unknown = JSON.parse(text);
-                    const msg = RealtimeMessageSchema.parse(raw);
+                    // const msg = RealtimeMessageSchema.parse(raw);
+                    const msg = raw;
 
                     log.debug("Message received", { topic, type: msg.type });
 
