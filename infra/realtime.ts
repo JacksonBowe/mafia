@@ -1,3 +1,4 @@
+import bus from "../packages/web/app/src/boot/bus";
 import { auth } from "./auth";
 import { NeonDatabaseUrl } from "./neon";
 
@@ -12,3 +13,12 @@ export const realtime = new sst.aws.Realtime("Realtime", {
     }
 
 });
+
+realtime.subscribe({
+    handler: "packages/functions/src/realtime/disconnect.handler",
+    link: [NeonDatabaseUrl, bus, realtime]
+}, {
+    filter: `${topicPrefix}/$disconnect`
+}
+
+)

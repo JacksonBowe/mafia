@@ -4,12 +4,16 @@ import { acceptHMRUpdate, defineStore } from "pinia";
 import { uid } from "quasar";
 import { bus } from "src/boot/bus";
 import { getLogger } from "src/lib/log";
-import { useAuthStore } from "src/stores/auth";
 import { z } from "zod";
 
 const log = getLogger("realtime");
 
 type ConnectionStatus = "idle" | "connecting" | "connected" | "disconnected" | "error";
+
+type ConnectInput = {
+    userId: string;
+    token: string;
+};
 
 type State = {
     connection: MqttClient | null;
@@ -25,6 +29,9 @@ type State = {
 
     clientId: string;
     reconnecting: boolean;
+    reconnectAttempt: number;
+
+    userId: string | null;
 };
 
 export const RealtimeMessageSchema = z.object({
@@ -49,6 +56,10 @@ function decodePayload(payload: unknown): string {
     }
 }
 
+function sleep(ms: number) {
+    return new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
+
 export const useRealtime = defineStore("realtime", {
     state: (): State => ({
         connection: null,
@@ -64,6 +75,9 @@ export const useRealtime = defineStore("realtime", {
 
         clientId: "client_" + uid(),
         reconnecting: false,
+        reconnectAttempt: 0,
+
+        userId: null,
     }),
 
     getters: {
@@ -71,9 +85,12 @@ export const useRealtime = defineStore("realtime", {
     },
 
     actions: {
-        connect() {
-            const a = useAuthStore();
-            const token = a.session?.accessToken;
+        connect(input: ConnectInput) {
+            // Idempotency guards
+            if (this.status === "connecting") return;
+            if (this.isConnected) return;
+
+            const { token, userId } = input;
 
             if (!token) {
                 log.info("No access token available; not connecting.");
@@ -82,11 +99,12 @@ export const useRealtime = defineStore("realtime", {
 
             this.disconnect();
 
+            this.userId = userId;
             this.status = "connecting";
             this.lastError = null;
 
-            // Fresh clientId on each connect helps avoid ghost sessions during dev/HMR
-            this.clientId = "client_" + uid();
+            // unique clientId per connection; include user for debugging
+            this.clientId = `user_${userId}_${uid()}`;
 
             const authorizerName = encodeURIComponent(this.authorizer);
             const url = `wss://${this.endpoint}/mqtt?x-amz-customauthorizer-name=${authorizerName}`;
@@ -96,6 +114,7 @@ export const useRealtime = defineStore("realtime", {
                 endpoint: this.endpoint,
                 authorizer: this.authorizer,
                 prefix: this.prefix,
+                userId,
             });
 
             // mqtt.js options for AWS IoT custom authorizer:
@@ -112,6 +131,12 @@ export const useRealtime = defineStore("realtime", {
                 keepalive: 60, // seconds (mqtt.js uses seconds)
                 connectTimeout: 10_000, // ms
                 clean: true,
+                will: {
+                    topic: this._finalTopic("$disconnect"),
+                    payload: JSON.stringify({ clientId: this.clientId, userId }),
+                    qos: 1,
+                    retain: false,
+                }
             };
 
             const connection = mqtt.connect(url, options);
@@ -132,6 +157,7 @@ export const useRealtime = defineStore("realtime", {
             connection.on("close", () => {
                 log.warn("WS closed");
                 if (this.status !== "disconnected") this.status = "disconnected";
+                void this._reconnect();
             });
 
             connection.on("offline", () => {
@@ -147,6 +173,7 @@ export const useRealtime = defineStore("realtime", {
                 log.error("WS connection error", { ...errToCtx(e) });
                 this.lastError = e;
                 this.status = "error";
+                void this._reconnect();
             });
 
             connection.on("message", (topic: string, payload: unknown) => {
@@ -171,7 +198,7 @@ export const useRealtime = defineStore("realtime", {
                 log.error("Connect threw synchronously", { ...errToCtx(e) });
                 this.lastError = e;
                 this.status = "error";
-                throw e;
+                void this._reconnect();
             }
         },
 
@@ -261,20 +288,28 @@ export const useRealtime = defineStore("realtime", {
             for (const full of this.subscriptions) this.subscribe(full);
         },
 
-        _reconnect() {
+        async _reconnect() {
             if (this.reconnecting) return;
+            if (this.status === "connecting") return;
+
+            // no user context = nothing to reconnect as
+            if (!this.userId) return;
+
             this.reconnecting = true;
 
-            log.warn("Reconnecting…");
+            // simple capped backoff: 0.5s, 1s, 2s, 4s, 8s (cap)
+            const attempt = this.reconnectAttempt;
+            const delay = Math.min(8000, 500 * Math.pow(2, attempt));
 
-            const topics = Array.from(this.subscriptions);
+            this.reconnectAttempt = attempt + 1;
 
-            this.disconnect();
-            this.connect();
+            log.warn("Reconnecting…", { attempt: this.reconnectAttempt, delayMs: delay });
 
-            topics.forEach((t) => this.subscribe(t));
+            // We can't reconnect without a fresh token; the boot watcher will call connect()
+            // when token/userId are present. So we just wait a bit and let the boot watcher re-drive.
+            await sleep(delay);
 
-            log.info("Reconnect finished", { topics: topics.length });
+            this.reconnecting = false;
         },
     },
 });

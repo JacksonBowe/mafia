@@ -8,6 +8,7 @@ export type Session = {
 
 export const useAuthStore = defineStore('auth', {
     state: () => ({
+        userId: null as string | null,
         authenticated: false,
         session: null as Session | null,
         hydrated: false,      // <- know if we’ve already tried to load once

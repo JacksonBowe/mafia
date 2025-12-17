@@ -1,15 +1,24 @@
-import { defineBoot } from '#q-app/wrappers'
-import { useRealtime } from 'src/stores/realtime'
+// src/boot/realtime.ts
+import { defineBoot } from "#q-app/wrappers";
+import { watch } from "vue";
+import { useAuthStore } from "src/stores/auth";
+import { useRealtime } from "src/stores/realtime";
 
-// "async" is optional;
-// more info on params: https://v2.quasar.dev/quasar-cli-vite/boot-files
-export default defineBoot(({ router }) => {
-    router.afterEach((to) => {
-        const realtime = useRealtime()
-        if (to.meta?.requiresAuth) {
-            if (!realtime.isConnected) {
-                realtime.connect()
+export default defineBoot(() => {
+    const auth = useAuthStore();
+    const rt = useRealtime();
+
+    watch(
+        () => ({ token: auth.session?.accessToken ?? null, userId: auth.userId ?? null }),
+        ({ token, userId }) => {
+            if (!token || !userId) {
+                rt.disconnect();
+                return;
             }
-        }
-    })
-})
+            if (!rt.isConnected && rt.status !== "connecting") {
+                rt.connect({ token, userId });
+            }
+        },
+        { immediate: true },
+    );
+});
