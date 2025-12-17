@@ -7,6 +7,7 @@ import { bus } from "src/boot/bus";
 import { useAuthStore } from "src/stores/auth";
 
 // import { RealtimeMessageSchema } from "@mafia/core/realtime/index";
+import { RealtimeMessageSchema } from "@mafia/core/realtime";
 import { getLogger } from "src/lib/log";
 
 const log = getLogger("realtime");
@@ -16,7 +17,7 @@ type ConnectionStatus = "idle" | "connecting" | "connected" | "disconnected" | "
 type State = {
     connection: mqtt.MqttClientConnection | null;
     status: ConnectionStatus;
-    lastError: unknown | null;
+    lastError: unknown;
 
     subscriptions: Set<string>;
     subscriptionQueue: string[];
@@ -99,7 +100,7 @@ export const useRealtime = defineStore("realtime", {
             connection.on("interrupt", (e) => {
                 // interrupt isn't "info" in practice; it's a warning signal
                 log.warn("WS interrupted; will attempt reconnect", { ...errToCtx(e) });
-                this._reconnect();
+                void this._reconnect();
             });
 
             connection.on("resume", (...args: unknown[]) => {
@@ -122,25 +123,39 @@ export const useRealtime = defineStore("realtime", {
                 this.status = "error";
             });
 
+            // connection.on("message", (topic, payload) => {
+            //     const text = new TextDecoder("utf-8").decode(new Uint8Array(payload));
+
+            //     try {
+            //         const raw: unknown = JSON.parse(text);
+            //         const msg = RealtimeMessageSchema.parse(raw);
+
+            //         log.debug("Message received", { topic, type: msg.type });
+
+            //         // Avoid `any`: emit via a safe string event name.
+            //         // If you want typing, we can add a typed wrapper for bus.emit later.
+            //         bus.emit(msg.type, msg.properties);
+            //     } catch (err) {
+            //         log.warn("Failed to parse realtime message", {
+            //             topic,
+            //             text,
+            //             ...errToCtx(err),
+            //         });
+            //     }
+            // });
+
             connection.on("message", (topic, payload) => {
                 const text = new TextDecoder("utf-8").decode(new Uint8Array(payload));
 
                 try {
-                    const raw: unknown = JSON.parse(text);
-                    // const msg = RealtimeMessageSchema.parse(raw);
-                    const msg = raw;
+                    const raw = JSON.parse(text);
+                    const msg = RealtimeMessageSchema.parse(raw); // envelope only
 
-                    log.debug("Message received", { topic, type: msg.type });
-
-                    // Avoid `any`: emit via a safe string event name.
-                    // If you want typing, we can add a typed wrapper for bus.emit later.
-                    bus.emit(String(msg.type), msg.properties);
+                    // msg.type is "lobby.member.join"
+                    // bus will map it to "realtime.lobby.member.join"
+                    bus.emitFromRealtime(msg.type, msg.properties);
                 } catch (err) {
-                    log.warn("Failed to parse realtime message", {
-                        topic,
-                        text,
-                        ...errToCtx(err),
-                    });
+                    console.warn("[realtime] Failed to parse realtime message", { topic, text, err });
                 }
             });
 
@@ -217,23 +232,9 @@ export const useRealtime = defineStore("realtime", {
             );
         },
 
-        publish(topic: string, payload: unknown) {
-            const full = this._finalTopic(topic);
-
-            if (!this.connection || this.status !== "connected") {
-                log.debug("Cannot publish (not connected)", { full });
-                return;
-            }
-
-            const message = typeof payload === "string" ? payload : JSON.stringify(payload);
-            this.connection.publish(full, message, mqtt.QoS.AtLeastOnce);
-
-            log.trace("Published", { full });
-        },
-
         _finalTopic(topic: string) {
             if (topic.startsWith(this.prefix)) return topic;
-            return `${this.prefix}${topic}`;
+            return `${this.prefix}/${topic}`;
         },
 
         _processQueuedSubscriptions() {
@@ -265,12 +266,6 @@ export const useRealtime = defineStore("realtime", {
 
             log.info("Reconnect finished", { topics: topics.length });
         },
-
-        // You can delete this now — it was the pre-wrapper console logger
-        // _log(...args: unknown[]) {
-        //   // eslint-disable-next-line no-console
-        //   console.log("[realtime]", ...args);
-        // },
     },
 });
 

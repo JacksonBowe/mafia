@@ -1,15 +1,15 @@
-import { EventBus } from 'quasar';
-import { boot } from 'quasar/wrappers';
-// import { type Events } from 'src/lib/realtime';
+import { boot } from "quasar/wrappers";
+import { createBus } from "src/lib/bus";
+import { LobbyEventSchemas } from "src/lib/lobby/events";
 
+const schemas = {
+    ...LobbyEventSchemas,
+} as const;
 
+export const bus = createBus(schemas);
 
-
-const bus = new EventBus<Events>();
+export type AppBus = typeof bus;
 
 export default boot(({ app }) => {
-    // Provide the EventBus globally
-    app.provide('bus', bus);
+    app.provide("bus", bus);
 });
-
-export { bus };

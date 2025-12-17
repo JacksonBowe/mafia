@@ -61,6 +61,8 @@ export function isULID() {
     });
 }
 
+export type ULID = z.infer<ReturnType<typeof isULID>>;
+
 // true/false/1/0/yes/no/on/off (case-insensitive)
 // empty/missing -> undefined
 export const zBoolQuery = z.preprocess((v) => {

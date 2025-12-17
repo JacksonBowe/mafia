@@ -10,7 +10,7 @@ import { fn } from "./util/fn";
 export type RealtimeResource = {
     authorizer: string;
     endpoint: string; // hostname, no protocol
-    type?: string;
+    type?: string | undefined;
 };
 
 export type RealtimeEventDef<Type extends string, Schema extends z.ZodTypeAny> = {
