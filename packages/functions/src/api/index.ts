@@ -6,6 +6,7 @@ import { handle } from "hono/aws-lambda"
 import { PublicError } from "@mafia/core/error"
 import { HTTPException } from "hono/http-exception"
 import { Resource } from "sst"
+import { adminRoutes } from "./admin"
 import { authorize } from "./authorizer"
 import { lobbyRoutes } from "./lobby"
 import { metaRoutes } from "./meta"
@@ -24,6 +25,7 @@ const protectedRoutes = app.basePath('/').use('*', authorize);
 
 protectedRoutes.route('/', metaRoutes);
 protectedRoutes.route('/lobby', lobbyRoutes)
+protectedRoutes.route('/admin', adminRoutes)
 
 const isProd = Resource.App.stage === 'prod';
 

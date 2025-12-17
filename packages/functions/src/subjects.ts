@@ -5,6 +5,7 @@ export const subjects = createSubjects({
     user: z.object({
         name: z.string().optional(),
         discordId: z.string().optional(),
-        userId: z.string()
+        userId: z.string(),
+        isAdmin: z.boolean().default(false),
     }),
 });

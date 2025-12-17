@@ -5,6 +5,7 @@
 		<MenuHeader />
 		<q-page-container>
 			<router-view />
+			<AdminFab />
 		</q-page-container>
 	</q-layout>
 </template>
@@ -14,6 +15,7 @@
 // import { useLobbyEvents } from 'src/lib/lobby'
 // import { useMe } from 'src/lib/user'
 
+import AdminFab from 'src/components/admin/AdminFab.vue';
 import MenuHeader from 'src/components/MenuHeader/MenuHeader.vue';
 import BackgroundSplash from 'src/components/ui/Background/BackgroundSplash.vue';
 import { useLobbyEvents } from 'src/lib/lobby/events';

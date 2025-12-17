@@ -47,8 +47,6 @@ const app = issuer({
 
             const profile = await res.json() as DiscordUser;
 
-            console.log(profile)
-
             // You can now store this in your DB, check if user exists, etc.
             const user = await User.createOrUpdateFromDiscordProfile({
                 discordId: profile.id,
@@ -56,11 +54,14 @@ const app = issuer({
                 discordAvatar: profile.avatar,
                 // profileImageUrl: profileImageUrl,
             })
+
             // For now, return a subject to complete the OpenAuth login
             return ctx.subject("user", {
                 name: user.name,
                 discordId: profile.id,
-                userId: user.id
+                userId: user.id,
+                isAdmin: user.isAdmin,
+
             });
         }
         throw new Error('Invalid Provider');

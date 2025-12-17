@@ -24,10 +24,12 @@ export const authorize: MiddlewareHandler = async (c, next) => {
         const claims = await client.verify(subjects, token)
 
         if (!claims.err) {
+
             return withActor({
                 type: 'user',
                 properties: {
-                    userId: claims.subject.properties.userId
+                    userId: claims.subject.properties.userId,
+                    isAdmin: claims.subject.properties.isAdmin || false,
                 }
             }, () => next())
         } else {

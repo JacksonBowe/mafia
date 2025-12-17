@@ -18,7 +18,8 @@ export const AdminUserActor = z.object({
 export const UserActor = z.object({
     type: z.literal('user'),
     properties: z.object({
-        userId: z.string()
+        userId: z.string(),
+        isAdmin: z.boolean().default(false),
     })
 })
 

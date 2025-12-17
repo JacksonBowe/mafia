@@ -1,30 +1,30 @@
-// import { defineStore } from 'pinia';
-// import { uid } from 'quasar';
-// import { type Message } from 'src/lib/chat';
+import type { Message } from "@mafia/core/message/models";
+import { defineStore } from 'pinia';
+import { uid } from 'quasar';
 
-// interface MessageState {
-//     channel: 'GLOBAL' | 'LOBBY' | 'PRIVATE';
-//     messages: Array<Message>;
-// }
+interface State {
+    channel: 'GLOBAL' | 'LOBBY' | 'PRIVATE';
+    messages: Array<Message>;
+}
 
-// export const useMessageStore = defineStore('message', {
-//     state: (): MessageState => ({
-//         channel: 'GLOBAL',
-//         messages: [],
-//     }),
+export const useMessageStore = defineStore('message', {
+    state: (): State => ({
+        channel: 'GLOBAL',
+        messages: [],
+    }),
 
-//     getters: {},
+    getters: {},
 
-//     actions: {
-//         newInfoMessage(message: string) {
-//             console.log('newInfoMessage');
-//             this.messages.push({
-//                 id: uid(),
-//                 content: message,
-//                 type: 'INFO',
-//                 timestamp: Date.now(),
-//                 target: 'self',
-//             });
-//         },
-//     },
-// });
+    actions: {
+        newInfoMessage(message: string) {
+            console.log('newInfoMessage');
+            this.messages.push({
+                id: uid(),
+                content: message,
+                type: 'INFO',
+                timestamp: Date.now(),
+                target: 'self',
+            });
+        },
+    },
+});

@@ -1,5 +1,5 @@
 import { NeonDatabaseUrl } from "./neon"
-import { realtime } from "./realtime"
+import { realtime, topicPrefix } from "./realtime"
 
 export const bus = new sst.aws.Bus("Bus")
 
@@ -10,4 +10,11 @@ bus.subscribe('LobbyEvents', {
     pattern: {
         detailType: [{ prefix: 'lobby.' }]
     }
+})
+
+export const disconnectSubscriber = realtime.subscribe({
+    handler: "packages/functions/src/realtime/disconnect.handler",
+    link: [NeonDatabaseUrl, realtime, bus]
+}, {
+    filter: `${topicPrefix}/$disconnect`
 })

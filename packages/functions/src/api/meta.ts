@@ -15,7 +15,7 @@ metaRoutes.get('/me', async (c) => {
     return c.json(user);
 });
 
-metaRoutes.get('/precense', async (c) => {
+metaRoutes.get('/presence', async (c) => {
     // try {
     const presence = await User.getPresence({ userId: assertActor('user').properties.userId });
     return c.json(presence);

@@ -19,6 +19,7 @@ export const UserInfoSchema = EntityBaseSchema.extend({
     name: z.string(),
     profileImageUrl: z.string().url().optional(),
     avatar: z.string().optional().nullable(),
+    isAdmin: z.boolean().default(false),
 })
 
 export type UserInfo = z.infer<typeof UserInfoSchema>

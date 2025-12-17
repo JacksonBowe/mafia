@@ -9,6 +9,6 @@ export const getActor = async (): Promise<UserInfo> => {
 }
 
 export const getPresence = async (): Promise<Presence> => {
-    const response = await api.get<Presence>("/precense");
+    const response = await api.get<Presence>("/presence");
     return response.data;
 }

@@ -1,5 +1,5 @@
 import { boolean, pgTable, text } from 'drizzle-orm/pg-core'
-import { id, timestamps, timestamp } from '../db/types'
+import { id, timestamp, timestamps } from '../db/types'
 
 export const userTable = pgTable('user', {
     ...id,
@@ -7,6 +7,7 @@ export const userTable = pgTable('user', {
 
     discordId: text('discord_id').notNull().unique(),
     isBot: boolean('is_bot').notNull().default(false),
+    isAdmin: boolean('is_admin').notNull().default(false),
     // Optional profile details
     name: text('name').notNull(),
     // profileImageUrl: text('profile_image_url'),

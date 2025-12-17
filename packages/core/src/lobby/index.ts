@@ -1,7 +1,7 @@
 import { DrizzleQueryError, eq, inArray } from 'drizzle-orm'
 import { ulid } from 'ulid'
 import { z } from 'zod'
-import { createTransaction, useTransaction } from '../db/transaction'
+import { afterTx, createTransaction, useTransaction } from '../db/transaction'
 import {
     EntityBaseSchema,
     getConstraintName,
@@ -9,10 +9,12 @@ import {
     RelatedEntitySchema
 } from '../db/types'
 import { InputError, isULID } from '../error'
+import { defineRealtimeEvent, realtime } from '../realtime'
 import { userTable } from '../user/user.sql'
 import { fn } from '../util/fn'
 import { lobbyMemberTable, lobbyTable } from './lobby.sql'
 import * as Member from './member'
+import { Resource } from 'sst'
 export * as Lobby from './'
 export { Member }
 
@@ -20,6 +22,17 @@ export enum Errors {
     LobbyExists = 'lobby.exists',
     LobbyDuplicateHost = 'lobby.duplicate_host',
     LobbyNotFound = 'lobby.not_found',
+    LobbyDeleteFailed = 'lobby.delete_failed',
+}
+
+export const RealtimeEvents = {
+    LobbyTerminated: defineRealtimeEvent(
+        'lobby.terminated',
+        z.object({
+            lobbyId: isULID(),
+        }),
+        (p) => `lobby/${p.lobbyId}`
+    ),
 }
 
 export const LobbyInfoSchema = EntityBaseSchema.extend({
@@ -186,13 +199,31 @@ export const terminate = fn(
                 throw new InputError(Errors.LobbyNotFound, 'Lobby does not exist')
             }
 
-            await tx
+            const deletedMembers = await tx
                 .delete(lobbyMemberTable)
                 .where(eq(lobbyMemberTable.lobbyId, lobbyId))
+                .returning({ id: lobbyMemberTable.id });
 
-            await tx
+            const deletedLobby = await tx
                 .delete(lobbyTable)
                 .where(eq(lobbyTable.id, lobbyId))
+                .returning({ id: lobbyTable.id });
+
+            console.log('Deleted members:', deletedMembers.length);
+            console.log('Deleted lobby:', deletedLobby.length);
+            if (deletedLobby.length === 0) {
+                throw new InputError(
+                    Errors.LobbyDeleteFailed,
+                    "Lobby could not be deleted (permission/RLS or it no longer exists).",
+                    { deletedMembers: deletedMembers.length }
+                );
+            }
+
+            afterTx(() => {
+                realtime.publish(Resource.Realtime, RealtimeEvents.LobbyTerminated, {
+                    lobbyId
+                })
+            })
 
             return { lobbyId }
         }),

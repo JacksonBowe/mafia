@@ -6,6 +6,7 @@ export const handler = realtime.authorizer(async (token) => {
 
     // console.log("Authorizing token:", token);
 
+    // TODO: Replace this with real token validation logic
     const isValid = token === "PLACEHOLDER_TOKEN";
 
     console.log('Validating token:', { token, isValid });

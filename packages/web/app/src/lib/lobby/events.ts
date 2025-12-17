@@ -1,5 +1,7 @@
+import type { Presence } from "@mafia/core/user/presence";
 import { useQueryClient } from "@tanstack/vue-query";
 import type { AppBus } from "src/boot/bus";
+import { useRealtime } from "src/stores/realtime";
 import { inject, onMounted, onUnmounted } from "vue";
 import { z } from "zod";
 
@@ -24,6 +26,10 @@ export const LobbyEventSchemas = {
     "realtime.lobby.member.promote": z.object({
         lobbyId: ULID,
         userId: ULID,
+    }),
+
+    "realtime.lobby.terminated": z.object({
+        lobbyId: ULID,
     }),
 
     // app.* (optional)
@@ -54,6 +60,14 @@ export function useLobbyEvents() {
             bus.on("realtime.lobby.member.promote", (p) => {
                 console.log("join", p);
                 void queryClient.invalidateQueries({ queryKey: ["lobbies"] });
+            }),
+
+            bus.on("realtime.lobby.terminated", (p) => {
+                console.log("lobby terminated", p);
+                queryClient.setQueryData(['presence'], (old: Presence) => old ? { ...old, lobby: null } : old)
+                void queryClient.invalidateQueries({ queryKey: ["lobbies"] });
+                void queryClient.invalidateQueries({ queryKey: ["actor", "presence"] });
+                useRealtime().unsubscribe(`lobby/${p.lobbyId}`);
             }),
         );
     });
