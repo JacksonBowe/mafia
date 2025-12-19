@@ -6,13 +6,14 @@ import { useLobbyStore } from "src/stores/lobby";
 import { useRealtime } from "src/stores/realtime";
 import { computed, type MaybeRef, unref } from "vue";
 import { fetchLobby, hostLobby, joinLobby, leaveLobby, listLobbies } from "./api";
+import { useMessageStore } from "src/stores/message";
 
 
 export const useHostLobby = () => {
     const queryClient = useQueryClient();
     const lStore = useLobbyStore();
     const rt = useRealtime();
-    // const mStore = useMessageStore() // TODO
+    const mStore = useMessageStore() // TODO
     return useMutation({
         mutationFn: hostLobby,
         onMutate: () => {
@@ -29,6 +30,7 @@ export const useHostLobby = () => {
 
             console.log(data)
             // cStore.newInfoMessage('You have created a Lobby');
+            mStore.system('You have created a Lobby', { scope: 'app' }); // TODO
             rt.subscribe(`lobby/${data.id}`);
         },
         onError: (e) => {
