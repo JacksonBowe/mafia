@@ -8,7 +8,8 @@
 		"examples/new": "bun run examples/newGame.ts",
 		"examples/load": "bun run examples/loadGame.ts",
 		"examples/resolve": "bun run examples/resolveGame.ts",
-		"examples/resolve-win": "bun run examples/resolveGameWin.ts"
+		"examples/resolve-win": "bun run examples/resolveGameWin.ts",
+		"test": "vitest run --config ../../vitest.config.mts"
 	},
 	"exports": {
 		".": "./src/index.ts",

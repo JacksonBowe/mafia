@@ -45,9 +45,12 @@ Vue 3 web app. Follow the conventions below when making changes.
 - Drizzle migrations are ignored by Prettier (`packages/core/.prettierignore`).
 
 ### Testing notes
-- Root has `vitest` installed but no configured scripts.
-- There is no per-test runner configured anywhere in the repo.
+- Root uses `vitest` for workspace tests.
 - If you add a test tool, document how to run a single test here.
+
+### Engine tests (new)
+- Run all tests: `bun run test` (root) or `bun --cwd packages/engine run test`.
+- Single test file: `bun --cwd packages/engine vitest run --config ../../vitest.config.mts packages/engine/tests/engine.test.ts`.
 
 ## Code style guidelines
 

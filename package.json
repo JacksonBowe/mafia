@@ -13,7 +13,9 @@
 		"remove:prod": "sst remove --stage prod",
 		"tree": "mkdir -p .tmp-tree && git ls-tree -r --name-only HEAD   | sed 's|/[^/]*$||'   | sort -u   | xargs -I{} mkdir -p .tmp-tree/{} && tree -d .tmp-tree && rm -rf .tmp-tree",
 		"format": "bun run scripts/format",
-		"lint": "bun run scripts/lint"
+		"lint": "bun run scripts/lint",
+		"test": "vitest run --config vitest.config.mts",
+		"test:watch": "vitest --config vitest.config.mts"
 	},
 	"dependencies": {
 		"sst": "3.17.23"
