@@ -1,0 +1,24 @@
+{
+	"name": "@mafia/engine",
+	"version": "0.0.0",
+	"type": "module",
+	"module": "index.ts",
+	"scripts": {
+		"format": "prettier --write . --config ../../.prettierrc.json",
+		"examples/new": "bun run examples/newGame.ts",
+		"examples/load": "bun run examples/loadGame.ts",
+		"examples/resolve": "bun run examples/resolveGame.ts",
+		"examples/resolve-win": "bun run examples/resolveGameWin.ts"
+	},
+	"exports": {
+		".": "./src/index.ts",
+		"./*": "./src/*.ts"
+	},
+	"dependencies": {
+		"@mafia/core": "workspace:",
+		"zod": "^4.2.1"
+	},
+	"peerDependencies": {
+		"typescript": "^5.0.0"
+	}
+}
