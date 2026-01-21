@@ -1,33 +1,34 @@
 {
-    "name": "@mafia/core",
-    "module": "index.ts",
-    "type": "module",
-    "scripts": {
-        "db": "sst shell drizzle-kit"
-    },
-    "exports": {
-        "./*": "./src/*.ts",
-        "./db*": "./src/db/index.ts"
-    },
-    "devDependencies": {
-        "@types/bun": "latest",
-        "@types/ws": "^8.18.1",
-        "drizzle-kit": "^0.31.4"
-    },
-    "peerDependencies": {
-        "typescript": "^5.0.0"
-    },
-    "dependencies": {
-        "@aws-sdk/client-iot-data-plane": "^3.953.0",
-        "@hono/zod-validator": "^0.7.5",
-        "@neondatabase/serverless": "^1.0.1",
-        "deep-object-diff": "^1.1.9",
-        "drizzle-orm": "^0.44.2",
-        "hono": "^4.11.1",
-        "sst": "3.17.23",
-        "ulid": "^3.0.2",
-        "valibot": "^1.1.0",
-        "ws": "^8.18.3",
-        "zod": "^4.2.1"
-    }
+	"name": "@mafia/core",
+	"module": "index.ts",
+	"type": "module",
+	"scripts": {
+		"db": "sst shell drizzle-kit",
+		"format": "prettier --write . --config ../../.prettierrc.json"
+	},
+	"exports": {
+		"./*": "./src/*.ts",
+		"./db*": "./src/db/index.ts"
+	},
+	"devDependencies": {
+		"@types/bun": "latest",
+		"@types/ws": "^8.18.1",
+		"drizzle-kit": "^0.31.4"
+	},
+	"peerDependencies": {
+		"typescript": "^5.0.0"
+	},
+	"dependencies": {
+		"@aws-sdk/client-iot-data-plane": "^3.953.0",
+		"@hono/zod-validator": "^0.7.5",
+		"@neondatabase/serverless": "^1.0.1",
+		"deep-object-diff": "^1.1.9",
+		"drizzle-orm": "^0.44.2",
+		"hono": "^4.11.1",
+		"sst": "3.17.23",
+		"ulid": "^3.0.2",
+		"valibot": "^1.1.0",
+		"ws": "^8.18.3",
+		"zod": "^4.2.1"
+	}
 }

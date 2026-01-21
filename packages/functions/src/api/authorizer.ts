@@ -8,38 +8,40 @@ import { Resource } from 'sst/resource';
 import { subjects } from '../subjects';
 
 export const client = createClient({
-    clientID: 'web-app',
-    issuer: Resource.Auth.url
-})
+	clientID: 'web-app',
+	issuer: Resource.Auth.url,
+});
 
 export const authorize: MiddlewareHandler = async (c, next) => {
-    try {
-        const authHeader = c.req.header('Authorization')
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            throw new HTTPException(401, { message: 'Missing or invalid Authorization header' })
-        }
+	try {
+		const authHeader = c.req.header('Authorization');
+		if (!authHeader || !authHeader.startsWith('Bearer ')) {
+			throw new HTTPException(401, { message: 'Missing or invalid Authorization header' });
+		}
 
-        const token = authHeader.split(' ')[1]
+		const token = authHeader.split(' ')[1];
 
-        const claims = await client.verify(subjects, token)
+		const claims = await client.verify(subjects, token);
 
-        if (!claims.err) {
-
-            return withActor({
-                type: 'user',
-                properties: {
-                    userId: claims.subject.properties.userId,
-                    isAdmin: claims.subject.properties.isAdmin || false,
-                }
-            }, () => next())
-        } else {
-            console.log('Token verification failed:', claims.err)
-            throw claims.err
-        }
-
-    } catch (err) {
-        console.error('Authorization error:', err)
-        if (err instanceof (InvalidAccessTokenError)) throw new AuthError('invalid_access_token', 'Unauthorized')
-        else throw new HTTPException(401, { message: 'Authorization Error' })
-    }
-}
+		if (!claims.err) {
+			return withActor(
+				{
+					type: 'user',
+					properties: {
+						userId: claims.subject.properties.userId,
+						isAdmin: claims.subject.properties.isAdmin || false,
+					},
+				},
+				() => next(),
+			);
+		} else {
+			console.log('Token verification failed:', claims.err);
+			throw claims.err;
+		}
+	} catch (err) {
+		console.error('Authorization error:', err);
+		if (err instanceof InvalidAccessTokenError)
+			throw new AuthError('invalid_access_token', 'Unauthorized');
+		else throw new HTTPException(401, { message: 'Authorization Error' });
+	}
+};

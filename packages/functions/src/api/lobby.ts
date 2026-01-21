@@ -9,79 +9,67 @@ type Bindings = {};
 
 const lobbyRoutes = new Hono<{ Bindings: Bindings }>();
 
-
 // Create
 export const CreateLobbyJsonSchema = z.object({ name: z.string().min(3).max(50) });
 export type CreateLobbyJson = z.infer<typeof CreateLobbyJsonSchema>;
 
-lobbyRoutes.post('/',
-    zValidator('json', CreateLobbyJsonSchema),
-    async (c) => {
-        const { name } = c.req.valid('json');
+lobbyRoutes.post('/', zValidator('json', CreateLobbyJsonSchema), async (c) => {
+	const { name } = c.req.valid('json');
 
-        const actor = assertActor('user');
-        const lobby = await Lobby.create({
-            hostId: actor.properties.userId,
-            name,
-            config: {},
-        })
+	const actor = assertActor('user');
+	const lobby = await Lobby.create({
+		hostId: actor.properties.userId,
+		name,
+		config: {},
+	});
 
-        return c.json(lobby);
-    });
-
+	return c.json(lobby);
+});
 
 // List
 lobbyRoutes.get('/', async (c) => {
-    const lobbies = await Lobby.list();
-    return c.json(lobbies)
+	const lobbies = await Lobby.list();
+	return c.json(lobbies);
 });
 
 // Get
 export const GetLobbyParamsSchema = z.object({ lobbyId: isULID() });
-lobbyRoutes.get('/:lobbyId',
-    zValidator('param', GetLobbyParamsSchema),
-    async (c) => {
-        const { lobbyId } = c.req.valid('param');
+lobbyRoutes.get('/:lobbyId', zValidator('param', GetLobbyParamsSchema), async (c) => {
+	const { lobbyId } = c.req.valid('param');
 
-        const lobby = await Lobby.get({ lobbyId });
+	const lobby = await Lobby.get({ lobbyId });
 
-        return c.json(lobby);
-    });
+	return c.json(lobby);
+});
 
 // TODO: Join
 export const JoinLobbyParamsSchema = z.object({
-    lobbyId: isULID(),
+	lobbyId: isULID(),
 });
 
 export type JoinLobbyParams = z.infer<typeof JoinLobbyParamsSchema>;
 
-lobbyRoutes.post('/:lobbyId/join',
-    zValidator('param', JoinLobbyParamsSchema),
-    async (c) => {
-        const { lobbyId } = c.req.valid('param');
+lobbyRoutes.post('/:lobbyId/join', zValidator('param', JoinLobbyParamsSchema), async (c) => {
+	const { lobbyId } = c.req.valid('param');
 
-        const actor = assertActor('user');
+	const actor = assertActor('user');
 
-        await Lobby.Member.add({ lobbyId, userId: actor.properties.userId });
+	await Lobby.Member.add({ lobbyId, userId: actor.properties.userId });
 
-        return c.json({ success: true });
-    }
-)
+	return c.json({ success: true });
+});
 
 // TODO: Leave
-lobbyRoutes.post('/leave',
-    async (c) => {
-        const actor = assertActor('user');
-        const presence = await User.getPresence({ userId: actor.properties.userId });
+lobbyRoutes.post('/leave', async (c) => {
+	const actor = assertActor('user');
+	const presence = await User.getPresence({ userId: actor.properties.userId });
 
-        if (!presence.lobby) {
-            return c.json({ success: true });
-        }
+	if (!presence.lobby) {
+		return c.json({ success: true });
+	}
 
-        await Lobby.Member.remove({ lobbyId: presence.lobby?.id, userId: actor.properties.userId });
-        return c.json({ success: true });
-    }
-)
+	await Lobby.Member.remove({ lobbyId: presence.lobby?.id, userId: actor.properties.userId });
+	return c.json({ success: true });
+});
 // TODO: Start
 export { lobbyRoutes };
-

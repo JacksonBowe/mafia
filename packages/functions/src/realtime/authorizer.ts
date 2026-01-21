@@ -1,23 +1,23 @@
-import { topicPrefix } from "@mafia/core/realtime";
-import { realtime } from "sst/aws/realtime";
+import { topicPrefix } from '@mafia/core/realtime';
+import { realtime } from 'sst/aws/realtime';
 
 export const handler = realtime.authorizer(async (token) => {
-    const prefix = topicPrefix();
+	const prefix = topicPrefix();
 
-    // console.log("Authorizing token:", token);
+	// console.log("Authorizing token:", token);
 
-    // TODO: Replace this with real token validation logic
-    const isValid = token === "PLACEHOLDER_TOKEN";
+	// TODO: Replace this with real token validation logic
+	const isValid = token === 'PLACEHOLDER_TOKEN';
 
-    console.log('Validating token:', { token, isValid });
+	console.log('Validating token:', { token, isValid });
 
-    return isValid
-        ? {
-            publish: [`${prefix}/*`],
-            subscribe: [`${prefix}/*`],
-        }
-        : {
-            publish: [],
-            subscribe: [],
-        };
+	return isValid
+		? {
+				publish: [`${prefix}/*`],
+				subscribe: [`${prefix}/*`],
+			}
+		: {
+				publish: [],
+				subscribe: [],
+			};
 });
