@@ -126,7 +126,7 @@ export const useRealtime = defineStore('realtime', {
 				manualConnect: true,
 				clientId: this.clientId,
 				username: '',
-				password: 'PLACEHOLDER_TOKEN', // token, // if you truly want placeholder: "PLACEHOLDER_TOKEN"
+				password: token,
 				reconnectPeriod: 0, // we handle reconnect ourselves
 				keepalive: 60, // seconds (mqtt.js uses seconds)
 				connectTimeout: 10_000, // ms
@@ -285,7 +285,19 @@ export const useRealtime = defineStore('realtime', {
 			});
 
 			queued.forEach((t) => this.subscribe(t));
-			for (const full of this.subscriptions) this.subscribe(full);
+			for (const full of this.subscriptions) this._subscribeNow(full);
+		},
+
+		_subscribeNow(full: string) {
+			if (!this.connection || this.status !== 'connected') return;
+			this.connection.subscribe(full, { qos: 1 }, (err) => {
+				if (err) {
+					log.warn('Subscribe error', { full, ...errToCtx(err) });
+					return;
+				}
+				this.subscriptions.add(full);
+				log.info('Subscribed', { full });
+			});
 		},
 
 		async _reconnect() {

@@ -13,52 +13,52 @@
 // Tip: Use the "Theme Builder" on Quasar's documentation website.
 
 // Core brand (calm, readable on dark)
-$primary: #7D3CFF; // cult-ish purple (a bit cleaner than 'purple')
-$secondary: #F5DEB3; // neutral (wheat)
-$accent: #00BFFF; // role (deep sky blue)
+$primary: #7d3cff; // cult-ish purple (a bit cleaner than 'purple')
+$secondary: #f5deb3; // neutral (wheat)
+$accent: #00bfff; // role (deep sky blue)
 
-$dark: #0B1020;
-$dark-page: #070B14;
+$dark: #0b1020;
+$dark-page: #070b14;
 
 // Status
-$positive: #2ECC71; // town-ish green (less neon than #00ff00)
-$negative: #FF4D4D; // mafia-ish red (less neon than pure #ff0000)
-$warning: #F2C94C; // firelight gold
-$info: #56CCF2;
+$positive: #2ecc71; // town-ish green (less neon than #00ff00)
+$negative: #ff4d4d; // mafia-ish red (less neon than pure #ff0000)
+$warning: #f2c94c; // firelight gold
+$info: #56ccf2;
 
 :root {
-    /* Factions (display tokens) */
-    --town: #00ff00;
-    --mafia: #ff0000;
-    --neutral: #f5deb3;
-    --cult: #8000ff;
-    /* slightly cleaner purple */
-    --role: #00bfff;
+	/* Factions (display tokens) */
+	--town: #00ff00;
+	--mafia: #ff0000;
+	--neutral: #f5deb3;
+	--cult: #8000ff;
+	/* slightly cleaner purple */
+	--role: #00bfff;
 
-    /* Players (assigned colors) */
-    --player-1: red;
-    --player-2: royalblue;
-    --player-3: deepskyblue;
-    --player-4: indigo;
-    --player-5: yellow;
-    --player-6: orange;
-    --player-7: darkgreen;
-    --player-8: plum;
-    --player-9: fuchsia;
-    --player-10: lime;
-    --player-11: wheat;
-    --player-12: sienna;
-    --player-13: palegreen;
-    --player-14: darkslategrey;
-    --player-15: deeppink;
+	/* Players (assigned colors) */
+	--player-1: red;
+	--player-2: royalblue;
+	--player-3: deepskyblue;
+	--player-4: indigo;
+	--player-5: yellow;
+	--player-6: orange;
+	--player-7: darkgreen;
+	--player-8: plum;
+	--player-9: fuchsia;
+	--player-10: lime;
+	--player-11: wheat;
+	--player-12: sienna;
+	--player-13: palegreen;
+	--player-14: darkslategrey;
+	--player-15: deeppink;
 
-    /* Shape tokens */
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 16px;
+	/* Shape tokens */
+	--radius-sm: 8px;
+	--radius-md: 12px;
+	--radius-lg: 16px;
 
-    --animate-duration: 1000ms;
-    --animate-delay: 0s;
+	--animate-duration: 1000ms;
+	--animate-delay: 0s;
 }
 
 $generic-border-radius: 8px;

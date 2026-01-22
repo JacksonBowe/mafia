@@ -21,7 +21,6 @@ export const getPresence = fn(
 	}),
 	async ({ userId }) =>
 		useTransaction(async (tx) => {
-			console.log('Here');
 			const [row] = await tx
 				.select({
 					lobby: {

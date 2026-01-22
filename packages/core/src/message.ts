@@ -67,6 +67,7 @@ export const MessageSchema = z
 		lobbyId: z.string().min(1).optional(),
 		gameId: z.string().min(1).optional(),
 		teamId: z.string().min(1).optional(),
+		targetUserId: z.string().min(1).optional(),
 
 		/**
 		 * Optional lifecycle helpers (useful for INFO feedback)
@@ -84,10 +85,15 @@ export const MessageSchema = z
 					path: ['channel'],
 				});
 			}
-			if (m.lobbyId !== undefined || m.gameId !== undefined || m.teamId !== undefined) {
+			if (
+				m.lobbyId !== undefined ||
+				m.gameId !== undefined ||
+				m.teamId !== undefined ||
+				m.targetUserId !== undefined
+			) {
 				ctx.addIssue({
 					code: z.ZodIssueCode.custom,
-					message: 'app messages should not include lobbyId/gameId/teamId',
+					message: 'app messages should not include lobbyId/gameId/teamId/targetUserId',
 					path: ['scope'],
 				});
 			}
@@ -121,6 +127,14 @@ export const MessageSchema = z
 				});
 			}
 
+			if (m.channel === 'PRIVATE' && m.targetUserId === undefined) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: 'menu:PRIVATE messages should include targetUserId',
+					path: ['targetUserId'],
+				});
+			}
+
 			return;
 		}
 
@@ -147,6 +161,14 @@ export const MessageSchema = z
 				code: z.ZodIssueCode.custom,
 				message: 'game:TEAM messages should include teamId',
 				path: ['teamId'],
+			});
+		}
+
+		if (m.channel === 'PRIVATE' && m.targetUserId === undefined) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: 'game:PRIVATE messages should include targetUserId',
+				path: ['targetUserId'],
 			});
 		}
 	});
