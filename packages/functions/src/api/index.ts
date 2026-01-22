@@ -8,6 +8,7 @@ import { HTTPException } from 'hono/http-exception';
 import { Resource } from 'sst';
 import { adminRoutes } from './admin';
 import { authorize } from './authorizer';
+import { chatRoutes } from './chat';
 import { lobbyRoutes } from './lobby';
 import { metaRoutes } from './meta';
 
@@ -24,6 +25,7 @@ app.get('/', (c) => c.text('Welcome to the API!'));
 const protectedRoutes = app.basePath('/').use('*', authorize);
 
 protectedRoutes.route('/', metaRoutes);
+protectedRoutes.route('/chat', chatRoutes);
 protectedRoutes.route('/lobby', lobbyRoutes);
 protectedRoutes.route('/admin', adminRoutes);
 

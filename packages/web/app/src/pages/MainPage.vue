@@ -44,6 +44,8 @@ import MenuMessagesCard from 'src/components/MenuMessages/MenuMessagesCard.vue';
 import { usePresence } from 'src/lib/meta/hooks';
 
 const { data: presence } = usePresence();
+
+// useChatEvents();
 </script>
 
 <style scoped lang="scss">

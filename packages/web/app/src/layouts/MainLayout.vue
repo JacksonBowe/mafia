@@ -11,19 +11,24 @@
 </template>
 
 <script setup lang="ts">
-// import { useChatEvents } from 'src/lib/chat'
 // import { useLobbyEvents } from 'src/lib/lobby'
 // import { useMe } from 'src/lib/user'
 
 import AdminFab from 'src/components/admin/AdminFab.vue';
 import MenuHeader from 'src/components/MenuHeader/MenuHeader.vue';
 import BackgroundSplash from 'src/components/ui/Background/BackgroundSplash.vue';
+import { useChatEvents } from 'src/lib/chat/events';
 import { useLobbyEvents } from 'src/lib/lobby/events';
+import { useRealtime } from 'src/stores/realtime';
 
 // const { data: me, isLoading } = useMe()
 
-// useChatEvents()
+const rt = useRealtime();
+
+useChatEvents();
 useLobbyEvents();
+
+rt.subscribe('chat/menu/global');
 </script>
 
 <style scoped>
