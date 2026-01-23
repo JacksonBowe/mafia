@@ -1,7 +1,7 @@
 <template>
 	<q-btn size="sm" round :label="buttonLabel" glossy :class="buttonClass">
-		<q-menu class="menu-channel-menu">
-			<q-list dense>
+		<MMenu>
+			<q-list dense class="menu-channel-list">
 				<q-item
 					clickable
 					v-close-popup
@@ -22,11 +22,12 @@
 					<q-item-section>Lobby</q-item-section>
 				</q-item>
 			</q-list>
-		</q-menu>
+		</MMenu>
 	</q-btn>
 </template>
 
 <script setup lang="ts">
+import { MMenu } from 'src/components/ui/Menu';
 import type { MenuChannel } from 'src/lib/message';
 import { usePresence } from 'src/lib/meta/hooks';
 import { computed, watch } from 'vue';
@@ -38,7 +39,9 @@ const { data: presence } = usePresence();
 
 const canUseLobby = computed(() => !!presence.value?.lobby?.id);
 const buttonLabel = computed(() => (props.modelValue === 'LOBBY' ? 'L' : 'G'));
-const buttonClass = computed(() => (props.modelValue === 'LOBBY' ? 'bg-lobby' : 'bg-primary'));
+const buttonClass = computed(() =>
+	props.modelValue === 'LOBBY' ? 'bg-lobby' : 'bg-primary text-white',
+);
 
 const setChannel = (channel: MenuChannel) => {
 	if (channel === 'LOBBY' && !canUseLobby.value) return;
@@ -57,23 +60,9 @@ watch(
 </script>
 
 <style scoped>
-:deep(.menu-channel-menu) {
-	background: #1f1b16;
-	border: 1px solid rgba(255, 255, 255, 0.08);
-	box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
-	border-radius: 10px;
-}
-
-:deep(.menu-channel-menu .q-list) {
-	padding: 6px;
-}
-
-:deep(.menu-channel-menu .q-item) {
-	border-radius: 8px;
-	min-height: 36px;
-}
-
-:deep(.menu-channel-menu .q-item__section) {
-	font-size: 0.95rem;
+.menu-channel-list {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
 }
 </style>

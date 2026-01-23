@@ -20,6 +20,10 @@ $accent: #00bfff; // role (deep sky blue)
 $dark: #0b1020;
 $dark-page: #070b14;
 
+// Softer, deeper shadows for dark-only UI
+$dark-shadow-color: rgba(0, 0, 0, 0.6);
+$layout-shadow-dark: 0 18px 42px rgba(0, 0, 0, 0.55);
+
 // Status
 $positive: #2ecc71; // town-ish green (less neon than #00ff00)
 $negative: #ff4d4d; // mafia-ish red (less neon than pure #ff0000)
