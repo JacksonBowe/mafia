@@ -29,6 +29,13 @@
       "when": 1765952263261,
       "tag": "0003_ancient_klaw",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1769204221776,
+      "tag": "0004_superb_energizer",
+      "breakpoints": true
     }
   ]
 }

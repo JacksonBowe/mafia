@@ -6,7 +6,7 @@ import { useLobbyStore } from 'src/stores/lobby';
 import { useMessageStore } from 'src/stores/message';
 import { useRealtime } from 'src/stores/realtime';
 import { computed, type MaybeRef, unref } from 'vue';
-import { fetchLobby, hostLobby, joinLobby, leaveLobby, listLobbies } from './api';
+import { fetchLobby, hostLobby, joinLobby, leaveLobby, listLobbies, startLobby } from './api';
 
 export const useHostLobby = () => {
 	const queryClient = useQueryClient();
@@ -165,6 +165,20 @@ export const useLeaveLobby = () => {
 		onSettled: async () => {
 			lStore.clearLeaveLobbyPending();
 			await queryClient.invalidateQueries({ queryKey: ['actor'] });
+		},
+	});
+};
+
+export const useStartLobby = () => {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: startLobby,
+		onSuccess: async () => {
+			await queryClient.invalidateQueries({ queryKey: ['lobbies'] });
+			await queryClient.invalidateQueries({ queryKey: ['presence'] });
+		},
+		onError: (e) => {
+			console.error('Start Lobby Error', e);
 		},
 	});
 };

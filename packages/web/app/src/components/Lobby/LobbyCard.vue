@@ -2,15 +2,29 @@
 	<MCard class="fit" variant="glass" size="lg" tone="warning" tone-placement="top" glow>
 		<MCardHeader eyebrow="In Lobby" :title="lobby?.name ?? 'Lobby'" :subtitle="lobbyMeta">
 			<template #topRight>
-				<q-btn
-					color="negative"
-					label="Leave"
-					no-caps
-					glossy
-					size="md"
-					@click="doLeave"
-					:loading="isLeavePending"
-				/>
+				<div class="row items-center no-wrap">
+					<q-btn
+						v-if="showStartButton"
+						class="q-mr-sm"
+						color="positive"
+						label="Start"
+						no-caps
+						glossy
+						size="md"
+						@click="doStart"
+						:loading="isStartPending"
+						:disabled="!canStart"
+					/>
+					<q-btn
+						color="negative"
+						label="Leave"
+						no-caps
+						glossy
+						size="md"
+						@click="doLeave"
+						:loading="isLeavePending"
+					/>
+				</div>
 			</template>
 		</MCardHeader>
 
@@ -53,17 +67,19 @@
 
 <script setup lang="ts">
 import { MCard, MCardContent, MCardHeader } from 'src/components/ui/Card';
-import { useLeaveLobby, useLobby } from 'src/lib/lobby/hooks';
-import { usePresence } from 'src/lib/meta/hooks';
+import { useLeaveLobby, useLobby, useStartLobby } from 'src/lib/lobby/hooks';
+import { useActor, usePresence } from 'src/lib/meta/hooks';
 import { computed, ref } from 'vue';
 import LobbyConfig from './LobbyConfig.vue';
 import LobbyPlayerList from './LobbyPlayerList.vue';
 
 const tab = ref<'players' | 'config'>('players');
 
+const MIN_PLAYERS = 1;
 const MAX_PLAYERS = 15;
 
 const { data: presence } = usePresence();
+const { data: actor } = useActor();
 const lobbyId = computed(() => presence.value?.lobby?.id ?? null);
 
 const { data: lobby, isLoading: isLobbyLoading } = useLobby(lobbyId, { retry: 0 });
@@ -78,11 +94,23 @@ const lobbyMeta = computed(() => {
 	return `${memberCount.value}/${MAX_PLAYERS} players · ${occupancyPct.value}%`;
 });
 
+const isHost = computed(() => !!lobby.value && actor.value?.id === lobby.value.host?.id);
+const canStart = computed(
+	() => isHost.value && memberCount.value >= MIN_PLAYERS && !!lobbyId.value,
+);
+const showStartButton = computed(() => isHost.value);
+
 const { mutateAsync: leaveLobby, isPending: isLeavePending } = useLeaveLobby();
+const { mutateAsync: startLobby, isPending: isStartPending } = useStartLobby();
 
 const doLeave = async () => {
 	if (isLeavePending.value) return;
 	await leaveLobby();
+};
+
+const doStart = async () => {
+	if (isStartPending.value || !canStart.value || !lobbyId.value) return;
+	await startLobby(lobbyId.value);
 };
 </script>
 
