@@ -33,6 +33,14 @@ export const RealtimeEvents = {
 		}),
 		(p) => `lobby/${p.lobbyId}`,
 	),
+	LobbyStarted: defineRealtimeEvent(
+		'lobby.started',
+		z.object({
+			lobbyId: isULID(),
+			gameId: isULID(),
+		}),
+		(p) => `lobby/${p.lobbyId}`,
+	),
 };
 
 export const LobbyInfoSchema = EntityBaseSchema.extend({
@@ -180,6 +188,70 @@ export const get = fn(
 				...lobby,
 				members,
 			});
+		}),
+);
+
+export const MIN_PLAYERS = 3;
+export const MAX_PLAYERS = 15;
+
+export const prepareForStart = fn(
+	z.object({
+		lobbyId: isULID(),
+		hostId: isULID(),
+	}),
+	async ({ lobbyId, hostId }) =>
+		useTransaction(async (tx) => {
+			// Get lobby with host check
+			const [lobby] = await tx
+				.select({
+					id: lobbyTable.id,
+					name: lobbyTable.name,
+					hostId: lobbyTable.hostId,
+					config: lobbyTable.config,
+				})
+				.from(lobbyTable)
+				.where(eq(lobbyTable.id, lobbyId));
+
+			if (!lobby) {
+				throw new InputError(Errors.LobbyNotFound, 'Lobby not found');
+			}
+
+			if (lobby.hostId !== hostId) {
+				throw new InputError('lobby.host_required', 'Only the host can start the game');
+			}
+
+			// Get members with user info
+			const members = await tx
+				.select({
+					userId: userTable.id,
+					name: userTable.name,
+				})
+				.from(lobbyMemberTable)
+				.innerJoin(userTable, eq(userTable.id, lobbyMemberTable.userId))
+				.where(eq(lobbyMemberTable.lobbyId, lobbyId));
+
+			if (members.length < MIN_PLAYERS) {
+				throw new InputError(
+					'lobby.insufficient_players',
+					`Need at least ${MIN_PLAYERS} players to start`,
+					{ current: members.length, required: MIN_PLAYERS },
+				);
+			}
+
+			if (members.length > MAX_PLAYERS) {
+				throw new InputError(
+					'lobby.too_many_players',
+					`Cannot exceed ${MAX_PLAYERS} players`,
+					{ current: members.length, max: MAX_PLAYERS },
+				);
+			}
+
+			return {
+				lobbyId: lobby.id,
+				lobbyName: lobby.name,
+				config: lobby.config,
+				members,
+			};
 		}),
 );
 

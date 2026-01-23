@@ -5,6 +5,7 @@ export const pkgs = [
 	'packages/core',
 	'packages/functions',
 	'packages/web',
+	'packages/engine',
 ];
 
 export async function hasScript(pkgDir: string, scriptName: string): Promise<boolean> {

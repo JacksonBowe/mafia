@@ -9,6 +9,7 @@ import { Resource } from 'sst';
 import { adminRoutes } from './admin';
 import { authorize } from './authorizer';
 import { chatRoutes } from './chat';
+import { gameRoutes } from './game';
 import { lobbyRoutes } from './lobby';
 import { metaRoutes } from './meta';
 
@@ -27,6 +28,7 @@ const protectedRoutes = app.basePath('/').use('*', authorize);
 protectedRoutes.route('/', metaRoutes);
 protectedRoutes.route('/chat', chatRoutes);
 protectedRoutes.route('/lobby', lobbyRoutes);
+protectedRoutes.route('/game', gameRoutes);
 protectedRoutes.route('/admin', adminRoutes);
 
 const isProd = Resource.App.stage === 'prod';

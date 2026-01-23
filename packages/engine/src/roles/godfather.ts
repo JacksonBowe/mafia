@@ -38,7 +38,11 @@ export class Godfather extends Mafia {
 			const successEventGroup = new GameEventGroup('godfather_action_success');
 			successEventGroup.duration = Duration.MAFIA_KILL;
 			successEventGroup.newEvent(
-				new GameEvent('godfather_kill_success', ['*'], 'There are sounds of shots in the streets'),
+				new GameEvent(
+					'godfather_kill_success',
+					['*'],
+					'There are sounds of shots in the streets',
+				),
 			);
 			successEventGroup.newEvent(
 				new GameEvent(

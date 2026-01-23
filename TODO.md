@@ -11,11 +11,13 @@ Legend:
 - [x] Core lobby data model and DB tables exist (lobby + lobby members in core).
 - [x] Lobby API endpoints for create/list/get/join/leave are implemented.
 - [x] Lobby UI exists (lobby card, finder, presence binding, realtime subscribe).
-- [ ] Implement lobby start game endpoint (host-only, minimum players, idempotent).
-- [ ] Add game creation record tied to lobby (new game table/schema in core).
-- [ ] Persist lobby -> game transition and expose via API (lobby status field).
-- [ ] Add realtime events for lobby state changes (started, closed, player ready).
-- [ ] Map lobby config to game config (roles, timer lengths, rules).
+- [x] Implement lobby start game endpoint (host-only, minimum players).
+- [x] Add game table/schema in core (`game` + `game_player` tables).
+- [x] Game creation from engine output with player records.
+- [x] Lobby deleted on game start (no lobby -> game linkage).
+- [x] Add `lobby.started` realtime event (lobbyId, gameId payload).
+- [x] Add `GET /game/:gameId` and `GET /game/me/active` API endpoints.
+- [~] Map lobby config to game config (currently uses default config builder).
 
 ## Game layout + page UI
 
@@ -50,14 +52,15 @@ Legend:
 ## Engine integration
 
 - [x] Engine module exists in `packages/engine` with `newGame/loadGame/resolveGame` API.
-- [ ] Define adapter between engine inputs/outputs and persisted game state.
-- [ ] Invoke engine on phase boundaries and persist resulting state atomically.
+- [x] Engine invoked on lobby start to generate initial game state.
+- [x] Engine output (state, actors, config) persisted to game table.
+- [ ] Invoke engine on phase boundaries (resolveGame) and persist resulting state.
 - [ ] Map engine events to realtime payloads and UI-friendly summaries.
 - [ ] Add integration tests or scripted examples for engine + backend flow.
 
 ## Cross-cutting improvements
 
-- [ ] Add error codes for game lifecycle (e.g., `game.not_found`, `game.invalid_phase`).
+- [x] Add error codes for game lifecycle (`game.not_found`, `game.invalid_state`).
 - [ ] Document API contracts for lobby/game endpoints (request/response examples).
 - [ ] Keep shared schemas exported from core and reused in functions + web.
 - [ ] Update roadmap docs when engine or realtime plans change.

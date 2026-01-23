@@ -18,7 +18,10 @@ export class Mafioso extends Mafia {
 		this.possibleTargets = [];
 		for (let i = 0; i < numTargets; i += 1) {
 			this.possibleTargets[i] = actors.filter(
-				(actor) => actor.alive && actor.alignment !== this.alignment && actor.number !== this.number,
+				(actor) =>
+					actor.alive &&
+					actor.alignment !== this.alignment &&
+					actor.number !== this.number,
 			);
 		}
 		return this.possibleTargets;
@@ -36,7 +39,11 @@ export class Mafioso extends Mafia {
 			const successEventGroup = new GameEventGroup('mafioso_action_success');
 			successEventGroup.duration = Duration.MAFIA_KILL;
 			successEventGroup.newEvent(
-				new GameEvent('mafia_kill_success', ['*'], 'There are sounds of shots in the streets'),
+				new GameEvent(
+					'mafia_kill_success',
+					['*'],
+					'There are sounds of shots in the streets',
+				),
 			);
 			successEventGroup.newEvent(
 				new GameEvent(

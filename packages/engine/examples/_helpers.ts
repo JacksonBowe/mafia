@@ -1,4 +1,9 @@
-import type { ActorState, GameConfigInput, PlayerInput } from '../src/index';
+import {
+	DEFAULT_CONFIG,
+	type ActorState,
+	type GameConfigInput,
+	type PlayerInput,
+} from '../src/index';
 
 export const DEFAULT_SEED = 42;
 
@@ -14,14 +19,13 @@ export const dummyPlayers = (count: number): PlayerInput[] =>
 		roleActions: {},
 	}));
 
-export const dummyConfig = (): GameConfigInput => ({
-	tags: ['town_random', 'town_protective', 'mafia_killing'],
-	settings: {},
-	roles: {
-		Citizen: { max: 3, weight: 1, settings: { maxVests: 2 } },
-		Bodyguard: { max: 1, weight: 1, settings: {} },
-		Mafioso: { max: 1, weight: 1, settings: { promotes: false } },
-	},
+/**
+ * Returns DEFAULT_CONFIG sliced to the given player count.
+ * For backwards compatibility with existing tests.
+ */
+export const dummyConfig = (playerCount = 3): GameConfigInput => ({
+	...DEFAULT_CONFIG,
+	tags: DEFAULT_CONFIG.tags.slice(0, playerCount),
 });
 
 export const toPlayerInput = (player: ActorState): PlayerInput => ({

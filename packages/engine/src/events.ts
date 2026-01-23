@@ -72,7 +72,9 @@ export class GameEventGroup {
 		const group = new GameEventGroup(this.groupId ?? null);
 		group.duration = this.duration;
 		group.events = this.events.map((event) =>
-			event instanceof GameEventGroup ? event.clone() : new GameEvent(event.eventId, [...event.targets], event.message),
+			event instanceof GameEventGroup
+				? event.clone()
+				: new GameEvent(event.eventId, [...event.targets], event.message),
 		);
 		return group;
 	}

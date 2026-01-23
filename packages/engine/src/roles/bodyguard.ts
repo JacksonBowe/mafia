@@ -37,11 +37,7 @@ export class Bodyguard extends Town {
 		const shootoutEventGroup = new GameEventGroup('shootout');
 		shootoutEventGroup.duration = Duration.SHOOTOUT;
 		shootoutEventGroup.newEvent(
-			new GameEvent(
-				'bodyguard_shootout',
-				['*'],
-				'You hear sounds of a shootout',
-			),
+			new GameEvent('bodyguard_shootout', ['*'], 'You hear sounds of a shootout'),
 		);
 		if (this.guarding) {
 			shootoutEventGroup.newEvent(

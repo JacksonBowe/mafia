@@ -5,6 +5,7 @@ import { Resource } from 'sst';
 import ws from 'ws';
 export { eq } from 'drizzle-orm';
 export { migrate } from 'drizzle-orm/neon-serverless/migrator';
+export { afterTx, createTransaction, useTransaction } from './transaction';
 
 neonConfig.webSocketConstructor = ws;
 

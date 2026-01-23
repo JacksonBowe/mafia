@@ -104,12 +104,7 @@ export class Actor {
 		target.visitors.push(this);
 	}
 
-	kill(
-		target: Actor,
-		success: () => void,
-		fail: () => void,
-		trueDeath = false,
-	) {
+	kill(target: Actor, success: () => void, fail: () => void, trueDeath = false) {
 		this.logger.info(`${this} is attempting to kill ${target}`);
 		this.visit(target);
 
@@ -120,9 +115,7 @@ export class Actor {
 		}
 
 		if (target.nightImmune) {
-			this.logger.info(
-				`${this} failed to kill ${target} because they are night-immune`,
-			);
+			this.logger.info(`${this} failed to kill ${target} because they are night-immune`);
 			fail();
 
 			const surviveEventGroup = new GameEventGroup(CommonEvents.NIGHT_IMMUNE);

@@ -1,8 +1,13 @@
 import { assertActor } from '@mafia/core/actor';
+import { afterTx, createTransaction } from '@mafia/core/db';
 import { isULID, zValidator } from '@mafia/core/error';
+import { Game } from '@mafia/core/game/index';
 import { Lobby } from '@mafia/core/lobby/index';
+import { realtime } from '@mafia/core/realtime';
 import { User } from '@mafia/core/user/index';
+import { DEFAULT_CONFIG, newGame, type PlayerInput } from '@mafia/engine';
 import { Hono } from 'hono';
+import { Resource } from 'sst';
 import { z } from 'zod';
 
 type Bindings = {};
@@ -71,5 +76,113 @@ lobbyRoutes.post('/leave', async (c) => {
 	await Lobby.Member.remove({ lobbyId: presence.lobby?.id, userId: actor.properties.userId });
 	return c.json({ success: true });
 });
-// TODO: Start
+
+// Start game
+export const StartLobbyParamsSchema = z.object({
+	lobbyId: isULID(),
+});
+
+// Generate a random alias for a player
+const generateAlias = (index: number): string => {
+	const adjectives = [
+		'Swift',
+		'Silent',
+		'Clever',
+		'Bold',
+		'Sly',
+		'Keen',
+		'Sharp',
+		'Quick',
+		'Brave',
+		'Wise',
+		'Dark',
+		'Bright',
+		'Cool',
+		'Calm',
+		'Wild',
+	];
+	const nouns = [
+		'Fox',
+		'Wolf',
+		'Hawk',
+		'Bear',
+		'Lion',
+		'Eagle',
+		'Raven',
+		'Tiger',
+		'Viper',
+		'Falcon',
+		'Shadow',
+		'Storm',
+		'Blade',
+		'Ghost',
+		'Flame',
+	];
+	// Use index to pick deterministically, but in a way that looks random
+	const adj = adjectives[index % adjectives.length];
+	const noun = nouns[(index * 7) % nouns.length];
+	return `${adj}${noun}`;
+};
+
+lobbyRoutes.post('/:lobbyId/start', zValidator('param', StartLobbyParamsSchema), async (c) => {
+	const { lobbyId } = c.req.valid('param');
+	const actor = assertActor('user');
+	const userId = actor.properties.userId;
+
+	// 1. Validate lobby state and get members
+	const lobbyData = await Lobby.prepareForStart({ lobbyId, hostId: userId });
+
+	// 2. Build engine input - use default config, sliced to player count
+	const playerCount = lobbyData.members.length;
+	const config = {
+		...DEFAULT_CONFIG,
+		tags: DEFAULT_CONFIG.tags.slice(0, playerCount),
+	};
+	const players: PlayerInput[] = lobbyData.members.map((member, index) => ({
+		id: member.userId,
+		name: member.name,
+		alias: generateAlias(index),
+		alive: true,
+		possibleTargets: [],
+		targets: [],
+		allies: [],
+		roleActions: {},
+	}));
+
+	// 3. Run engine to create initial game state
+	const engineResult = newGame({ players, config });
+
+	// 4. Persist game and delete lobby atomically
+	const { gameId } = await createTransaction(async () => {
+		// Create game with engine output
+		const { gameId } = await Game.create({
+			engineState: engineResult.state,
+			engineConfig: config,
+			actors: engineResult.actors,
+			players: engineResult.actors.map((actor) => ({
+				userId: actor.id,
+				number: String(actor.number ?? 0),
+				alias: actor.alias,
+				role: actor.role ?? null,
+			})),
+		});
+
+		// Publish realtime event after commit
+		afterTx(() => {
+			realtime.publish(Resource.Realtime, Lobby.RealtimeEvents.LobbyStarted, {
+				lobbyId,
+				gameId,
+			});
+		});
+
+		// Delete the lobby (cascades to members)
+		await Lobby.terminate({ lobbyId });
+
+		return { gameId };
+	});
+
+	// Return success without redirect - clients receive realtime event
+	return c.json({ success: true, gameId });
+});
+
 export { lobbyRoutes };

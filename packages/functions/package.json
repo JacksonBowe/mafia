@@ -9,6 +9,7 @@
 		"@aws-sdk/client-iot-data-plane": "^3.953.0",
 		"@hono/zod-validator": "^0.7.1",
 		"@mafia/core": "workspace:",
+		"@mafia/engine": "workspace:",
 		"@openauthjs/openauth": "^0.4.3",
 		"hono": "^4.8.4",
 		"zod": "^4.0.5"

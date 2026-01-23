@@ -244,7 +244,8 @@ class Game {
 		this.day += 1;
 		this.generateAlliesAndPossibleTargets();
 		this.actors.sort(
-			(a, b) => ROLE_LIST.indexOf(a.constructor as (typeof ROLE_LIST)[number]) -
+			(a, b) =>
+				ROLE_LIST.indexOf(a.constructor as (typeof ROLE_LIST)[number]) -
 				ROLE_LIST.indexOf(b.constructor as (typeof ROLE_LIST)[number]),
 		);
 
@@ -332,11 +333,7 @@ class Game {
 	}
 }
 
-const buildResult = (
-	game: Game,
-	winners: WinnerSummary[] | null,
-	logger: EngineLogger,
-) => ({
+const buildResult = (game: Game, winners: WinnerSummary[] | null, logger: EngineLogger) => ({
 	state: game.state,
 	actors: game.dumpActors(),
 	events: game.events.dump(),

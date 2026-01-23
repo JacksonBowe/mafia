@@ -1,3 +1,4 @@
+export { DEFAULT_CONFIG } from './config';
 export { newGame, loadGame, resolveGame } from './game';
 export { CommonEvents, Duration, GameEvent, GameEventGroup } from './events';
 export { EngineLogger } from './logger';
