@@ -54,10 +54,16 @@ describe('citizen', () => {
 			context,
 		);
 
-		const before = citizen.dumpState().roleActions?.remainingVests as number;
+		const beforeState = citizen.dumpState().roleActions as
+			| { remainingVests: number }
+			| undefined;
+		const before = beforeState?.remainingVests ?? 0;
 		citizen.setTargets([citizen]);
 		citizen.doAction();
-		const after = citizen.dumpState().roleActions?.remainingVests as number;
+		const afterState = citizen.dumpState().roleActions as
+			| { remainingVests: number }
+			| undefined;
+		const after = afterState?.remainingVests ?? 0;
 
 		expect(citizen.nightImmune).toBe(true);
 		expect(after).toBe(before - 1);

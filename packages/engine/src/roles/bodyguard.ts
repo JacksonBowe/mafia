@@ -26,14 +26,14 @@ export class Bodyguard extends Town {
 	override action() {
 		const target = this.targets[0];
 		if (!target) return;
-		this.logger.info(`${this} will protect ${target}`);
+		this.logger.info(`${this.toString()} will protect ${target.toString()}`);
 		this.visit(target);
 		target.bodyguards.push(this);
 		this.guarding = target;
 	}
 
 	shootout(attacker: Actor) {
-		this.logger.info(`${this} defends their target from ${attacker}`);
+		this.logger.info(`${this.toString()} defends their target from ${attacker.toString()}`);
 		const shootoutEventGroup = new GameEventGroup('shootout');
 		shootoutEventGroup.duration = Duration.SHOOTOUT;
 		shootoutEventGroup.newEvent(

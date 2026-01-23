@@ -14,7 +14,6 @@ import {
 	type GameConfigInput,
 	type GameStateInput,
 	type PlayerInput,
-	type RoleSettings,
 	type WinnerSummary,
 } from './types';
 import { createRng, toSnakeCase, type Rng } from './utils';
@@ -67,9 +66,7 @@ const generateRoles = (config: GameConfigInput, logger: EngineLogger, rng: Rng) 
 	const roleOptions: Array<[string, Array<[string, number, number]>]> = config.tags.map(
 		(tag: string) => {
 			const possibleRoles: Array<[string, number, number]> = [];
-			for (const [role, settings] of Object.entries(config.roles) as Array<
-				[string, RoleSettings]
-			>) {
+			for (const [role, settings] of Object.entries(config.roles)) {
 				const roleTags = ROLE_TAGS_MAP[role] ?? [];
 				if (roleTags.includes(tag) || tag === role) {
 					possibleRoles.push([role, settings.weight, settings.max]);
@@ -90,9 +87,7 @@ const generateRoles = (config: GameConfigInput, logger: EngineLogger, rng: Rng) 
 	const blacklist: string[] = [];
 
 	while (roleOptions.length > 0) {
-		for (const [role, settings] of Object.entries(config.roles) as Array<
-			[string, RoleSettings]
-		>) {
+		for (const [role, settings] of Object.entries(config.roles)) {
 			const count = selectedRoles.filter((selected) => selected === role).length;
 			if (count === settings.max && !blacklist.includes(role)) {
 				logger.info(`- Max reached for '${role}' -> adding to blacklist`);
@@ -110,17 +105,27 @@ const generateRoles = (config: GameConfigInput, logger: EngineLogger, rng: Rng) 
 			return a[1].length - b[1].length;
 		});
 
-		const [tag, options] = roleOptions[0];
-		const availableRoles = options.filter((role) => !blacklist.includes(role[0]));
+		const entry = roleOptions[0];
+		if (!entry) {
+			throw new Error('No role options available');
+		}
+		const [tag, options]: [string, Array<[string, number, number]>] = entry;
+		const availableRoles = options.filter(
+			(role: [string, number, number]) => !blacklist.includes(role[0]),
+		);
 		let choice = 'Citizen';
 
 		if (availableRoles.length === 0) {
 			logger.warn(`Picking ${tag}: ${choice} <--- FAILED!!!`);
 			failedRoles.push(tag);
 		} else {
-			const roles = availableRoles.map((option) => option[0]);
-			const weights = availableRoles.map((option) => option[1]);
-			choice = rng.choices(roles, weights, 1)[0];
+			const roles = availableRoles.map((option: [string, number, number]) => option[0]);
+			const weights = availableRoles.map((option: [string, number, number]) => option[1]);
+			const [picked] = rng.choices(roles, weights, 1);
+			if (!picked) {
+				throw new Error('Failed to pick a role');
+			}
+			choice = picked;
 			logger.info(`Picking ${tag}: ${choice}`);
 		}
 
@@ -178,7 +183,7 @@ class Game {
 
 		if (shuffledPlayers.length > shuffledRoles.length) {
 			shuffledRoles.push(
-				...Array(shuffledPlayers.length - shuffledRoles.length).fill('Citizen'),
+				...Array<string>(shuffledPlayers.length - shuffledRoles.length).fill('Citizen'),
 			);
 		}
 
@@ -245,14 +250,16 @@ class Game {
 		this.generateAlliesAndPossibleTargets();
 		this.actors.sort(
 			(a, b) =>
-				ROLE_LIST.indexOf(a.constructor as (typeof ROLE_LIST)[number]) -
-				ROLE_LIST.indexOf(b.constructor as (typeof ROLE_LIST)[number]),
+				ROLE_LIST.indexOf(a.constructor as unknown as (typeof ROLE_LIST)[number]) -
+				ROLE_LIST.indexOf(b.constructor as unknown as (typeof ROLE_LIST)[number]),
 		);
 
 		for (const actor of this.actors) {
 			if (actor.targets.length === 0) continue;
 			if (actor.targets.length > 0 && actor.possibleTargets.length === 0) {
-				this.context.logger.critical(`${actor} invalid targets (${actor.targets})`);
+				this.context.logger.critical(
+					`${actor.toString()} invalid targets (${actor.targets.map((t) => t.toString()).join(', ')})`,
+				);
 				this.context.logger.info('Clearing targets');
 				actor.clearTargets();
 				continue;
@@ -261,7 +268,9 @@ class Game {
 			for (const [index, target] of actor.targets.entries()) {
 				const possibleTargets = actor.possibleTargets[index] ?? [];
 				if (possibleTargets.includes(target)) continue;
-				this.context.logger.critical(`${actor} invalid targets (${target})`);
+				this.context.logger.critical(
+					`${actor.toString()} invalid targets (${target.toString()})`,
+				);
 				this.context.logger.info('Clearing targets');
 				actor.clearTargets();
 				break;
@@ -270,7 +279,9 @@ class Game {
 
 		for (const actor of this.actors) {
 			if (actor.targets.length === 0 || !actor.alive) continue;
-			this.context.logger.info(`${actor} is targetting ${actor.targets}`);
+			this.context.logger.info(
+				`${actor.toString()} is targetting ${actor.targets.map((t) => t.toString()).join(', ')}`,
+			);
 			this.actionEvents.reset(`${toSnakeCase(actor.roleName)}_action`);
 			actor.doAction();
 			if (this.actionEvents.events.length > 0) {

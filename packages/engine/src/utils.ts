@@ -21,23 +21,36 @@ export const createRng = (seed?: number): Rng => {
 	const rng = base as Rng;
 
 	rng.int = (min, max) => Math.floor(rng() * (max - min + 1)) + min;
-	rng.choice = (items) => {
+	rng.choice = <T>(items: T[]): T => {
 		if (items.length === 0) {
 			throw new Error('Cannot choose from empty list');
 		}
-		return items[Math.floor(rng() * items.length)];
+		const choice = items[Math.floor(rng() * items.length)];
+		if (choice === undefined) {
+			throw new Error('Cannot choose from empty list');
+		}
+		return choice;
 	};
 	rng.shuffle = (items) => {
 		const copy = [...items];
 		for (let i = copy.length - 1; i > 0; i -= 1) {
 			const j = Math.floor(rng() * (i + 1));
-			[copy[i], copy[j]] = [copy[j], copy[i]];
+			const current = copy[i];
+			const swap = copy[j];
+			if (current === undefined || swap === undefined) {
+				throw new Error('Cannot shuffle empty list');
+			}
+			copy[i] = swap;
+			copy[j] = current;
 		}
 		return copy;
 	};
 	rng.choices = (items, weights, k = 1) => {
 		if (items.length !== weights.length) {
 			throw new Error('weights length must match items length');
+		}
+		if (items.length === 0) {
+			throw new Error('Cannot choose from empty list');
 		}
 		const total = weights.reduce((sum, w) => sum + w, 0);
 		const cumulative = weights.reduce<number[]>((acc, w, idx) => {
@@ -48,7 +61,11 @@ export const createRng = (seed?: number): Rng => {
 		for (let i = 0; i < k; i += 1) {
 			const r = rng();
 			const index = cumulative.findIndex((c) => r <= c);
-			picks.push(items[index === -1 ? items.length - 1 : index]);
+			const selected = items[index === -1 ? items.length - 1 : index];
+			if (selected === undefined) {
+				throw new Error('Cannot choose from empty list');
+			}
+			picks.push(selected);
 		}
 		return picks;
 	};

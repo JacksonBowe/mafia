@@ -38,12 +38,15 @@ function toError(e: unknown): Error {
 	return new Error(typeof e === 'string' ? e : JSON.stringify(e));
 }
 
-function requestMeta(c: any) {
+import type { Context } from 'hono';
+
+function requestMeta(c: Context) {
 	return {
 		method: c.req.method,
 		path: c.req.path,
 		// if you have a request id middleware, prefer that:
-		requestId: c.get?.('requestId') ?? c.req.header?.('x-request-id') ?? undefined,
+		requestId:
+			(c.get('requestId') as string | undefined) ?? c.req.header('x-request-id') ?? undefined,
 	};
 }
 

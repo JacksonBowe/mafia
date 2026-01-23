@@ -4,7 +4,7 @@ import { Game } from '@mafia/core/game/index';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-type Bindings = {};
+type Bindings = Record<string, never>;
 
 const gameRoutes = new Hono<{ Bindings: Bindings }>();
 

@@ -62,7 +62,7 @@ export const create = fn(
 		const id = ulid();
 
 		try {
-			const lobby = await createTransaction(async (tx) => {
+			await createTransaction(async (tx) => {
 				const [newLobby] = await tx
 					.insert(lobbyTable)
 					.values({
@@ -291,8 +291,8 @@ export const terminate = fn(
 				);
 			}
 
-			afterTx(() => {
-				realtime.publish(Resource.Realtime, RealtimeEvents.LobbyTerminated, {
+			void afterTx(() => {
+				void realtime.publish(Resource.Realtime, RealtimeEvents.LobbyTerminated, {
 					lobbyId,
 				});
 			});

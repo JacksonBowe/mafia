@@ -82,8 +82,8 @@ export const add = fn(
 				userId,
 			});
 
-			afterTx(() => {
-				bus.publish(Resource.Bus, Events.MemberJoin, {
+			void afterTx(() => {
+				void bus.publish(Resource.Bus, Events.MemberJoin, {
 					lobbyId,
 					userId,
 				});
@@ -112,11 +112,11 @@ export const remove = fn(
 				throw new InputError(Errors.LobbyMemberNotFound, 'User is not in this lobby');
 			}
 
-			afterTx(() => {
-				bus.publish(Resource.Bus, Events.MemberLeave, deleted);
+			void afterTx(() => {
+				void bus.publish(Resource.Bus, Events.MemberLeave, deleted);
 			});
 
-			realtime.publish(Resource.Realtime, RealtimeEvents.MemberLeave, {
+			void realtime.publish(Resource.Realtime, RealtimeEvents.MemberLeave, {
 				lobbyId,
 				userId,
 			});
@@ -150,8 +150,8 @@ export const promote = fn(
 				.where(eq(lobbyTable.id, lobbyId))
 				.returning({ id: lobbyTable.id, hostId: lobbyTable.hostId });
 
-			afterTx(() => {
-				realtime.publish(Resource.Realtime, RealtimeEvents.MemberPromote, {
+			void afterTx(() => {
+				void realtime.publish(Resource.Realtime, RealtimeEvents.MemberPromote, {
 					lobbyId,
 					userId: member.userId,
 				});

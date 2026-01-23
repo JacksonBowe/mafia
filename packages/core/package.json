@@ -4,7 +4,8 @@
 	"type": "module",
 	"scripts": {
 		"db": "sst shell drizzle-kit",
-		"format": "prettier --write . --config ../../.prettierrc.json"
+		"format": "prettier --write . --config ../../.prettierrc.json",
+		"lint": "eslint ."
 	},
 	"exports": {
 		"./*": "./src/*.ts",

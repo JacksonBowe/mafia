@@ -8,7 +8,7 @@ import { Hono } from 'hono';
 import { Resource } from 'sst';
 import { z } from 'zod';
 
-type Bindings = {};
+type Bindings = Record<string, never>;
 
 const chatRoutes = new Hono<{ Bindings: Bindings }>();
 

@@ -10,7 +10,7 @@ import { Hono } from 'hono';
 import { Resource } from 'sst';
 import { z } from 'zod';
 
-type Bindings = {};
+type Bindings = Record<string, never>;
 
 const lobbyRoutes = new Hono<{ Bindings: Bindings }>();
 
@@ -168,8 +168,8 @@ lobbyRoutes.post('/:lobbyId/start', zValidator('param', StartLobbyParamsSchema),
 		});
 
 		// Publish realtime event after commit
-		afterTx(() => {
-			realtime.publish(Resource.Realtime, Lobby.RealtimeEvents.LobbyStarted, {
+		void afterTx(() => {
+			void realtime.publish(Resource.Realtime, Lobby.RealtimeEvents.LobbyStarted, {
 				lobbyId,
 				gameId,
 			});

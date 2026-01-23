@@ -30,7 +30,7 @@ export const createOrUpdateFromDiscordProfile = fn(
 		discordName: z.string(),
 		discordAvatar: z.string().optional().nullable(),
 	}),
-	async ({ discordId, discordName, discordAvatar }) => {
+	async ({ discordId, discordName, discordAvatar: _discordAvatar }) => {
 		return await createTransaction(async (tx) => {
 			const [existing] = await tx
 				.select({

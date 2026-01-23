@@ -2,7 +2,7 @@ import { assertActor } from '@mafia/core/actor';
 import { User } from '@mafia/core/user/index';
 import { Hono } from 'hono';
 
-type Bindings = {};
+type Bindings = Record<string, never>;
 
 const metaRoutes = new Hono<{ Bindings: Bindings }>();
 

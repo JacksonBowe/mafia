@@ -1,7 +1,7 @@
-import type { EngineLogger } from '../logger';
-import type { PlayerInput } from '../types';
-import type { Rng } from '../utils';
 import { CommonEvents, GameEvent, GameEventGroup } from '../events';
+import type { EngineLogger } from '../logger';
+import type { ActorState, PlayerInput } from '../types';
+import type { Rng } from '../utils';
 
 export type ActorContext = {
 	logger: EngineLogger;
@@ -18,7 +18,7 @@ export class Actor {
 	alignment: Alignment | null = null;
 	player: PlayerInput;
 	alias: string;
-	number?: number;
+	number?: number | undefined;
 	alive?: boolean;
 	allies: Actor[] = [];
 	possibleTargets: Array<Array<Actor>> = [];
@@ -50,10 +50,11 @@ export class Actor {
 	}
 
 	dumpState() {
-		return {
-			...this.player,
-			number: this.number,
-			alive: this.alive,
+		const state: ActorState = {
+			id: this.player.id,
+			name: this.player.name,
+			alias: this.alias,
+			role: this.player.role ?? this.roleName,
 			possibleTargets: this.possibleTargets.map((targetList) =>
 				targetList.map((actor) => actor.number ?? 0),
 			),
@@ -64,8 +65,15 @@ export class Actor {
 				role: ally.roleName,
 				alive: Boolean(ally.alive),
 			})),
-			alias: this.alias,
+			roleActions: this.player.roleActions,
 		};
+		if (this.number !== undefined) {
+			state.number = this.number;
+		}
+		if (this.alive !== undefined) {
+			state.alive = this.alive;
+		}
+		return state;
 	}
 
 	toString() {
@@ -99,13 +107,13 @@ export class Actor {
 	}
 
 	visit(target: Actor) {
-		this.logger.info(`${this} is visiting ${target}'s house`);
+		this.logger.info(`${this.toString()} is visiting ${target.toString()}'s house`);
 		this.visiting = target;
 		target.visitors.push(this);
 	}
 
 	kill(target: Actor, success: () => void, fail: () => void, trueDeath = false) {
-		this.logger.info(`${this} is attempting to kill ${target}`);
+		this.logger.info(`${this.toString()} is attempting to kill ${target.toString()}`);
 		this.visit(target);
 
 		if (target.bodyguards.length > 0) {
@@ -115,7 +123,9 @@ export class Actor {
 		}
 
 		if (target.nightImmune) {
-			this.logger.info(`${this} failed to kill ${target} because they are night-immune`);
+			this.logger.info(
+				`${this.toString()} failed to kill ${target.toString()} because they are night-immune`,
+			);
 			fail();
 
 			const surviveEventGroup = new GameEventGroup(CommonEvents.NIGHT_IMMUNE);
@@ -150,7 +160,7 @@ export class Actor {
 			}
 		}
 		this.cod = reason;
-		this.logger.info(`${this} died. Cause of death: ${reason}`);
+		this.logger.info(`${this.toString()} died. Cause of death: ${reason}`);
 	}
 
 	checkForWin(_actors: Actor[]) {
@@ -169,7 +179,7 @@ export class Town extends Actor {
 		this.alignment = Alignment.Town;
 	}
 
-	checkForWin(actors: Actor[]) {
+	override checkForWin(actors: Actor[]) {
 		const enemies = actors.filter((actor) => actor.alignment === Alignment.Mafia);
 		return enemies.length === 0;
 	}
@@ -182,12 +192,12 @@ export class Mafia extends Actor {
 		this.killReason = 'They were found riddled with bullets';
 	}
 
-	findAllies(actors: Actor[] = []) {
+	override findAllies(actors: Actor[] = []) {
 		this.allies = actors.filter((actor) => actor.alignment === this.alignment);
 		return this.allies;
 	}
 
-	checkForWin(actors: Actor[]) {
+	override checkForWin(actors: Actor[]) {
 		const enemies = actors.filter((actor) => !this.allies.includes(actor));
 		return enemies.length === 0;
 	}

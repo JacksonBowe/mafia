@@ -12,7 +12,7 @@ const formatValue = (value: unknown) => {
 	if (typeof value === 'string') return value;
 	try {
 		return JSON.stringify(value);
-	} catch (err) {
+	} catch {
 		return String(value);
 	}
 };

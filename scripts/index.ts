@@ -1,12 +1,7 @@
 import { join } from 'path';
 import { readFile } from 'fs/promises';
 
-export const pkgs = [
-	'packages/core',
-	'packages/functions',
-	'packages/web',
-	'packages/engine',
-];
+export const pkgs = ['packages/core', 'packages/functions', 'packages/engine', 'packages/web/app'];
 
 export async function hasScript(pkgDir: string, scriptName: string): Promise<boolean> {
 	try {

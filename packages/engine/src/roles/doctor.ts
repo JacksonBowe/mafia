@@ -25,13 +25,13 @@ export class Doctor extends Town {
 	override action() {
 		const target = this.targets[0];
 		if (!target) return;
-		this.logger.info(`${this} will attempt to heal ${target}`);
+		this.logger.info(`${this.toString()} will attempt to heal ${target.toString()}`);
 		this.visit(target);
 		target.doctors.push(this);
 	}
 
 	reviveTarget(target: Actor) {
-		this.logger.info(`${this} revives ${target}`);
+		this.logger.info(`${this.toString()} revives ${target.toString()}`);
 		const reviveEventGroup = new GameEventGroup('doctor_revive');
 		reviveEventGroup.newEvent(
 			new GameEvent(

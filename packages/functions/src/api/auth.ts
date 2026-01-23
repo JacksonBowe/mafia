@@ -6,8 +6,8 @@ import { Resource } from 'sst/resource';
 import { subjects } from '../subjects';
 
 const app = issuer({
-	allow: async () => {
-		return true;
+	allow: () => {
+		return Promise.resolve(true);
 	},
 	subjects,
 	providers: {

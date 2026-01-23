@@ -17,7 +17,7 @@ export class Citizen extends Town {
 	) {
 		super(player, context);
 		const parsed = CitizenSettingsSchema.parse(settings);
-		const fromActions = player.roleActions?.remainingVests;
+		const fromActions = player.roleActions?.remainingVests as number | undefined;
 		this.remainingVests = typeof fromActions === 'number' ? fromActions : parsed.maxVests;
 	}
 
@@ -45,7 +45,7 @@ export class Citizen extends Town {
 
 	override action() {
 		if (this.remainingVests <= 0) {
-			this.logger.critical(`${this} tried to use vest but has 0 remaining`);
+			this.logger.critical(`${this.toString()} tried to use vest but has 0 remaining`);
 			return;
 		}
 		this.remainingVests -= 1;
@@ -53,9 +53,9 @@ export class Citizen extends Town {
 		if (!target) return;
 		target.nightImmune = true;
 		this.logger.info(
-			`|${this.roleName}| ${this.alias}(${this.number}) used vest on ${
-				target === this ? 'self' : target
-			}. ${this.remainingVests} remaining`,
+			`|${this.roleName}| ${this.alias}(${String(this.number)}) used vest on ${
+				target === this ? 'self' : target.toString()
+			}. ${String(this.remainingVests)} remaining`,
 		);
 	}
 }

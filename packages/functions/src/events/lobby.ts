@@ -49,7 +49,7 @@ export const handler = bus.subscriber(
 						// - oldest joined member
 						// - or lowest userId
 						// - or some explicit "joinedAt" sort from Lobby.get()
-						const newHostUserId = lobby.members[0]!.id;
+						const newHostUserId = lobby.members[0].id;
 						await Lobby.Member.promote({ lobbyId, userId: newHostUserId });
 					}
 				} catch (error) {

@@ -1,14 +1,10 @@
-import { PgTransaction, type PgTransactionConfig } from 'drizzle-orm/pg-core'; // Use Postgres-specific transaction types
+import type { PgTransaction, PgTransactionConfig } from 'drizzle-orm/pg-core'; // Use Postgres-specific transaction types
 
 import { db } from '.'; // Your initialized Postgres database instance
 import { createContext } from '../context'; // Context management for transactions
 
 // Define the transaction type for Postgres
-// export type Transaction = PgTransaction<
-// 	PgQueryResultHKT,
-// 	Record<string, never>,
-// 	ExtractTablesWithRelations<Record<string, never>>
-// >;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Transaction = PgTransaction<any, any, any>;
 
 // Type alias for either the Transaction or the DB instance
@@ -36,7 +32,7 @@ export async function useTransaction<T>(callback: (trx: TxOrDb) => Promise<T>) {
 /**
  * Registers an effect to be executed after the transaction commits.
  */
-export async function afterTx(effect: () => any | Promise<any>) {
+export async function afterTx(effect: () => void | Promise<void>) {
 	try {
 		const { effects } = TransactionContext.use();
 		effects.push(effect); // Add effect to the transaction context
@@ -68,7 +64,7 @@ export async function createTransaction<T>(
 		);
 
 		// Run all registered effects after the transaction completes
-		await Promise.all(effects.map((x) => x()));
+		await Promise.all(effects.map((x) => Promise.resolve(x())));
 		return result as T;
 	}
 }

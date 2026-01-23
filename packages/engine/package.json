@@ -5,6 +5,7 @@
 	"module": "index.ts",
 	"scripts": {
 		"format": "prettier --write . --config ../../.prettierrc.json",
+		"lint": "eslint .",
 		"examples/new": "bun run examples/newGame.ts",
 		"examples/load": "bun run examples/loadGame.ts",
 		"examples/resolve": "bun run examples/resolveGame.ts",

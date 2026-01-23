@@ -37,8 +37,8 @@ export type Actor = z.infer<typeof Actor>;
 
 export const ActorContext = createContext<Actor>();
 
-export const useActor = ActorContext.use;
-export const withActor = ActorContext.with;
+export const useActor = () => ActorContext.use();
+export const withActor = <T>(actor: Actor, fn: () => T) => ActorContext.with(actor, fn);
 
 export function assertActor<T extends Actor['type']>(type: T) {
 	const actor = useActor();

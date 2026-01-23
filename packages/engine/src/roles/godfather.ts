@@ -77,7 +77,7 @@ export class Godfather extends Mafia {
 				`The Godfather has chosen ${proxy.alias} to carry out the hit`,
 			),
 		);
-		this.logger.info(`${this} has chosen ${proxy} to act as a proxy`);
+		this.logger.info(`${this.toString()} has chosen ${proxy.toString()} to act as a proxy`);
 		this.actionEvents.newEventGroup(proxyEventGroup);
 	}
 }

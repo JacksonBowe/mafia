@@ -80,6 +80,7 @@ function iotClient(resource: RealtimeResource): IoTDataPlaneClient {
 	});
 }
 
+// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace realtime {
 	/**
 	 * Raw publish: you provide topic + type + properties.

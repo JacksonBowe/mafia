@@ -62,7 +62,7 @@ export type PgLikeError = {
 export function unwrapCause(e: unknown): unknown {
 	let cur: unknown = e;
 	for (let i = 0; i < 5; i++) {
-		const c = (cur as any)?.cause;
+		const c = (cur as { cause?: unknown })?.cause;
 		if (!c) break;
 		cur = c;
 	}
