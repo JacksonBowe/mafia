@@ -9,7 +9,6 @@
 
 // const log = getLogger('realtime');
 
-
 // type Status = "idle" | "connecting" | "connected" | "disconnected" | "error";
 
 // // ---- singleton state (module-level) ----

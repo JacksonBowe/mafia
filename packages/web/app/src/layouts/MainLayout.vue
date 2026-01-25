@@ -11,9 +11,7 @@
 </template>
 
 <script setup lang="ts">
-// import { useLobbyEvents } from 'src/lib/lobby'
-// import { useMe } from 'src/lib/user'
-
+import { watch } from 'vue';
 import AdminFab from 'src/components/admin/AdminFab.vue';
 import MenuHeader from 'src/components/MenuHeader/MenuHeader.vue';
 import BackgroundSplash from 'src/components/ui/Background/BackgroundSplash.vue';
@@ -22,9 +20,6 @@ import { useLobbyEvents } from 'src/lib/lobby/events';
 import { useActor, usePresence } from 'src/lib/meta/hooks';
 import { useAuthStore } from 'src/stores/auth';
 import { useRealtime } from 'src/stores/realtime';
-import { watch } from 'vue';
-
-// const { data: me, isLoading } = useMe()
 
 const rt = useRealtime();
 const auth = useAuthStore();

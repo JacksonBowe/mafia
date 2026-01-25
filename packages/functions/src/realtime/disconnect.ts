@@ -11,7 +11,6 @@ export const handler = async (event: DisconnectEvent) => {
 
 	const { userId } = event;
 
-
 	const userPresence = await User.getPresence({ userId });
 
 	if (userPresence.lobby?.id) {

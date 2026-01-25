@@ -4,13 +4,13 @@ import { z } from 'zod';
 import { useTransaction } from '../db/transaction';
 import { RelatedEntitySchema } from '../db/types';
 import { isULID } from '../error';
+import { gamePlayerTable, gameTable } from '../game/game.sql';
 import { lobbyMemberTable, lobbyTable } from '../lobby/lobby.sql';
 import { fn } from '../util/fn';
-// import { gamePlayerTable } from '../game/player.sql' // TODO: when game exists
 
 export const PresenceSchema = z.object({
 	lobby: RelatedEntitySchema.nullable().optional(),
-	// gameId: isULID().nullable(), // TODO
+	gameId: isULID().nullable(),
 });
 
 export type Presence = z.infer<typeof PresenceSchema>;
@@ -33,16 +33,18 @@ export const getPresence = fn(
 				.where(eq(lobbyMemberTable.userId, userId))
 				.limit(1);
 
-			// TODO: when game exists
-			// const [gameRow] = await tx
-			//   .select({ gameId: gamePlayerTable.gameId })
-			//   .from(gamePlayerTable)
-			//   .where(eq(gamePlayerTable.userId, userId))
-			//   .limit(1)
+			const [gameRow] = await tx
+				.select({
+					gameId: gamePlayerTable.gameId,
+				})
+				.from(gamePlayerTable)
+				.innerJoin(gameTable, eq(gameTable.id, gamePlayerTable.gameId))
+				.where(eq(gamePlayerTable.userId, userId))
+				.limit(1);
 
 			return PresenceSchema.parse({
 				lobby: row?.lobby ?? null,
-				// gameId: gameRow?.gameId ?? null,
+				gameId: gameRow?.gameId ?? null,
 			});
 		}),
 );
