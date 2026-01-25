@@ -163,6 +163,17 @@ export const updateState = fn(
 		}),
 );
 
+export const list = () =>
+	useTransaction(async (tx) =>
+		tx
+			.select({
+				id: gameTable.id,
+				status: gameTable.status,
+				createdAt: gameTable.createdAt,
+			})
+			.from(gameTable),
+	);
+
 export const getByPlayer = fn(
 	z.object({
 		userId: z.string(),
@@ -184,5 +195,34 @@ export const getByPlayer = fn(
 			}
 
 			return get({ gameId: playerGame.gameId });
+		}),
+);
+
+export const terminate = fn(
+	z.object({
+		gameId: isULID(),
+	}),
+	async ({ gameId }) =>
+		useTransaction(async (tx) => {
+			const [game] = await tx
+				.select({ id: gameTable.id })
+				.from(gameTable)
+				.where(eq(gameTable.id, gameId))
+				.limit(1);
+
+			if (!game) {
+				throw new InputError(Errors.GameNotFound, 'Game not found');
+			}
+
+			const deleted = await tx
+				.delete(gameTable)
+				.where(eq(gameTable.id, gameId))
+				.returning({ id: gameTable.id });
+
+			if (deleted.length === 0) {
+				throw new InputError(Errors.GameNotFound, 'Game not found');
+			}
+
+			return { gameId };
 		}),
 );

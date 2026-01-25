@@ -12,6 +12,17 @@
 				/>
 			</q-fab>
 
+			<!-- GAMES -->
+			<q-fab color="orange" label="Games" direction="up" padding="xs">
+				<q-fab-action
+					label="Terminate all"
+					hide-icon
+					color="red"
+					padding="none"
+					@click="() => terminateGames()"
+				/>
+			</q-fab>
+
 			<!-- USERS -->
 			<!-- <q-fab color="orange" label="Users" direction="up" padding="xs">
 				<q-fab-action
@@ -38,13 +49,14 @@
 </template>
 
 <script setup lang="ts">
-import { useTerminateLobbies } from 'src/lib/admin/hooks';
+import { useTerminateGames, useTerminateLobbies } from 'src/lib/admin/hooks';
 import { computed } from 'vue';
 
 const { mutateAsync: terminateLobbies, isPending: isTerminateLobbiesPending } =
 	useTerminateLobbies();
+const { mutateAsync: terminateGames, isPending: isTerminateGamesPending } = useTerminateGames();
 
-const isLoading = computed(() => isTerminateLobbiesPending.value);
+const isLoading = computed(() => isTerminateLobbiesPending.value || isTerminateGamesPending.value);
 // import { api } from 'src/boot/axios';
 // import { terminateAllLobbies } from 'src/lib/api/admin';
 // import { Message } from 'src/lib/chat';

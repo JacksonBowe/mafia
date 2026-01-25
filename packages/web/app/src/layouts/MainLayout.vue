@@ -5,7 +5,7 @@
 		<MenuHeader />
 		<q-page-container>
 			<router-view />
-			<AdminFab />
+			<AdminFab v-if="actor?.isAdmin" />
 		</q-page-container>
 	</q-layout>
 </template>
@@ -19,7 +19,7 @@ import MenuHeader from 'src/components/MenuHeader/MenuHeader.vue';
 import BackgroundSplash from 'src/components/ui/Background/BackgroundSplash.vue';
 import { useChatEvents } from 'src/lib/chat/events';
 import { useLobbyEvents } from 'src/lib/lobby/events';
-import { usePresence } from 'src/lib/meta/hooks';
+import { useActor, usePresence } from 'src/lib/meta/hooks';
 import { useAuthStore } from 'src/stores/auth';
 import { useRealtime } from 'src/stores/realtime';
 import { watch } from 'vue';
@@ -28,6 +28,7 @@ import { watch } from 'vue';
 
 const rt = useRealtime();
 const auth = useAuthStore();
+const { data: actor } = useActor();
 const { data: presence } = usePresence();
 
 useChatEvents();
