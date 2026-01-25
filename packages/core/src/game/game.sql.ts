@@ -1,4 +1,12 @@
-import { index, jsonb, pgTable, text, timestamp as pgTimestamp } from 'drizzle-orm/pg-core';
+import {
+	boolean,
+	index,
+	integer,
+	jsonb,
+	pgTable,
+	text,
+	timestamp as pgTimestamp,
+} from 'drizzle-orm/pg-core';
 import { id, timestamps } from '../db/types';
 
 export const gameTable = pgTable(
@@ -30,6 +38,9 @@ export const gameTable = pgTable(
 
 		// Actor states per player (serialized ActorState[] from engine)
 		actors: jsonb('actors').notNull(),
+
+		// Poll count - tracks voting rounds (max 3 before moving to evening)
+		pollCount: integer('poll_count').notNull().default(0),
 	},
 	(t) => [index('game_status_idx').on(t.status), index('game_created_at_idx').on(t.createdAt)],
 );
@@ -54,6 +65,15 @@ export const gamePlayerTable = pgTable(
 
 		// Player role (assigned by engine)
 		role: text('role'),
+
+		// Current vote target (player number being voted for during POLL phase)
+		vote: integer('vote'),
+
+		// Trial verdict ('guilty' or 'innocent' during TRIAL phase)
+		verdict: text('verdict'),
+
+		// Whether this player is currently on trial
+		onTrial: boolean('on_trial').notNull().default(false),
 	},
 	(t) => [index('game_player_game_idx').on(t.gameId), index('game_player_user_idx').on(t.userId)],
 );

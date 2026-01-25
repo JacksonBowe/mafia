@@ -509,8 +509,8 @@ The game loop is driven by AWS Step Functions:
 2. [x] Create `packages/core/src/game/index.ts` - Game domain exports
 3. [x] Define Zod schemas for validation
 4. [x] Create basic game CRUD operations with Drizzle
-5. [ ] Add voting/verdict fields to game state or separate table
-6. [ ] Add `pollCount` tracking to game record
+5. [x] Add voting/verdict fields to game state or separate table
+6. [x] Add `pollCount` tracking to game record
 
 ### Phase 2: Game Engine (MOSTLY DONE)
 
@@ -542,7 +542,7 @@ const engineResult = newGame({ players, config });
 
 ### Phase 4: Realtime Events
 
-20. [ ] Define game events in `packages/core/src/realtime/events.ts`
+20. [ ] Define game events in `packages/core/src/game/index.ts` similar to in `packages/core/src/lobby/index.ts`
 21. [ ] Implement publish helpers for each event type
 22. [ ] Set up topic structure for public/private channels
 
