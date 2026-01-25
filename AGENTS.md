@@ -1,153 +1,189 @@
 # AGENTS.md
 
-This repository uses TypeScript with SST for backend infrastructure and a Quasar
-Vue 3 web app. Follow the conventions below when making changes.
+TypeScript monorepo using SST (AWS), Hono (API), Drizzle (DB), and Quasar/Vue 3 (frontend).
 
-## Quick map
-- Root: SST config and workspace-level scripts.
-- packages/core: shared domain logic, database access, and validation.
-- packages/functions: Lambda/API handlers (Hono).
-- packages/web/app: Quasar Vue 3 app, ESLint + Prettier.
-- infra: SST infrastructure modules loaded by `sst.config.ts`.
-- old: legacy code (avoid unless explicitly asked).
-- node_modules is present; keep changes scoped to repo files only.
+## Repository structure
 
-## Build, lint, test commands
+| Path                 | Purpose                                     |
+| -------------------- | ------------------------------------------- |
+| `packages/core`      | Shared domain logic, DB access, validation  |
+| `packages/functions` | Lambda/API handlers (Hono)                  |
+| `packages/engine`    | Game engine logic with tests                |
+| `packages/web/app`   | Quasar Vue 3 frontend                       |
+| `infra/`             | SST infrastructure modules                  |
+| `old/`               | Legacy code (avoid unless explicitly asked) |
 
-### Workspace (root)
-- Install: `bun install` (bun.lock is present).
-- Dev (SST local): `bun run dev` (runs `sst dev`).
-- Deploy (prod): `bun run deploy` (uses `sst deploy --stage prod`).
-- Remove local stage: `bun run remove:local`.
-- Remove prod stage: `bun run remove:prod`.
-- AWS SSO login: `bun run auth` (profile `mafia-dev`).
-- No root lint/test scripts are defined.
+## Commands
 
-### Web app (Quasar)
-- Dev: `bun --cwd packages/web/app run dev` (sst + quasar dev).
-- Build: `bun --cwd packages/web/app run build`.
-- Lint: `bun --cwd packages/web/app run lint`.
-- Format: `bun --cwd packages/web/app run format`.
-- Tests: `bun --cwd packages/web/app run test` (currently prints "No test specified").
-- Single test: not configured; add a test runner before attempting per-test runs.
-- Type-checking is handled by the Quasar/Vite tooling (no standalone script).
+### Installation and development
 
-### Functions (Lambda)
-- Format: `bun --cwd packages/functions run format`.
-- No lint/test scripts defined.
-- Single test: not configured; add a test runner before attempting per-test runs.
-- Handlers are Hono-based; use `handle` from `hono/aws-lambda`.
+```bash
+bun install                    # Install all dependencies
+bun run dev                    # Start SST local dev
+bun run auth                   # AWS SSO login (mafia-dev profile)
+```
 
-### Core
-- DB tooling: `bun --cwd packages/core run db` (drizzle-kit via `sst shell`).
-- No lint/test scripts defined.
-- Single test: not configured; add a test runner before attempting per-test runs.
-- Drizzle migrations are ignored by Prettier (`packages/core/.prettierignore`).
+### Linting and formatting
 
-### Testing notes
-- Root uses `vitest` for workspace tests.
-- If you add a test tool, document how to run a single test here.
+```bash
+bun run lint                   # Lint all packages
+bun run format                 # Format all packages
+bun --cwd packages/core run lint
+bun --cwd packages/functions run lint
+bun --cwd packages/web/app run lint
+```
 
-### Engine tests (new)
-- Run all tests: `bun run test` (root) or `bun --cwd packages/engine run test`.
-- Single test file: `bun --cwd packages/engine vitest run --config ../../vitest.config.mts packages/engine/tests/engine.test.ts`.
+### Testing
 
-## Code style guidelines
+```bash
+bun run test                   # Run all tests (vitest)
+bun run test:watch             # Watch mode
 
-### Language and modules
-- TypeScript, ESM modules (`"type": "module"`).
-- `tsconfig.json` enables `strict` mode and `verbatimModuleSyntax`.
-- Keep files compatible with bundler module resolution.
-- Avoid CommonJS patterns unless you are in build tooling config.
+# Single test file
+bun vitest run --config vitest.config.mts packages/engine/tests/engine.test.ts
+
+# Single test by name
+bun vitest run --config vitest.config.mts -t "test name pattern"
+```
+
+### Deployment
+
+```bash
+bun run deploy                 # Deploy to prod
+bun run remove:local           # Remove local stage
+bun run remove:prod            # Remove prod stage
+```
+
+### Database
+
+```bash
+bun --cwd packages/core run db  # Run drizzle-kit via sst shell
+```
+
+## Code style
+
+### TypeScript
+
+- Strict mode enabled, ESM modules (`"type": "module"`)
+- `verbatimModuleSyntax` is on; use explicit type imports
+- Avoid `any`; prefer `unknown` with type narrowing
+- Prefix unused variables with underscore: `_unusedVar`
 
 ### Imports
-- Prefer type-only imports where possible (`import type { ... }`).
-- Web app ESLint enforces `@typescript-eslint/consistent-type-imports`.
-- Order imports: external deps first, then internal workspace modules, then
-  relative imports.
-- Avoid unused imports; remove when no longer needed.
-- When adding new dependencies, keep them workspace-scoped unless shared.
 
-### Formatting
-- Web app uses Prettier: single quotes, tabs, print width 100.
-- Other packages are not auto-formatted consistently; follow existing file style
-  and avoid sweeping reformatting.
-- Semicolons are mixed; keep the existing convention in the file you touch.
-- Keep line widths reasonable and match surrounding indentation.
-- Root does not define a Prettier config; rely on the package-specific settings.
+```typescript
+// Use type-only imports (enforced by ESLint)
+import type { SomeType } from './module';
+import { someFunction } from './module';
 
-### Naming
-- Variables and functions: `camelCase`.
-- Types, classes, schemas, enums: `PascalCase`.
-- Constants: `UPPER_SNAKE_CASE` only when truly constant values.
-- Zod schemas typically end with `Schema` (ex: `LobbyInfoSchema`).
-- Error codes use dot-separated strings (ex: `lobby.not_found`).
-- Realtime event names follow dot-delimited namespaces (`lobby.terminated`).
+// Order: external deps > workspace modules > relative imports
+import { z } from 'zod';
+import { User } from '@mafia/core/user';
+import { helper } from './utils';
+```
 
-### Types and validation
-- Prefer Zod schemas for runtime validation in `packages/core`.
-- Use `fn(...)` helper in `packages/core/src/util/fn.ts` for input parsing
-  when extending core functionality.
-- Use `isULID()` and `ULID` types from `packages/core/src/error.ts` for IDs.
-- Avoid `any`; use `unknown` and narrow types when needed.
-- For Hono routes, use `zValidator` from `packages/core/src/error.ts`.
+### Formatting (Prettier)
+
+- Tabs for indentation
+- Single quotes
+- Print width: 100
+- Trailing commas
+- Semicolons required
+
+### Naming conventions
+
+| Type                    | Convention       | Example            |
+| ----------------------- | ---------------- | ------------------ |
+| Variables, functions    | camelCase        | `getUserById`      |
+| Types, classes, schemas | PascalCase       | `LobbyInfoSchema`  |
+| Constants               | UPPER_SNAKE_CASE | `MAX_PLAYERS`      |
+| Error codes             | dot.separated    | `lobby.not_found`  |
+| Realtime events         | dot.delimited    | `lobby.terminated` |
+
+## Patterns
+
+### Validation (Zod)
+
+```typescript
+import { z } from 'zod';
+import { isULID } from '@mafia/core/error';
+
+const MySchema = z.object({
+	id: isULID(),
+	name: z.string().min(1),
+});
+```
 
 ### Error handling
-- Backend uses `PublicError` and subclasses (`InputError`, `AuthError`,
-  `ServerError`) from `packages/core/src/error.ts`.
-- Prefer throwing `PublicError` subclasses for client-visible errors.
-- Lambda API handlers (`packages/functions/src/api/index.ts`) format
-  error responses; keep those patterns intact.
-- Log unexpected errors with context before returning a 500 response.
-- Preserve error `code` values because clients depend on them.
 
-### Database and transactions (core)
-- Use `createTransaction`/`useTransaction` helpers from
-  `packages/core/src/db/transaction.ts`.
-- Prefer `afterTx` for side effects that should happen after commits.
-- Use Drizzle ORM patterns (`eq`, `inArray`, `.returning()`).
-- Keep SQL table definitions in `packages/core/src/*/*.sql.ts`.
+```typescript
+import { PublicError, InputError, AuthError, ServerError } from '@mafia/core/error';
 
-### API patterns (functions)
-- Hono-based routes in `packages/functions/src/api/*`.
-- `authorize` middleware handles auth; add new routes to `api/index.ts`.
-- Use shared schemas/errors from `@mafia/core`.
-- Prefer returning `c.json(...)` with explicit status codes.
-- Use `Resource.App.stage` from `sst` for stage-specific behavior.
+// Throw for client-visible errors
+throw new InputError('validation_error', 'Invalid input', details);
+throw new AuthError('unauthorized', 'Not authenticated');
 
-### Frontend (web app)
-- Vue 3 + Quasar. Prefer Composition API style.
-- ESLint + Prettier in `packages/web/app` define lint and format rules.
-- Keep component names readable; `vue/multi-word-component-names` is disabled.
-- No tests configured yet.
-- Use `defineStore` for Pinia and prefer typed store state.
+// Error codes are stable; clients depend on them
+```
 
-### Infrastructure (SST)
-- Config lives in `sst.config.ts`.
-- Prod stages use `retain` + `protect`; non-prod stages remove by default.
-- AWS profiles are stage-specific (`mafia-prod`/`mafia-dev`).
-- Infra modules are loaded from `infra/` and can return outputs.
+### Database transactions
 
-### Realtime
-- Realtime events are defined in `packages/core/src/realtime.ts`.
-- Publish after commits via `afterTx` to avoid emitting on failed transactions.
+```typescript
+import { createTransaction, useTransaction, afterTx } from '@mafia/core/db/transaction';
 
-## Repository-specific rules
-- No Cursor rules found in `.cursor/rules/` or `.cursorrules`.
-- No GitHub Copilot instructions found in `.github/copilot-instructions.md`.
+await createTransaction(async (tx) => {
+	const result = await tx.insert(users).values(data).returning();
 
-## When adding new tooling
-- Add workspace scripts at the root if multiple packages should use them.
-- Document new test or lint commands in this file.
-- Keep tooling consistent with bun, SST, and the Quasar app.
-- Update `packages/web/app/eslint.config.js` if ESLint rules change.
+	// Side effects after commit
+	afterTx(() => sendNotification(result.id));
 
-## Practical tips for agents
-- Avoid editing `old/` unless asked.
-- Minimize formatting-only diffs.
-- Prefer local functions/helpers over duplicating logic.
-- Add new errors to `packages/core/src/error.ts` if they should be public.
-- Update schema types alongside any data shape changes.
-- When touching infra, keep SST stage behavior intact (`prod` uses retain).
-- Keep infra modules in `infra/` small and return outputs when needed.
-- Use `packages/core` exports instead of duplicating shared logic.
+	return result;
+});
+```
+
+### API routes (Hono)
+
+```typescript
+import { Hono } from 'hono';
+import { zValidator } from '@mafia/core/error';
+
+const routes = new Hono().post('/create', zValidator('json', CreateSchema), async (c) => {
+	const input = c.req.valid('json');
+	const result = await doSomething(input);
+	return c.json(result, 201);
+});
+```
+
+### Realtime events
+
+```typescript
+import { realtime, defineRealtimeEvent } from '@mafia/core/realtime';
+import { afterTx } from '@mafia/core/db/transaction';
+
+// Publish after transaction commits
+afterTx(() => realtime.publish(resource, MyEvent, payload));
+```
+
+### Frontend (Vue 3 + Quasar)
+
+- Use Composition API with `<script setup lang="ts">`
+- State management via Pinia (`defineStore`)
+- Multi-word component names rule is disabled
+
+## Infrastructure (SST)
+
+- Config in `sst.config.ts`; modules in `infra/`
+- Prod stage: `retain` + `protect` enabled
+- AWS profiles: `mafia-prod` (prod), `mafia-dev` (other)
+- Access stage via `Resource.App.stage`
+
+## Agent guidelines
+
+1. **Avoid `old/`** unless explicitly asked
+2. **Minimize formatting-only diffs**; match existing file style
+3. **Use `@mafia/core` exports** instead of duplicating logic
+4. **Add new errors to `packages/core/src/error.ts`**
+5. **Update schemas alongside data shape changes**
+6. **SQL tables go in `packages/core/src/*/*.sql.ts`**
+7. **Keep infra modules small**; return outputs when needed
+8. **Publish realtime events via `afterTx`** to avoid emitting on rollback
