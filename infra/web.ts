@@ -18,6 +18,7 @@ export const appSite = new sst.aws.StaticSite("AppSite", {
     }
 })
 
+
 export const outputs = {
     RealtimeEndpoint: realtime.endpoint,
 }

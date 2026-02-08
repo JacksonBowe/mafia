@@ -503,7 +503,7 @@ The game loop is driven by AWS Step Functions:
 
 ## 10. Implementation Steps
 
-### Phase 1: Data Layer (MOSTLY DONE)
+### Phase 1: Data Layer (DONE)
 
 1. [x] Create `packages/core/src/game/game.sql.ts` - Game table schema
 2. [x] Create `packages/core/src/game/index.ts` - Game domain exports
@@ -540,11 +540,11 @@ const engineResult = newGame({ players, config });
 18. [ ] Implement `POST /game/verdict` - Submit trial verdict
 19. [ ] Implement `POST /game/targets` - Submit night action targets
 
-### Phase 4: Realtime Events
+### Phase 4: Realtime Events (DONE)
 
-20. [ ] Define game events in `packages/core/src/game/index.ts` similar to in `packages/core/src/lobby/index.ts`
-21. [ ] Implement publish helpers for each event type
-22. [ ] Set up topic structure for public/private channels
+20. [x] Define game events in `packages/core/src/game/index.ts` similar to in `packages/core/src/lobby/index.ts`. ./old-attempt/game_controller.py can indicate where in the flow
+21. [x] Implement publish helpers for each event type
+22. [x] Set up topic structure for public/private channels
 
 ### Phase 5: Game Loop (Step Functions)
 
