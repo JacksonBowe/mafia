@@ -1,0 +1,28 @@
+{
+    "name": "mafia",
+    "version": "0.0.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "auth": "aws sso login --profile mafia-dev",
+        "dev": "sst dev --profile mafia-dev",
+        "test": "pytest",
+        "coverage": "pytest --cov=packages/functions --cov-report=html",
+        "build": "sst build --profile mafia-dev",
+        "deploy": "sst deploy --stage dev --profile mafia-dev",
+        "remove:local": "sst remove --profile mafia-dev",
+        "remove:dev": "sst remove --stage dev --profile mafia-dev",
+        "console": "sst console",
+        "typecheck": "tsc --noEmit"
+    },
+    "devDependencies": {
+        "@aws-cdk/aws-iot-actions-alpha": "^2.132.1-alpha.0",
+        "@aws-cdk/aws-iot-alpha": "^2.132.1-alpha.0",
+        "@tsconfig/node18": "^18.2.2",
+        "aws-cdk-lib": "2.132.1",
+        "constructs": "10.3.0",
+        "sst": "2.41.4",
+        "typescript": "^5.3.3"
+    },
+    "workspaces": []
+}

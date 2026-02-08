@@ -1,28 +1,38 @@
 {
-    "name": "mafia",
-    "version": "0.0.0",
-    "private": true,
-    "type": "module",
-    "scripts": {
-        "auth": "aws sso login --profile mafia-dev",
-        "dev": "sst dev --profile mafia-dev",
-        "test": "pytest",
-        "coverage": "pytest --cov=packages/functions --cov-report=html",
-        "build": "sst build --profile mafia-dev",
-        "deploy": "sst deploy --stage dev --profile mafia-dev",
-        "remove:local": "sst remove --profile mafia-dev",
-        "remove:dev": "sst remove --stage dev --profile mafia-dev",
-        "console": "sst console",
-        "typecheck": "tsc --noEmit"
-    },
-    "devDependencies": {
-        "@aws-cdk/aws-iot-actions-alpha": "^2.132.1-alpha.0",
-        "@aws-cdk/aws-iot-alpha": "^2.132.1-alpha.0",
-        "@tsconfig/node18": "^18.2.2",
-        "aws-cdk-lib": "2.132.1",
-        "constructs": "10.3.0",
-        "sst": "2.41.4",
-        "typescript": "^5.3.3"
-    },
-    "workspaces": []
+	"name": "mafia",
+	"version": "0.0.0",
+	"workspaces": [
+		"packages/*",
+		"packages/web/*"
+	],
+	"scripts": {
+		"auth": "aws sso login --profile mafia-dev",
+		"dev": "sst dev",
+		"remove:local": "sst remove",
+		"deploy": "sst deploy --stage prod",
+		"remove:prod": "sst remove --stage prod",
+		"tree": "mkdir -p .tmp-tree && git ls-tree -r --name-only HEAD   | sed 's|/[^/]*$||'   | sort -u   | xargs -I{} mkdir -p .tmp-tree/{} && tree -d .tmp-tree && rm -rf .tmp-tree",
+		"format": "bun run scripts/format",
+		"lint": "bun run scripts/lint",
+		"test": "vitest run --config vitest.config.mts",
+		"test:watch": "vitest --config vitest.config.mts"
+	},
+	"dependencies": {
+		"sst": "3.17.23"
+	},
+	"devDependencies": {
+		"@eslint/js": "^9.14.0",
+		"@trivago/prettier-plugin-sort-imports": "^5.2.2",
+		"@tsconfig/node20": "^20.1.4",
+		"@types/bun": "latest",
+		"eslint": "^9.14.0",
+		"eslint-config-prettier": "^10.1.0",
+		"prettier": "^3.6.2",
+		"typescript": "~5.8.3",
+		"typescript-eslint": "^8.18.0",
+		"vitest": "^4.0.10"
+	},
+	"peerDependencies": {
+		"typescript": "^5.0.0"
+	}
 }

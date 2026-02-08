@@ -1,27 +1,15 @@
 # dependencies
 node_modules
-.venv
 
 # sst
 .sst
-.build
 
-# opennext
-.open-next
+# tmp files
+.#*
+
+# env 
+.env*.local
+.env
 
 # misc
 .DS_Store
-*.pyc
-__pycache__
-.ruff_cache
-.pytest_cache
-.quasar
-
-# local env files
-.env*.local
-
-# build files
-dist
-log.txt
-*.log
-pytest-log.txt
