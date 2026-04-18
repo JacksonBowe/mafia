@@ -39,8 +39,8 @@ watch(
 </script>
 
 <style scoped>
-.layout-root {
+/* .layout-root {
 	position: relative;
 	background: #0d1117;
-}
+} */
 </style>

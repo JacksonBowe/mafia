@@ -1,5 +1,5 @@
 <template>
-	<q-page class="column q-pa-md">
+	<q-page class="column q-pa-m" padding>
 		<!-- Loading / syncing state -->
 		<div
 			v-if="!gameStore.isReady"
@@ -23,16 +23,20 @@
 
 		<!-- Game content -->
 		<template v-else>
-			<div class="row col q-col-gutter-md">
-				<div class="col-12 col-lg-6 column q-gutter-y-md">
-					<div class="col row items-start">
+			<div class="row col bg-red">
+				<div class="col-12 col-sm-6 column q-gutter-y-md bg-green">
+					<div class="col row items-start bg-orange">
 						<transition-group
 							tag="div"
 							enter-active-class="animated slideInLeft"
 							class="row col q-gutter-md"
 						>
-							<game-graveyard key="graveyard" class="col-4" :entries="graveyardEntries" />
-							<game-roles key="roles" class="col-3" :players="rolesPlayers" />
+							<game-graveyard
+								key="graveyard"
+								class="col-md-4 col-sm-6"
+								:entries="graveyardEntries"
+							/>
+							<game-roles key="roles" class="col-md-3 col-sm-5" />
 						</transition-group>
 					</div>
 
@@ -69,7 +73,7 @@
 				</div>
 			</div>
 
-			<div class="row justify-center q-mt-md">
+			<div v-if="false" class="row justify-center q-mt-md bg-pink">
 				<transition
 					enter-active-class="animated bounceInDown"
 					leave-active-class="animated bounceOutUp"
@@ -89,10 +93,9 @@
 </template>
 
 <script setup lang="ts">
-import type { GraveyardEntry } from 'src/components/game/graveyard/GameGraveyard.vue';
-import type { RolesPlayer } from 'src/components/game/roles/GameRoles.vue';
 import GameActions from 'src/components/game/actions/GameActions.vue';
 import GameChat from 'src/components/game/chat/GameChat.vue';
+import type { GraveyardEntry } from 'src/components/game/graveyard/GameGraveyard.vue';
 import GameGraveyard from 'src/components/game/graveyard/GameGraveyard.vue';
 import GameJury from 'src/components/game/jury/GameJury.vue';
 import GameRole from 'src/components/game/role/GameRole.vue';
@@ -112,18 +115,6 @@ const roleConfig = computed<Record<string, string>>(() => {
 		config['Allies'] = actor.allies.map((a) => a.alias).join(', ');
 	}
 	return config;
-});
-
-/** Player list for the Roles card */
-const rolesPlayers = computed<RolesPlayer[]>(() => {
-	const myNumber = gameStore.actor?.number ?? -1;
-	return gameStore.players.map((p) => ({
-		number: p.number,
-		alias: p.alias,
-		alive: p.alive,
-		onTrial: p.onTrial,
-		isYou: p.number === myNumber,
-	}));
 });
 
 /** Graveyard entries from engine state */
