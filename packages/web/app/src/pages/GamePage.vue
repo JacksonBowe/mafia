@@ -47,13 +47,13 @@
 					</div>
 				</div>
 
-				<div class="col-12 col-lg-6 column q-gutter-y-md">
-					<div class="col row justify-end items-stretch">
+				<div class="col-12 col-sm-6 column q-gutter-y-md bg-yellow">
+					<div class="col row justify-end items-stretch bg-brown">
 						<transition enter-active-class="animated slideInRight">
 							<game-role
 								v-if="gameStore.actor"
 								key="role"
-								class="col-4 full-height"
+								class="col-sm-9 col-md- col-lg-5 full-height"
 								:role-name="gameStore.actor.role ?? 'Unknown'"
 								:config="roleConfig"
 							/>
@@ -63,7 +63,7 @@
 					<div class="col row justify-end items-stretch">
 						<transition appear enter-active-class="animated slideInRight">
 							<game-actions
-								class="col-5 full-height"
+								class="col-5 col-sm-11 col-md-8 col-lg-6 full-height"
 								:phase="gameStore.phase"
 								:alive="gameStore.actor?.alive ?? false"
 								:has-targets="hasTargets"
