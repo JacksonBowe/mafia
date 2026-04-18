@@ -3,7 +3,7 @@
 		<MCardHeader title="Roles" :separated="false" />
 		<MCardContent>
 			<div class="q-gutter-y-xs">
-				<div v-for="n in totalSlots" :key="n" class="text-body2 text-grey-4">-</div>
+				<!-- <div v-for="n in totalSlots" :key="n" class="text-body2 text-grey-4">-</div> -->
 			</div>
 		</MCardContent>
 	</MCard>
