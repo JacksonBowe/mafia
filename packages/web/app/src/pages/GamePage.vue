@@ -23,7 +23,7 @@
 
 		<!-- Game content -->
 		<template v-else>
-			<div class="row col bg-red">
+			<div class="row col bg-red q-col-gutter-sm">
 				<div class="col-12 col-sm-6 column q-gutter-y-md bg-green">
 					<div class="col row items-start bg-orange">
 						<transition-group
@@ -33,10 +33,10 @@
 						>
 							<game-graveyard
 								key="graveyard"
-								class="col-md-4 col-sm-6"
+								class="col-12 col-sm-6 col-md-4"
 								:entries="graveyardEntries"
 							/>
-							<game-roles key="roles" class="col-md-3 col-sm-5" />
+							<game-roles key="roles" class="col-12 col-sm-5 col-md-3" />
 						</transition-group>
 					</div>
 
@@ -53,7 +53,7 @@
 							<game-role
 								v-if="gameStore.actor"
 								key="role"
-								class="col-sm-9 col-md- col-lg-5 full-height"
+								class="col-12 col-sm-9 col-md-6 col-lg-5 full-height"
 								:role-name="gameStore.actor.role ?? 'Unknown'"
 								:config="roleConfig"
 							/>
@@ -63,7 +63,7 @@
 					<div class="col row justify-end items-stretch">
 						<transition appear enter-active-class="animated slideInRight">
 							<game-actions
-								class="col-5 col-sm-11 col-md-8 col-lg-6 full-height"
+								class="col-12 col-sm-11 col-md-8 col-lg-6 full-height"
 								:phase="gameStore.phase"
 								:alive="gameStore.actor?.alive ?? false"
 								:has-targets="hasTargets"
