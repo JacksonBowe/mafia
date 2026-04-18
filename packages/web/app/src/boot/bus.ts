@@ -1,10 +1,12 @@
 import { boot } from 'quasar/wrappers';
 import { createBus } from 'src/lib/bus';
 import { ChatEventSchemas } from 'src/lib/chat/events';
+import { GameEventSchemas } from 'src/lib/game/events';
 import { LobbyEventSchemas } from 'src/lib/lobby/events';
 
 const schemas = {
 	...ChatEventSchemas,
+	...GameEventSchemas,
 	...LobbyEventSchemas,
 } as const;
 

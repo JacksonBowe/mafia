@@ -27,7 +27,6 @@ watch(
 	(gameId) => {
 		if (gameId) {
 			gameStore.completeTransition(gameId);
-			Loading.hide();
 			if (router.currentRoute.value.path !== '/game') {
 				void router.push('/game');
 			}
@@ -35,7 +34,7 @@ watch(
 		}
 
 		// No game - clear store and redirect away from /game if needed
-		if (!gameStore.transitionPending) {
+		if (gameStore.status !== 'transitioning') {
 			gameStore.completeTransition(null);
 			if (router.currentRoute.value.path === '/game') {
 				void router.push('/');
@@ -43,5 +42,15 @@ watch(
 		}
 	},
 	{ immediate: true },
+);
+
+// Hide loading spinner once store transitions out of transitioning/syncing
+watch(
+	() => gameStore.status,
+	(status) => {
+		if (status === 'ready' || status === 'error' || status === 'idle') {
+			Loading.hide();
+		}
+	},
 );
 </script>
