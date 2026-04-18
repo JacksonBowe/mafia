@@ -23,9 +23,20 @@
 
 		<!-- Game content -->
 		<template v-else>
-			<div class="row col bg-red q-col-gutter-sm">
-				<div class="col-12 col-sm-6 column q-gutter-y-md bg-green">
-					<div class="col row items-start bg-orange">
+			<!-- Top bar -->
+			<div class="row items-center justify-between q-mb-sm">
+				<div class="row q-gutter-sm">
+					<q-btn label="Leave" no-caps size="sm" color="negative" glossy push />
+					<q-btn label="Menu" no-caps size="sm" color="primary" glossy push />
+					<q-btn label="Logs" no-caps size="sm" color="info" glossy push />
+					<q-btn label="Help" no-caps size="sm" color="warning" glossy push />
+				</div>
+				<game-timer :duration="200" />
+			</div>
+
+			<div class="row col q-col-gutter-sm">
+				<div class="col-12 col-sm-6 column q-gutter-y-md">
+					<div class="col row items-start orange">
 						<transition-group
 							tag="div"
 							enter-active-class="animated slideInLeft"
@@ -47,8 +58,8 @@
 					</div>
 				</div>
 
-				<div class="col-12 col-sm-6 column q-gutter-y-md bg-yellow">
-					<div class="col row justify-end items-stretch bg-brown">
+				<div class="col-12 col-sm-6 column q-gutter-y-md">
+					<div class="col row justify-end items-stretch">
 						<transition enter-active-class="animated slideInRight">
 							<game-role
 								v-if="gameStore.actor"
@@ -73,7 +84,7 @@
 				</div>
 			</div>
 
-			<div v-if="false" class="row justify-center q-mt-md bg-pink">
+			<div v-if="false" class="row justify-center q-mt-md">
 				<transition
 					enter-active-class="animated bounceInDown"
 					leave-active-class="animated bounceOutUp"
@@ -93,6 +104,7 @@
 </template>
 
 <script setup lang="ts">
+import GameTimer from 'src/components/game/GameTimer.vue';
 import GameActions from 'src/components/game/actions/GameActions.vue';
 import GameChat from 'src/components/game/chat/GameChat.vue';
 import type { GraveyardEntry } from 'src/components/game/graveyard/GameGraveyard.vue';
