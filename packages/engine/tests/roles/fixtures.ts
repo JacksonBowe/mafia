@@ -19,5 +19,6 @@ export const makeActor = (overrides: Partial<ActorState>): ActorState => ({
 	targets: [],
 	allies: [],
 	roleActions: {},
+	alignment: null,
 	...overrides,
 });

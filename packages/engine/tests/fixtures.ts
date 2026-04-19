@@ -12,6 +12,7 @@ export const dummyActors = (count: number): ActorState[] =>
 		targets: [],
 		allies: [],
 		roleActions: {},
+		alignment: null,
 	}));
 
 export const dummyConfig = (): GameConfig => ({
@@ -20,7 +21,7 @@ export const dummyConfig = (): GameConfig => ({
 	roles: {
 		Citizen: { max: 3, weight: 1, settings: { maxVests: 2 } },
 		Bodyguard: { max: 1, weight: 1, settings: {} },
-		Mafioso: { max: 1, weight: 1, settings: { promotes: false } },
+		Mafioso: { max: 1, weight: 1, settings: {} },
 	},
 });
 

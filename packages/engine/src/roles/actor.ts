@@ -1,6 +1,7 @@
 import { CommonEvents, GameEvent, GameEventGroup } from '../events';
 import type { EngineLogger } from '../logger';
-import type { ActorState } from '../types';
+import type { ActorAlignment, ActorState } from '../types';
+import type { RoleName } from './index';
 import type { Rng } from '../utils';
 
 export type ActorContext = {
@@ -15,7 +16,7 @@ type DoctorActor = Actor & { reviveTarget: (target: Actor) => void };
 export class Actor {
 	static tags: string[] = ['any_random'];
 
-	alignment: Alignment | null = null;
+	alignment: ActorAlignment | null = null;
 	input: ActorState;
 	alias: string;
 	number?: number | undefined;
@@ -45,8 +46,8 @@ export class Actor {
 		this.rng = context.rng;
 	}
 
-	get roleName() {
-		return this.constructor.name;
+	get roleName(): RoleName {
+		return this.constructor.name as RoleName;
 	}
 
 	dumpState() {
@@ -60,6 +61,7 @@ export class Actor {
 			),
 			alive: this.alive ?? true,
 			number: this.number,
+			alignment: this.alignment,
 			targets: [],
 			allies: this.allies.map((ally) => ({
 				alias: ally.alias,
@@ -170,19 +172,14 @@ export class Actor {
 	}
 }
 
-export enum Alignment {
-	Town = 'Town',
-	Mafia = 'Mafia',
-}
-
 export class Town extends Actor {
 	constructor(input: ActorState, context: ActorContext) {
 		super(input, context);
-		this.alignment = Alignment.Town;
+		this.alignment = 'Town';
 	}
 
 	override checkForWin(actors: Actor[]) {
-		const enemies = actors.filter((actor) => actor.alignment === Alignment.Mafia);
+		const enemies = actors.filter((actor) => actor.alignment === 'Mafia');
 		return enemies.length === 0;
 	}
 }
@@ -190,7 +187,7 @@ export class Town extends Actor {
 export class Mafia extends Actor {
 	constructor(input: ActorState, context: ActorContext) {
 		super(input, context);
-		this.alignment = Alignment.Mafia;
+		this.alignment = 'Mafia';
 		this.killReason = 'They were found riddled with bullets';
 	}
 

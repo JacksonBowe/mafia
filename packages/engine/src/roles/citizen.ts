@@ -2,9 +2,11 @@ import { z } from 'zod';
 import type { ActorState } from '../types';
 import { Town, type ActorContext, type Actor } from './actor';
 
-const CitizenSettingsSchema = z.object({
+export const CitizenSettingsSchema = z.object({
 	maxVests: z.number().int().min(0).default(2),
 });
+
+export type CitizenSettings = z.infer<typeof CitizenSettingsSchema>;
 
 export class Citizen extends Town {
 	static override tags = ['any_random', 'town_random', 'town_government'];
@@ -17,8 +19,9 @@ export class Citizen extends Town {
 	) {
 		super(input, context);
 		const parsed = CitizenSettingsSchema.parse(settings);
-		const fromActions = input.roleActions?.remainingVests as number | undefined;
-		this.remainingVests = typeof fromActions === 'number' ? fromActions : parsed.maxVests;
+		const fromActions = input.roleActions?.remainingVests;
+		this.remainingVests =
+			typeof fromActions === 'number' ? fromActions : parsed.maxVests;
 	}
 
 	override dumpState() {
@@ -53,8 +56,7 @@ export class Citizen extends Town {
 		if (!target) return;
 		target.nightImmune = true;
 		this.logger.info(
-			`|${this.roleName}| ${this.alias}(${String(this.number)}) used vest on ${
-				target === this ? 'self' : target.toString()
+			`|${this.roleName}| ${this.alias}(${String(this.number)}) used vest on ${target === this ? 'self' : target.toString()
 			}. ${String(this.remainingVests)} remaining`,
 		);
 	}

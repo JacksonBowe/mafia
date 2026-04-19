@@ -1,6 +1,11 @@
+import { z } from 'zod';
 import type { ActorState } from '../types';
 import { Duration, GameEvent, GameEventGroup, CommonEvents } from '../events';
 import { Mafia, type ActorContext, type Actor } from './actor';
+
+export const MafiosoSettingsSchema = z.object({}).strict();
+
+export type MafiosoSettings = z.infer<typeof MafiosoSettingsSchema>;
 
 export class Mafioso extends Mafia {
 	static override tags = ['any_random', 'mafia_random', 'mafia_killing'];
@@ -11,6 +16,7 @@ export class Mafioso extends Mafia {
 		context: ActorContext,
 	) {
 		super(input, context);
+		MafiosoSettingsSchema.parse(_settings);
 	}
 
 	override findPossibleTargets(actors: Actor[] = []) {

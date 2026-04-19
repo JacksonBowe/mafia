@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { loadGame, newGame, resolveGame } from '../src/index';
+import { loadGame, newGame, resolveGame, type GameConfig } from '../src/index';
 import { DEFAULT_SEED, dummyConfig, dummyActors, toActorInput } from './fixtures';
 
 describe('engine', () => {
@@ -37,46 +37,49 @@ describe('engine', () => {
 				id: 'user-2',
 				name: 'UserName2',
 				alias: 'UserAlias2',
-				role: 'Mafioso',
+				role: 'Mafioso' as const,
 				number: 1,
 				alive: true,
 				possibleTargets: [],
 				targets: [3],
 				allies: [],
 				roleActions: {},
+				alignment: null,
 			},
 			{
 				id: 'user-3',
 				name: 'UserName3',
 				alias: 'UserAlias3',
-				role: 'Mafioso',
+				role: 'Mafioso' as const,
 				number: 2,
 				alive: true,
 				possibleTargets: [],
 				targets: [3],
 				allies: [],
 				roleActions: {},
+				alignment: null,
 			},
 			{
 				id: 'user-1',
 				name: 'UserName1',
 				alias: 'UserAlias1',
-				role: 'Citizen',
+				role: 'Citizen' as const,
 				number: 3,
 				alive: true,
 				possibleTargets: [],
 				targets: [3],
 				allies: [],
 				roleActions: { remainingVests: 2 },
+				alignment: null,
 			},
 		];
 
-		const config = {
+		const config: GameConfig = {
 			tags: ['town_government', 'mafia_killing', 'any_random', 'town_killing'],
 			settings: {},
 			roles: {
 				Citizen: { max: 0, weight: 0.01, settings: { maxVests: 2 } },
-				Mafioso: { max: 2, weight: 1, settings: { promotes: false } },
+				Mafioso: { max: 2, weight: 1, settings: {} },
 			},
 		};
 
@@ -106,47 +109,50 @@ describe('engine', () => {
 				id: 'user-2',
 				name: 'UserName2',
 				alias: 'UserAlias2',
-				role: 'Bodyguard',
+				role: 'Bodyguard' as const,
 				number: 1,
 				alive: true,
 				possibleTargets: [],
 				targets: [3],
 				allies: [],
 				roleActions: {},
+				alignment: null,
 			},
 			{
 				id: 'user-3',
 				name: 'UserName3',
 				alias: 'UserAlias3',
-				role: 'Mafioso',
+				role: 'Mafioso' as const,
 				number: 2,
 				alive: true,
 				possibleTargets: [],
 				targets: [3],
 				allies: [],
 				roleActions: {},
+				alignment: null,
 			},
 			{
 				id: 'user-1',
 				name: 'UserName1',
 				alias: 'UserAlias1',
-				role: 'Citizen',
+				role: 'Citizen' as const,
 				number: 3,
 				alive: true,
 				possibleTargets: [],
 				targets: [],
 				allies: [],
 				roleActions: { remainingVests: 2 },
+				alignment: null,
 			},
 		];
 
-		const config = {
+		const config: GameConfig = {
 			tags: ['town_government', 'mafia_killing', 'any_random', 'town_killing'],
 			settings: {},
 			roles: {
 				Citizen: { max: 0, weight: 0.01, settings: { maxVests: 2 } },
 				Bodyguard: { max: 1, weight: 1, settings: {} },
-				Mafioso: { max: 2, weight: 1, settings: { promotes: false } },
+				Mafioso: { max: 2, weight: 1, settings: {} },
 			},
 		};
 

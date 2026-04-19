@@ -1,6 +1,11 @@
+import { z } from 'zod';
 import type { ActorState } from '../types';
 import { GameEvent, GameEventGroup } from '../events';
 import { Town, type ActorContext, type Actor } from './actor';
+
+export const DoctorSettingsSchema = z.object({}).strict();
+
+export type DoctorSettings = z.infer<typeof DoctorSettingsSchema>;
 
 export class Doctor extends Town {
 	static override tags = ['any_random', 'town_random', 'town_protective'];
@@ -11,6 +16,7 @@ export class Doctor extends Town {
 		context: ActorContext,
 	) {
 		super(input, context);
+		DoctorSettingsSchema.parse(_settings);
 	}
 
 	override findPossibleTargets(actors: Actor[] = []) {

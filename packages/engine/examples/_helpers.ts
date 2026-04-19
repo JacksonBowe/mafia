@@ -16,6 +16,7 @@ export const dummyActors = (count: number): ActorState[] =>
 		targets: [],
 		allies: [],
 		roleActions: {},
+		alignment: null,
 	}));
 
 /**

@@ -13,6 +13,7 @@ const actors: ActorState[] = [
 		targets: [3],
 		allies: [],
 		roleActions: {},
+		alignment: null,
 	},
 	{
 		id: 'user-2',
@@ -25,6 +26,7 @@ const actors: ActorState[] = [
 		targets: [3],
 		allies: [],
 		roleActions: {},
+		alignment: null,
 	},
 	{
 		id: 'user-3',
@@ -37,6 +39,7 @@ const actors: ActorState[] = [
 		targets: [],
 		allies: [],
 		roleActions: { remainingVests: 2 },
+		alignment: null,
 	},
 ];
 
@@ -46,7 +49,7 @@ const config: GameConfig = {
 	roles: {
 		Citizen: { max: 1, weight: 1, settings: { maxVests: 2 } },
 		Bodyguard: { max: 1, weight: 1, settings: {} },
-		Mafioso: { max: 1, weight: 1, settings: { promotes: false } },
+		Mafioso: { max: 1, weight: 1, settings: {} },
 	},
 };
 

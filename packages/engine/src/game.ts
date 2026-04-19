@@ -1,10 +1,16 @@
 import { EngineError } from './error';
 import { GameEventGroup } from './events';
 import { EngineLogger } from './logger';
-import { ROLE_LIST, ROLE_TAGS_MAP, importRole } from './roles';
-import { Alignment, type Actor } from './roles/actor';
 import {
-	ActorStateSchema,
+	FALLBACK_ROLE,
+	ROLE_PRIORITY,
+	ROLE_TAGS_MAP,
+	importRole,
+	type RoleName,
+} from './roles';
+import { type Actor } from './roles/actor';
+import {
+	ActorStateInputSchema,
 	EngineInputSchema,
 	EngineOptionsSchema,
 	GameConfigSchema,
@@ -36,7 +42,7 @@ const parseInput = (input: EngineInput) => {
 
 const parseActors = (actors: ActorState[]) => {
 	try {
-		return actors.map((actor) => ActorStateSchema.parse(actor));
+		return actors.map((actor) => ActorStateInputSchema.parse(actor));
 	} catch (err) {
 		throw toValidationError(err);
 	}
@@ -58,18 +64,28 @@ const parseState = (state: GameState) => {
 	}
 };
 
-const generateRoles = (config: GameConfig, logger: EngineLogger, rng: Rng) => {
+type GenerateRolesResult = {
+	roles: RoleName[];
+	failedRoles: string[];
+};
+
+const generateRoles = (
+	config: GameConfig,
+	logger: EngineLogger,
+	rng: Rng,
+): GenerateRolesResult => {
 	logger.info('--- Generating roles ---');
 	logger.info(`Tags: ${JSON.stringify(config.tags)}`);
 
 	const failedRoles: string[] = [];
-	const roleOptions: Array<[string, Array<[string, number, number]>]> = config.tags.map(
+	const roleOptions: Array<[string, Array<[RoleName, number, number]>]> = config.tags.map(
 		(tag: string) => {
-			const possibleRoles: Array<[string, number, number]> = [];
+			const possibleRoles: Array<[RoleName, number, number]> = [];
 			for (const [role, settings] of Object.entries(config.roles)) {
-				const roleTags = ROLE_TAGS_MAP[role] ?? [];
+				const roleName = role as RoleName;
+				const roleTags = ROLE_TAGS_MAP[roleName] ?? [];
 				if (roleTags.includes(tag) || tag === role) {
-					possibleRoles.push([role, settings.weight, settings.max]);
+					possibleRoles.push([roleName, settings.weight, settings.max]);
 				}
 			}
 			return [tag, possibleRoles];
@@ -83,17 +99,18 @@ const generateRoles = (config: GameConfig, logger: EngineLogger, rng: Rng) => {
 		return a[1].length - b[1].length;
 	});
 
-	const selectedRoles: string[] = [];
-	const blacklist: string[] = [];
+	const selectedRoles: RoleName[] = [];
+	const blacklist: RoleName[] = [];
 
 	while (roleOptions.length > 0) {
 		for (const [role, settings] of Object.entries(config.roles)) {
-			const count = selectedRoles.filter((selected) => selected === role).length;
-			if (count === settings.max && !blacklist.includes(role)) {
-				logger.info(`- Max reached for '${role}' -> adding to blacklist`);
-				blacklist.push(role);
+			const roleName = role as RoleName;
+			const count = selectedRoles.filter((selected) => selected === roleName).length;
+			if (count === settings.max && !blacklist.includes(roleName)) {
+				logger.info(`- Max reached for '${roleName}' -> adding to blacklist`);
+				blacklist.push(roleName);
 				for (const option of roleOptions) {
-					option[1] = option[1].filter((entry) => entry[0] !== role);
+					option[1] = option[1].filter((entry) => entry[0] !== roleName);
 				}
 			}
 		}
@@ -109,18 +126,18 @@ const generateRoles = (config: GameConfig, logger: EngineLogger, rng: Rng) => {
 		if (!entry) {
 			throw new Error('No role options available');
 		}
-		const [tag, options]: [string, Array<[string, number, number]>] = entry;
+		const [tag, options]: [string, Array<[RoleName, number, number]>] = entry;
 		const availableRoles = options.filter(
-			(role: [string, number, number]) => !blacklist.includes(role[0]),
+			(role: [RoleName, number, number]) => !blacklist.includes(role[0]),
 		);
-		let choice = 'Citizen';
+		let choice: RoleName = FALLBACK_ROLE;
 
 		if (availableRoles.length === 0) {
 			logger.warn(`Picking ${tag}: ${choice} <--- FAILED!!!`);
 			failedRoles.push(tag);
 		} else {
-			const roles = availableRoles.map((option: [string, number, number]) => option[0]);
-			const weights = availableRoles.map((option: [string, number, number]) => option[1]);
+			const roles = availableRoles.map((option: [RoleName, number, number]) => option[0]);
+			const weights = availableRoles.map((option: [RoleName, number, number]) => option[1]);
 			const [picked] = rng.choices(roles, weights, 1);
 			if (!picked) {
 				throw new Error('Failed to pick a role');
@@ -185,17 +202,18 @@ class Game {
 
 		if (shuffledActors.length > shuffledRoles.length) {
 			shuffledRoles.push(
-				...Array<string>(shuffledActors.length - shuffledRoles.length).fill('Citizen'),
+				...Array<RoleName>(shuffledActors.length - shuffledRoles.length).fill(FALLBACK_ROLE),
 			);
 		}
 
 		context.logger.info('--- Allocating roles ---');
 		for (const [index, actorInput] of shuffledActors.entries()) {
 			actorInput.number = index + 1;
-			actorInput.role = shuffledRoles[index];
+			const role = shuffledRoles[index] ?? FALLBACK_ROLE;
+			actorInput.role = role;
 			context.logger.info(
 				`  |-> ${actorInput.alias} (${actorInput.name}):`.padEnd(40) +
-					` ${actorInput.role}`,
+				` ${actorInput.role}`,
 			);
 		}
 
@@ -213,7 +231,7 @@ class Game {
 		for (const actorInput of actorInputs) {
 			context.logger.info(
 				`  |-> ${actorInput.alias} (${actorInput.name}):`.padEnd(40) +
-					` ${actorInput.role ?? 'Unknown'} ${actorInput.alive ? '' : '(DEAD)'}`,
+				` ${actorInput.role ?? 'Unknown'} ${actorInput.alive ? '' : '(DEAD)'}`,
 			);
 		}
 
@@ -253,8 +271,8 @@ class Game {
 		this.generateAlliesAndPossibleTargets();
 		this.actors.sort(
 			(a, b) =>
-				ROLE_LIST.indexOf(a.constructor as unknown as (typeof ROLE_LIST)[number]) -
-				ROLE_LIST.indexOf(b.constructor as unknown as (typeof ROLE_LIST)[number]),
+				(ROLE_PRIORITY[a.roleName as RoleName] ?? Infinity) -
+				(ROLE_PRIORITY[b.roleName as RoleName] ?? Infinity),
 		);
 
 		for (const actor of this.actors) {
@@ -316,16 +334,26 @@ class Game {
 		return this.actors.filter((actor) => !actor.alive);
 	}
 
+	private requireNumber(actor: Actor): number {
+		if (actor.number === undefined) {
+			throw new EngineError('engine.missing_number', 'Actor number is required', {
+				actor: actor.alias,
+			});
+		}
+		return actor.number;
+	}
+
 	get fullGraveyard() {
 		return [
 			...this.graveyard,
 			...this.deadActors.map((actor) => ({
-				number: actor.number ?? 0,
+				number: this.requireNumber(actor),
 				alias: actor.alias,
 				cod: actor.cod ?? 'Unknown',
 				dod: this.day,
 				role: actor.roleName,
 				will: 'actor.will',
+				alignment: actor.alignment ?? 'Town' as const,
 			})),
 		];
 	}
@@ -334,7 +362,7 @@ class Game {
 		return {
 			day: this.day,
 			actors: this.actors.map((actor) => ({
-				number: actor.number ?? 0,
+				number: this.requireNumber(actor),
 				alias: actor.alias,
 				alive: Boolean(actor.alive),
 			})),
@@ -357,14 +385,21 @@ const buildResult = (game: Game, winners: WinnerSummary[] | null, logger: Engine
 
 const summarizeWinners = (winners: ReturnType<Game['checkForWin']>): WinnerSummary[] | null => {
 	if (!winners || winners.length === 0) return null;
-	return winners.map((winner) => ({
-		id: winner.input.id,
-		name: winner.input.name,
-		alias: winner.alias,
-		number: winner.number ?? 0,
-		role: winner.roleName,
-		alignment: (winner.alignment ?? Alignment.Town) as WinnerSummary['alignment'],
-	}));
+	return winners.map((winner) => {
+		if (winner.number === undefined) {
+			throw new EngineError('engine.missing_number', 'Winner must have a number', {
+				actor: winner.alias,
+			});
+		}
+		return {
+			id: winner.input.id,
+			name: winner.input.name,
+			alias: winner.alias,
+			number: winner.number,
+			role: winner.roleName,
+			alignment: winner.alignment ?? 'Town' as const,
+		};
+	});
 };
 
 export const newGame = (input: EngineInput): EngineResult => {

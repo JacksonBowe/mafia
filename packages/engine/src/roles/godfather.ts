@@ -4,9 +4,11 @@ import { Duration, GameEvent, GameEventGroup, CommonEvents } from '../events';
 import { Mafia, type ActorContext, type Actor } from './actor';
 import { Mafioso } from './mafioso';
 
-const GodfatherSettingsSchema = z.object({
+export const GodfatherSettingsSchema = z.object({
 	nightImmune: z.number().int().min(0).default(2),
 });
+
+export type GodfatherSettings = z.infer<typeof GodfatherSettingsSchema>;
 
 export class Godfather extends Mafia {
 	constructor(

@@ -1,6 +1,11 @@
+import { z } from 'zod';
 import type { ActorState } from '../types';
 import { Duration, GameEvent, GameEventGroup } from '../events';
 import { Town, type ActorContext, type Actor } from './actor';
+
+export const BodyguardSettingsSchema = z.object({}).strict();
+
+export type BodyguardSettings = z.infer<typeof BodyguardSettingsSchema>;
 
 export class Bodyguard extends Town {
 	static override tags = ['any_random', 'town_random', 'town_protective', 'town_killing'];
@@ -12,6 +17,7 @@ export class Bodyguard extends Town {
 		context: ActorContext,
 	) {
 		super(input, context);
+		BodyguardSettingsSchema.parse(_settings);
 	}
 
 	override findPossibleTargets(actors: Actor[] = []) {
