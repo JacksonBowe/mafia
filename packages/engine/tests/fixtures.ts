@@ -1,8 +1,8 @@
-import type { ActorState, GameConfigInput, PlayerInput } from '../src/index';
+import type { ActorState, GameConfig } from '../src/index';
 
 export const DEFAULT_SEED = 42;
 
-export const dummyPlayers = (count: number): PlayerInput[] =>
+export const dummyActors = (count: number): ActorState[] =>
 	Array.from({ length: count }, (_, index) => ({
 		id: `user-${index + 1}`,
 		name: `UserName${index + 1}`,
@@ -14,7 +14,7 @@ export const dummyPlayers = (count: number): PlayerInput[] =>
 		roleActions: {},
 	}));
 
-export const dummyConfig = (): GameConfigInput => ({
+export const dummyConfig = (): GameConfig => ({
 	tags: ['town_random', 'town_protective', 'mafia_killing'],
 	settings: {},
 	roles: {
@@ -24,11 +24,11 @@ export const dummyConfig = (): GameConfigInput => ({
 	},
 });
 
-export const toPlayerInput = (player: ActorState): PlayerInput => ({
-	...player,
-	alive: player.alive ?? true,
-	possibleTargets: player.possibleTargets ?? [],
-	targets: player.targets ?? [],
-	allies: player.allies ?? [],
-	roleActions: player.roleActions ?? {},
+export const toActorInput = (actor: ActorState): ActorState => ({
+	...actor,
+	alive: actor.alive ?? true,
+	possibleTargets: actor.possibleTargets ?? [],
+	targets: actor.targets ?? [],
+	allies: actor.allies ?? [],
+	roleActions: actor.roleActions ?? {},
 });

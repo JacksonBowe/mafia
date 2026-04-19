@@ -24,7 +24,7 @@ const realtime = useRealtime();
 useGameEvents();
 
 watch(
-	() => gameStore.currentGameId,
+	() => gameStore.info?.id,
 	(next, prev) => {
 		if (prev) {
 			realtime.unsubscribe(`game/${prev}`);

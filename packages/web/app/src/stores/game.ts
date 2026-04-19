@@ -1,6 +1,12 @@
-import type { GameSync, SyncActor, SyncEngineState, SyncPlayer } from '@mafia/core/game/index';
+import type {
+	ActorState,
+	ClientGameInfo,
+	GameConfig,
+	GameState,
+	GameSyncResponse,
+} from '@mafia/core/game/index';
 import { defineStore } from 'pinia';
-import { fetchGameSync } from 'src/lib/game/api';
+import { fetchGame } from 'src/lib/game/api';
 
 /**
  * Lifecycle states:
@@ -15,29 +21,23 @@ export type GameStoreStatus = 'idle' | 'transitioning' | 'syncing' | 'ready' | '
 export const useGameStore = defineStore('game', {
 	state: () => ({
 		status: 'idle' as GameStoreStatus,
-		currentGameId: null as string | null,
-		gameSync: null as GameSync | null,
+		info: null as ClientGameInfo | null,
+		state: null as GameState | null,
+		config: null as GameConfig | null,
+		actor: null as ActorState | null,
 		error: null as string | null,
 		phaseMeta: null as { phase: string; duration: number } | null,
 		/** Server-authoritative timestamp (ms) of the last applied sync */
 		lastSyncTs: 0,
 	}),
 	getters: {
-		hasActiveGame: (s) => !!s.currentGameId,
-		isReady: (s) => s.status === 'ready' && !!s.gameSync,
-		/** Convenience: the public engine state */
-		engineState: (s): SyncEngineState | null => s.gameSync?.engineState ?? null,
-		/** Convenience: the player list */
-		players: (s): SyncPlayer[] => s.gameSync?.players ?? [],
-		/** Convenience: this user's private actor data */
-		actor: (s): SyncActor | null => s.gameSync?.actor ?? null,
+		hasActiveGame: (s) => !!s.info,
+		isReady: (s) => s.status === 'ready' && !!s.info,
 		/** Convenience: current game phase */
-		phase: (s): string | null => s.gameSync?.phase ?? null,
+		phase: (s): string | null => s.info?.phase ?? null,
 		/** Convenience: poll count */
-		pollCount: (s): number => s.gameSync?.pollCount ?? 0,
+		pollCount: (s): number => s.info?.pollCount ?? 0,
 
-		// Keep backward compat for code checking currentGame / transitionPending
-		currentGame: (s) => s.gameSync,
 		transitionPending: (s) => s.status === 'transitioning',
 	},
 	actions: {
@@ -53,7 +53,7 @@ export const useGameStore = defineStore('game', {
 		/**
 		 * Called by App.vue when presence.gameId changes.
 		 *
-		 * Invariant: currentGameId can only transition null→id or id→null.
+		 * Invariant: info.id can only transition null→id or id→null.
 		 * A direct gameA→gameB transition is not valid; clear first.
 		 */
 		completeTransition(gameId: string | null) {
@@ -63,14 +63,12 @@ export const useGameStore = defineStore('game', {
 			}
 
 			// Enforce invariant: cannot switch between two different games
-			if (this.currentGameId && this.currentGameId !== gameId) {
+			if (this.info?.id && this.info.id !== gameId) {
 				console.error(
-					`[game-store] Illegal gameId transition ${this.currentGameId} → ${gameId}; clearing first`,
+					`[game-store] Illegal gameId transition ${this.info.id} → ${gameId}; clearing first`,
 				);
 				this.clearGame();
 			}
-
-			this.currentGameId = gameId;
 
 			// Bootstrap sync when not yet ready
 			if (this.status !== 'ready') {
@@ -79,7 +77,7 @@ export const useGameStore = defineStore('game', {
 		},
 
 		/**
-		 * Fetch game state from /game/me/sync and hydrate the store.
+		 * Fetch game data from GET /game and hydrate the store.
 		 *
 		 * When the store is already `ready`, this runs as a background
 		 * reconciliation — the status stays `ready` so the UI doesn't
@@ -94,13 +92,13 @@ export const useGameStore = defineStore('game', {
 			this.error = null;
 
 			try {
-				const syncData = await fetchGameSync();
+				const data = await fetchGame();
 
 				// Guard: store may have been cleared while the request was in-flight
 				if (this.status === 'idle') return;
 
-				if (syncData) {
-					this.hydrateFromSync(syncData);
+				if (data) {
+					this.hydrateFromSync(data);
 				} else if (!isBackground) {
 					this.status = 'error';
 					this.error = 'No active game found';
@@ -116,32 +114,41 @@ export const useGameStore = defineStore('game', {
 		},
 
 		/**
-		 * Hydrate the store from a GameSync payload (from HTTP or realtime).
+		 * Hydrate the store from a GameSyncResponse payload (from HTTP or realtime).
 		 *
 		 * Guards:
 		 * - Rejects payloads whose `syncTs` is not newer than the last applied sync.
-		 * - Rejects payloads for a different game than `currentGameId` (if set).
+		 * - Rejects payloads for a different game than the current one (if set).
+		 *
+		 * Note: `config` is only set on the first sync since config is
+		 * immutable once a game has started.
 		 */
-		hydrateFromSync(sync: GameSync) {
+		hydrateFromSync(sync: GameSyncResponse) {
 			// Stale response — discard
-			if (sync.syncTs <= this.lastSyncTs) {
+			if (sync.info.syncTs <= this.lastSyncTs) {
 				return;
 			}
 
 			// Wrong game — discard
-			if (this.currentGameId && sync.gameId !== this.currentGameId) {
+			if (this.info?.id && sync.info.id !== this.info.id) {
 				console.warn(
-					`[game-store] Discarding sync for ${sync.gameId}; active game is ${this.currentGameId}`,
+					`[game-store] Discarding sync for ${sync.info.id}; active game is ${this.info.id}`,
 				);
 				return;
 			}
 
-			this.gameSync = sync;
-			this.currentGameId = sync.gameId;
-			this.lastSyncTs = sync.syncTs;
-			this.phaseMeta = { phase: sync.phase, duration: 0 };
+			this.info = sync.info;
+			this.state = sync.state;
+			this.actor = sync.actor;
+			this.lastSyncTs = sync.info.syncTs;
+			this.phaseMeta = { phase: sync.info.phase, duration: 0 };
 			this.status = 'ready';
 			this.error = null;
+
+			// Config is immutable — only set on first hydration
+			if (!this.config) {
+				this.config = sync.config;
+			}
 		},
 
 		/**
@@ -149,18 +156,16 @@ export const useGameStore = defineStore('game', {
 		 */
 		applyPhaseEvent(phase: string, duration: number) {
 			this.phaseMeta = { phase, duration };
-			if (this.gameSync) {
-				this.gameSync = { ...this.gameSync, phase: phase as GameSync['phase'] };
+			if (this.info) {
+				this.info = { ...this.info, phase: phase as ClientGameInfo['phase'] };
 			}
 		},
 
 		/**
 		 * Update public engine state from a realtime state event.
 		 */
-		applyStateEvent(state: SyncEngineState) {
-			if (this.gameSync) {
-				this.gameSync = { ...this.gameSync, engineState: state };
-			}
+		applyStateEvent(state: GameState) {
+			this.state = state;
 		},
 
 		/**
@@ -186,8 +191,10 @@ export const useGameStore = defineStore('game', {
 		 */
 		clearGame() {
 			this.status = 'idle';
-			this.currentGameId = null;
-			this.gameSync = null;
+			this.info = null;
+			this.state = null;
+			this.config = null;
+			this.actor = null;
 			this.phaseMeta = null;
 			this.error = null;
 			this.lastSyncTs = 0;

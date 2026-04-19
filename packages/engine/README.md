@@ -8,12 +8,12 @@ inputs, resolves state, and returns a fully serializable output payload (includi
 ## API (pseudocode)
 
 ```
-newGame({ players, config, options }) -> { state, actors, events, winners, log }
-loadGame({ players, config, state, options }) -> { state, actors, events, winners, log }
-resolveGame({ players, config, state, options }) -> { state, actors, events, winners, log }
+newGame({ actors, config, options }) -> { state, actors, events, winners, log }
+loadGame({ actors, config, state, options }) -> { state, actors, events, winners, log }
+resolveGame({ actors, config, state, options }) -> { state, actors, events, winners, log }
 ```
 
-- `players` are input payloads (ids, names, aliases, targets, roleActions).
+- `actors` are input payloads (ids, names, aliases, targets, roleActions).
 - `state` is the last known `GameState` when loading/resolving.
 - `options.seed` makes the RNG deterministic.
 

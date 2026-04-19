@@ -1,4 +1,4 @@
-import type { SyncEngineState } from '@mafia/core/game/index';
+import type { GameState } from '@mafia/core/game/index';
 import { useQueryClient } from '@tanstack/vue-query';
 import type { AppBus } from 'src/boot/bus';
 import { useGameStore } from 'src/stores/game';
@@ -39,25 +39,25 @@ export function useGameEvents() {
 	onMounted(() => {
 		off.push(
 			bus.on('realtime.game.phase', ({ gameId, phase, duration }) => {
-				if (gameStore.currentGameId !== gameId) return;
+				if (gameStore.info?.id !== gameId) return;
 				gameStore.applyPhaseEvent(phase, duration);
 			}),
 			bus.on('realtime.game.state', ({ gameId, state }) => {
-				if (gameStore.currentGameId !== gameId) return;
+				if (gameStore.info?.id !== gameId) return;
 				// Apply state optimistically, then re-sync to get full data (actor etc.)
 				if (state && typeof state === 'object') {
-					gameStore.applyStateEvent(state as SyncEngineState);
+					gameStore.applyStateEvent(state as GameState);
 				}
 				// Full re-sync to pick up actor updates, player changes, etc.
 				void gameStore.syncFromServer();
 			}),
 			bus.on('realtime.game.over', ({ gameId }) => {
-				if (gameStore.currentGameId !== gameId) return;
+				if (gameStore.info?.id !== gameId) return;
 				// Re-sync to get final state
 				void gameStore.syncFromServer();
 			}),
 			bus.on('realtime.game.terminated', ({ gameId }) => {
-				if (gameStore.currentGameId === gameId) {
+				if (gameStore.info?.id === gameId) {
 					gameStore.clearGame();
 				}
 				void queryClient.invalidateQueries({ queryKey: ['actor', 'presence'] });

@@ -1,7 +1,7 @@
-import { resolveGame, type GameConfigInput, type PlayerInput } from '../src/index';
+import { resolveGame, type GameConfig, type ActorState } from '../src/index';
 import { DEFAULT_SEED } from './_helpers';
 
-const players: PlayerInput[] = [
+const actors: ActorState[] = [
 	{
 		id: 'user-1',
 		name: 'UserName1',
@@ -40,7 +40,7 @@ const players: PlayerInput[] = [
 	},
 ];
 
-const config: GameConfigInput = {
+const config: GameConfig = {
 	tags: ['town_random', 'town_protective', 'mafia_killing'],
 	settings: {},
 	roles: {
@@ -52,7 +52,7 @@ const config: GameConfigInput = {
 
 const state = {
 	day: 1,
-	players: [
+	actors: [
 		{ number: 1, alias: 'UserAlias1', alive: true },
 		{ number: 2, alias: 'UserAlias2', alive: true },
 		{ number: 3, alias: 'UserAlias3', alive: true },
@@ -62,7 +62,7 @@ const state = {
 
 const run = () => {
 	const resolved = resolveGame({
-		players,
+		actors,
 		config,
 		state,
 		options: { seed: DEFAULT_SEED },

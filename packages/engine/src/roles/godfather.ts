@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { PlayerInput } from '../types';
+import type { ActorState } from '../types';
 import { Duration, GameEvent, GameEventGroup, CommonEvents } from '../events';
 import { Mafia, type ActorContext, type Actor } from './actor';
 import { Mafioso } from './mafioso';
@@ -10,11 +10,11 @@ const GodfatherSettingsSchema = z.object({
 
 export class Godfather extends Mafia {
 	constructor(
-		player: PlayerInput,
+		input: ActorState,
 		settings: Record<string, unknown> = {},
 		context: ActorContext,
 	) {
-		super(player, context);
+		super(input, context);
 		const parsed = GodfatherSettingsSchema.parse(settings);
 		this.nightImmune = parsed.nightImmune > 0;
 	}
@@ -47,7 +47,7 @@ export class Godfather extends Mafia {
 			successEventGroup.newEvent(
 				new GameEvent(
 					CommonEvents.KILLED_BY_MAFIA,
-					[target.player.id],
+					[target.input.id],
 					'You were killed by a member of the Mafia',
 				),
 			);
@@ -73,7 +73,7 @@ export class Godfather extends Mafia {
 		proxyEventGroup.newEvent(
 			new GameEvent(
 				'godfather_proxy_choice',
-				this.allies.map((ally) => ally.player.id),
+				this.allies.map((ally) => ally.input.id),
 				`The Godfather has chosen ${proxy.alias} to carry out the hit`,
 			),
 		);

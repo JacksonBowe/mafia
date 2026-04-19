@@ -3,28 +3,28 @@ import { Bodyguard } from '../../src/roles/bodyguard';
 import { Citizen } from '../../src/roles/citizen';
 import { Doctor } from '../../src/roles/doctor';
 import { Mafioso } from '../../src/roles/mafioso';
-import { createContext, makePlayer } from './fixtures';
+import { createContext, makeActor } from './fixtures';
 
 describe('doctor', () => {
 	it('finds possible targets', () => {
 		const context = createContext();
 		const citizen = new Citizen(
-			makePlayer({ name: 'A', alias: 'test_citizen', number: 1, id: '1' }),
+			makeActor({ name: 'A', alias: 'test_citizen', number: 1, id: '1' }),
 			{},
 			context,
 		);
 		const bodyguard = new Bodyguard(
-			makePlayer({ name: 'B', alias: 'test_bodyguard', number: 2, id: '2' }),
+			makeActor({ name: 'B', alias: 'test_bodyguard', number: 2, id: '2' }),
 			{},
 			context,
 		);
 		const doctor = new Doctor(
-			makePlayer({ name: 'C', alias: 'test_doctor', number: 3, id: '3' }),
+			makeActor({ name: 'C', alias: 'test_doctor', number: 3, id: '3' }),
 			{},
 			context,
 		);
 		const mafioso = new Mafioso(
-			makePlayer({ name: 'D', alias: 'test_mafioso', number: 4, id: '4' }),
+			makeActor({ name: 'D', alias: 'test_mafioso', number: 4, id: '4' }),
 			{},
 			context,
 		);
@@ -39,22 +39,22 @@ describe('doctor', () => {
 	it('heals a citizen from a mafia attack', () => {
 		const context = createContext();
 		const citizen = new Citizen(
-			makePlayer({ name: 'A', alias: 'test_citizen', number: 1, id: '1' }),
+			makeActor({ name: 'A', alias: 'test_citizen', number: 1, id: '1' }),
 			{},
 			context,
 		);
 		const bodyguard = new Bodyguard(
-			makePlayer({ name: 'B', alias: 'test_bodyguard', number: 2, id: '2' }),
+			makeActor({ name: 'B', alias: 'test_bodyguard', number: 2, id: '2' }),
 			{},
 			context,
 		);
 		const doctor = new Doctor(
-			makePlayer({ name: 'C', alias: 'test_doctor', number: 3, id: '3' }),
+			makeActor({ name: 'C', alias: 'test_doctor', number: 3, id: '3' }),
 			{},
 			context,
 		);
 		const mafioso = new Mafioso(
-			makePlayer({ name: 'D', alias: 'test_mafioso', number: 4, id: '4' }),
+			makeActor({ name: 'D', alias: 'test_mafioso', number: 4, id: '4' }),
 			{},
 			context,
 		);
@@ -78,22 +78,22 @@ describe('doctor', () => {
 	it('revives a bodyguard after a shootout', () => {
 		const context = createContext();
 		const citizen = new Citizen(
-			makePlayer({ name: 'A', alias: 'test_citizen', number: 1, id: '1' }),
+			makeActor({ name: 'A', alias: 'test_citizen', number: 1, id: '1' }),
 			{},
 			context,
 		);
 		const bodyguard = new Bodyguard(
-			makePlayer({ name: 'B', alias: 'test_bodyguard', number: 2, id: '2' }),
+			makeActor({ name: 'B', alias: 'test_bodyguard', number: 2, id: '2' }),
 			{},
 			context,
 		);
 		const doctor = new Doctor(
-			makePlayer({ name: 'C', alias: 'test_doctor', number: 3, id: '3' }),
+			makeActor({ name: 'C', alias: 'test_doctor', number: 3, id: '3' }),
 			{},
 			context,
 		);
 		const mafioso = new Mafioso(
-			makePlayer({ name: 'D', alias: 'test_mafioso', number: 4, id: '4' }),
+			makeActor({ name: 'D', alias: 'test_mafioso', number: 4, id: '4' }),
 			{},
 			context,
 		);

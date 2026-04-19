@@ -1,4 +1,4 @@
-import type { PlayerInput } from '../types';
+import type { ActorState } from '../types';
 import { Duration, GameEvent, GameEventGroup } from '../events';
 import { Town, type ActorContext, type Actor } from './actor';
 
@@ -7,11 +7,11 @@ export class Bodyguard extends Town {
 	private guarding?: Actor;
 
 	constructor(
-		player: PlayerInput,
+		input: ActorState,
 		_settings: Record<string, unknown> = {},
 		context: ActorContext,
 	) {
-		super(player, context);
+		super(input, context);
 	}
 
 	override findPossibleTargets(actors: Actor[] = []) {
@@ -43,7 +43,7 @@ export class Bodyguard extends Town {
 			shootoutEventGroup.newEvent(
 				new GameEvent(
 					'bodyguard_protected',
-					[this.guarding.player.id],
+					[this.guarding.input.id],
 					'You were protected by a bodyguard',
 				),
 			);
@@ -51,14 +51,14 @@ export class Bodyguard extends Town {
 		shootoutEventGroup.newEvent(
 			new GameEvent(
 				'bodyguard_protected',
-				[attacker.player.id],
+				[attacker.input.id],
 				'You were killed by the Bodyguard defending your target',
 			),
 		);
 		shootoutEventGroup.newEvent(
 			new GameEvent(
 				'bodyguard_protected',
-				[this.player.id],
+				[this.input.id],
 				'You died defending your target',
 			),
 		);

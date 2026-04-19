@@ -1,50 +1,23 @@
 import { assertActor } from '@mafia/core/actor';
-import { isULID, zValidator } from '@mafia/core/error';
 import { Game } from '@mafia/core/game/index';
 import { Hono } from 'hono';
-import { z } from 'zod';
 
 type Bindings = Record<string, never>;
 
 const gameRoutes = new Hono<{ Bindings: Bindings }>();
 
-// Get current user's active game
-gameRoutes.get('/me/active', async (c) => {
+// Fetch the current user's active game (info, state, config, actor)
+gameRoutes.get('/', async (c) => {
 	const actor = assertActor('user');
 	const userId = actor.properties.userId;
 
-	const game = await Game.getByPlayer({ userId });
+	const data = await Game.sync({ userId });
 
-	if (!game) {
-		return c.json({ game: null });
+	if (!data) {
+		return c.json(null);
 	}
 
-	return c.json({ game });
-});
-
-// Sync current user's game state (public game info + private actor data)
-gameRoutes.get('/me/sync', async (c) => {
-	const actor = assertActor('user');
-	const userId = actor.properties.userId;
-
-	const syncData = await Game.sync({ userId });
-
-	if (!syncData) {
-		return c.json({ sync: null });
-	}
-
-	return c.json({ sync: syncData });
-});
-
-// Get game by ID
-export const GetGameParamsSchema = z.object({ gameId: isULID() });
-
-gameRoutes.get('/:gameId', zValidator('param', GetGameParamsSchema), async (c) => {
-	const { gameId } = c.req.valid('param');
-
-	const game = await Game.get({ gameId });
-
-	return c.json(game);
+	return c.json(data);
 });
 
 export { gameRoutes };

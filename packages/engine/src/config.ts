@@ -1,16 +1,16 @@
-import type { GameConfigInput } from './types';
+import type { GameConfig } from './types';
 
 /**
- * Default game configuration for a 15-player game.
+ * Default game configuration for a 15-actor game.
  * Setup: 8 Town, 3 Mafia, 3 Neutral, 1 Any (8-3-3-1)
  *
  * Tags are ordered slots that get filled with roles.
  * If a tag can't be filled, the engine falls back to Citizen.
  *
- * For games with fewer players, slice the tags array:
- *   { ...DEFAULT_CONFIG, tags: DEFAULT_CONFIG.tags.slice(0, playerCount) }
+ * For games with fewer actors, slice the tags array:
+ *   { ...DEFAULT_CONFIG, tags: DEFAULT_CONFIG.tags.slice(0, actorCount) }
  */
-export const DEFAULT_CONFIG: GameConfigInput = {
+export const DEFAULT_CONFIG: GameConfig = {
 	tags: [
 		// 8 Town slots
 		'town_protective', // Guaranteed protective (Doctor/Bodyguard)

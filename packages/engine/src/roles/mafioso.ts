@@ -1,4 +1,4 @@
-import type { PlayerInput } from '../types';
+import type { ActorState } from '../types';
 import { Duration, GameEvent, GameEventGroup, CommonEvents } from '../events';
 import { Mafia, type ActorContext, type Actor } from './actor';
 
@@ -6,11 +6,11 @@ export class Mafioso extends Mafia {
 	static override tags = ['any_random', 'mafia_random', 'mafia_killing'];
 
 	constructor(
-		player: PlayerInput,
+		input: ActorState,
 		_settings: Record<string, unknown> = {},
 		context: ActorContext,
 	) {
-		super(player, context);
+		super(input, context);
 	}
 
 	override findPossibleTargets(actors: Actor[] = []) {
@@ -48,7 +48,7 @@ export class Mafioso extends Mafia {
 			successEventGroup.newEvent(
 				new GameEvent(
 					CommonEvents.KILLED_BY_MAFIA,
-					[target.player.id],
+					[target.input.id],
 					'You were killed by a member of the Mafia',
 				),
 			);

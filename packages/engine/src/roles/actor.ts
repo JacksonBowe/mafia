@@ -1,6 +1,6 @@
 import { CommonEvents, GameEvent, GameEventGroup } from '../events';
 import type { EngineLogger } from '../logger';
-import type { ActorState, PlayerInput } from '../types';
+import type { ActorState } from '../types';
 import type { Rng } from '../utils';
 
 export type ActorContext = {
@@ -16,7 +16,7 @@ export class Actor {
 	static tags: string[] = ['any_random'];
 
 	alignment: Alignment | null = null;
-	player: PlayerInput;
+	input: ActorState;
 	alias: string;
 	number?: number | undefined;
 	alive?: boolean;
@@ -35,11 +35,11 @@ export class Actor {
 	protected readonly actionEvents: GameEventGroup;
 	protected readonly rng: Rng;
 
-	constructor(player: PlayerInput, context: ActorContext) {
-		this.player = player;
-		this.alias = player.alias;
-		this.number = player.number;
-		this.alive = player.alive;
+	constructor(input: ActorState, context: ActorContext) {
+		this.input = input;
+		this.alias = input.alias;
+		this.number = input.number;
+		this.alive = input.alive;
 		this.logger = context.logger;
 		this.actionEvents = context.actionEvents;
 		this.rng = context.rng;
@@ -51,13 +51,15 @@ export class Actor {
 
 	dumpState() {
 		const state: ActorState = {
-			id: this.player.id,
-			name: this.player.name,
+			id: this.input.id,
+			name: this.input.name,
 			alias: this.alias,
-			role: this.player.role ?? this.roleName,
+			role: this.input.role ?? this.roleName,
 			possibleTargets: this.possibleTargets.map((targetList) =>
 				targetList.map((actor) => actor.number ?? 0),
 			),
+			alive: this.alive ?? true,
+			number: this.number,
 			targets: [],
 			allies: this.allies.map((ally) => ({
 				alias: ally.alias,
@@ -65,14 +67,14 @@ export class Actor {
 				role: ally.roleName,
 				alive: Boolean(ally.alive),
 			})),
-			roleActions: this.player.roleActions,
+			roleActions: this.input.roleActions,
 		};
-		if (this.number !== undefined) {
-			state.number = this.number;
-		}
-		if (this.alive !== undefined) {
-			state.alive = this.alive;
-		}
+		// if (this.number !== undefined) {
+		// 	state.number = this.number;
+		// }
+		// if (this.alive !== undefined) {
+		// 	state.alive = this.alive;
+		// }
 		return state;
 	}
 
@@ -132,7 +134,7 @@ export class Actor {
 			surviveEventGroup.newEvent(
 				new GameEvent(
 					CommonEvents.NIGHT_IMMUNE,
-					[target.player.id],
+					[target.input.id],
 					'You were attacked tonight but survived due to Night Immunity',
 				),
 			);
@@ -174,8 +176,8 @@ export enum Alignment {
 }
 
 export class Town extends Actor {
-	constructor(player: PlayerInput, context: ActorContext) {
-		super(player, context);
+	constructor(input: ActorState, context: ActorContext) {
+		super(input, context);
 		this.alignment = Alignment.Town;
 	}
 
@@ -186,8 +188,8 @@ export class Town extends Actor {
 }
 
 export class Mafia extends Actor {
-	constructor(player: PlayerInput, context: ActorContext) {
-		super(player, context);
+	constructor(input: ActorState, context: ActorContext) {
+		super(input, context);
 		this.alignment = Alignment.Mafia;
 		this.killReason = 'They were found riddled with bullets';
 	}

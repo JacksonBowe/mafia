@@ -5,7 +5,7 @@ import { Game } from '@mafia/core/game/index';
 import { Lobby } from '@mafia/core/lobby/index';
 import { realtime } from '@mafia/core/realtime';
 import { User } from '@mafia/core/user/index';
-import { DEFAULT_CONFIG, newGame, type PlayerInput } from '@mafia/engine';
+import { DEFAULT_CONFIG, newGame, type ActorState } from '@mafia/engine';
 import { Hono } from 'hono';
 import { Resource } from 'sst';
 import { z } from 'zod';
@@ -138,7 +138,7 @@ lobbyRoutes.post('/:lobbyId/start', zValidator('param', StartLobbyParamsSchema),
 		...DEFAULT_CONFIG,
 		tags: DEFAULT_CONFIG.tags.slice(0, playerCount),
 	};
-	const players: PlayerInput[] = lobbyData.members.map((member, index) => ({
+	const actors: ActorState[] = lobbyData.members.map((member, index) => ({
 		id: member.userId,
 		name: member.name,
 		alias: generateAlias(index),
@@ -150,7 +150,7 @@ lobbyRoutes.post('/:lobbyId/start', zValidator('param', StartLobbyParamsSchema),
 	}));
 
 	// 3. Run engine to create initial game state
-	const engineResult = newGame({ players, config });
+	const engineResult = newGame({ actors, config });
 
 	// 4. Persist game and delete lobby atomically
 	const { gameId } = await createTransaction(async () => {

@@ -113,9 +113,13 @@ import GameJury from 'src/components/game/jury/GameJury.vue';
 import GameRole from 'src/components/game/role/GameRole.vue';
 import GameRoles from 'src/components/game/roles/GameRoles.vue';
 import { useGameStore } from 'src/stores/game';
-import { computed } from 'vue';
+import { computed, onUnmounted } from 'vue';
 
 const gameStore = useGameStore();
+
+onUnmounted(() => {
+	gameStore.clearGame();
+});
 
 /** Build a simple role config display from actor data */
 const roleConfig = computed<Record<string, string>>(() => {
@@ -131,7 +135,7 @@ const roleConfig = computed<Record<string, string>>(() => {
 
 /** Graveyard entries from engine state */
 const graveyardEntries = computed<GraveyardEntry[]>(() => {
-	return (gameStore.engineState?.graveyard ?? []).map((g) => ({
+	return (gameStore.state?.graveyard ?? []).map((g) => ({
 		number: g.number,
 		alias: g.alias,
 		role: g.role,
@@ -142,14 +146,14 @@ const graveyardEntries = computed<GraveyardEntry[]>(() => {
 
 /** Find the player currently on trial */
 const playerOnTrial = computed(() => {
-	return gameStore.players.find((p) => p.onTrial) ?? null;
+	return null; // vote/verdict/onTrial are now delivered via realtime events only
 });
 
 /** Label for the jury card */
 const trialPlayerLabel = computed(() => {
 	const p = playerOnTrial.value;
 	if (!p) return 'Unknown';
-	return `${p.number} - ${p.alias}`;
+	return 'Unknown';
 });
 
 /** Whether the actor has any possible targets this phase */

@@ -1,18 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { Citizen } from '../../src/roles/citizen';
 import { Mafioso } from '../../src/roles/mafioso';
-import { createContext, makePlayer } from './fixtures';
+import { createContext, makeActor } from './fixtures';
 
 describe('actor', () => {
 	it('respects night immunity', () => {
 		const context = createContext();
 		const citizen = new Citizen(
-			makePlayer({ name: 'A', alias: 'test_citizen_1', number: 1, id: '1' }),
+			makeActor({ name: 'A', alias: 'test_citizen_1', number: 1, id: '1' }),
 			{},
 			context,
 		);
 		const mafioso = new Mafioso(
-			makePlayer({ name: 'C', alias: 'test_mafioso_1', number: 3, id: '3' }),
+			makeActor({ name: 'C', alias: 'test_mafioso_1', number: 3, id: '3' }),
 			{},
 			context,
 		);
@@ -27,12 +27,12 @@ describe('actor', () => {
 	it('tracks visits', () => {
 		const context = createContext();
 		const citizen = new Citizen(
-			makePlayer({ name: 'A', alias: 'test_citizen_1', number: 1, id: '1' }),
+			makeActor({ name: 'A', alias: 'test_citizen_1', number: 1, id: '1' }),
 			{},
 			context,
 		);
 		const mafioso = new Mafioso(
-			makePlayer({ name: 'C', alias: 'test_mafioso_1', number: 3, id: '3' }),
+			makeActor({ name: 'C', alias: 'test_mafioso_1', number: 3, id: '3' }),
 			{},
 			context,
 		);
@@ -46,7 +46,7 @@ describe('actor', () => {
 	it('records death reason', () => {
 		const context = createContext();
 		const citizen = new Citizen(
-			makePlayer({ name: 'A', alias: 'test_citizen_1', number: 1, id: '1' }),
+			makeActor({ name: 'A', alias: 'test_citizen_1', number: 1, id: '1' }),
 			{},
 			context,
 		);

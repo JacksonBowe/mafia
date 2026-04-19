@@ -1,19 +1,19 @@
-import { InputError } from '@mafia/core/error';
+import { EngineError } from './error';
 import { GameEventGroup } from './events';
 import { EngineLogger } from './logger';
 import { ROLE_LIST, ROLE_TAGS_MAP, importRole } from './roles';
 import { Alignment, type Actor } from './roles/actor';
 import {
+	ActorStateSchema,
 	EngineInputSchema,
 	EngineOptionsSchema,
 	GameConfigSchema,
 	GameStateSchema,
-	PlayerSchema,
+	type ActorState,
 	type EngineInput,
 	type EngineResult,
-	type GameConfigInput,
-	type GameStateInput,
-	type PlayerInput,
+	type GameConfig,
+	type GameState,
 	type WinnerSummary,
 } from './types';
 import { createRng, toSnakeCase, type Rng } from './utils';
@@ -24,7 +24,7 @@ type EngineContext = {
 };
 
 const toValidationError = (error: unknown) =>
-	new InputError('engine.validation_error', 'Invalid engine input', error);
+	new EngineError('engine.validation_error', 'Invalid engine input', error);
 
 const parseInput = (input: EngineInput) => {
 	try {
@@ -34,15 +34,15 @@ const parseInput = (input: EngineInput) => {
 	}
 };
 
-const parsePlayers = (players: PlayerInput[]) => {
+const parseActors = (actors: ActorState[]) => {
 	try {
-		return players.map((player) => PlayerSchema.parse(player));
+		return actors.map((actor) => ActorStateSchema.parse(actor));
 	} catch (err) {
 		throw toValidationError(err);
 	}
 };
 
-const parseConfig = (config: GameConfigInput) => {
+const parseConfig = (config: GameConfig) => {
 	try {
 		return GameConfigSchema.parse(config);
 	} catch (err) {
@@ -50,7 +50,7 @@ const parseConfig = (config: GameConfigInput) => {
 	}
 };
 
-const parseState = (state: GameStateInput) => {
+const parseState = (state: GameState) => {
 	try {
 		return GameStateSchema.parse(state);
 	} catch (err) {
@@ -58,7 +58,7 @@ const parseState = (state: GameStateInput) => {
 	}
 };
 
-const generateRoles = (config: GameConfigInput, logger: EngineLogger, rng: Rng) => {
+const generateRoles = (config: GameConfig, logger: EngineLogger, rng: Rng) => {
 	logger.info('--- Generating roles ---');
 	logger.info(`Tags: ${JSON.stringify(config.tags)}`);
 
@@ -144,26 +144,26 @@ class Game {
 	public actors: Actor[] = [];
 	public events = new GameEventGroup('root');
 	public actionEvents = new GameEventGroup('action');
-	private graveyard: GameStateInput['graveyard'] = [];
+	private graveyard: GameState['graveyard'] = [];
 
 	constructor(
 		public day: number,
-		public players: PlayerInput[],
-		public config: GameConfigInput,
+		public actorInputs: ActorState[],
+		public config: GameConfig,
 		public context: EngineContext,
 	) {
 		this.context.logger.info('Importing required roles and instantiating actors');
-		for (const player of players) {
-			if (!player.role) {
-				throw new InputError(
+		for (const actorInput of actorInputs) {
+			if (!actorInput.role) {
+				throw new EngineError(
 					'engine.missing_role',
-					'Player role is required for game construction',
-					{ player },
+					'Actor role is required for game construction',
+					{ actor: actorInput },
 				);
 			}
-			const Role = importRole(player.role);
-			const settings = this.config.roles[player.role]?.settings ?? {};
-			const actor = new Role(player, settings, {
+			const Role = importRole(actorInput.role);
+			const settings = this.config.roles[actorInput.role]?.settings ?? {};
+			const actor = new Role(actorInput, settings, {
 				logger: this.context.logger,
 				actionEvents: this.actionEvents,
 				rng: this.context.rng,
@@ -173,56 +173,59 @@ class Game {
 		this.generateAlliesAndPossibleTargets();
 	}
 
-	static new(players: PlayerInput[], config: GameConfigInput, context: EngineContext) {
+	static new(actorInputs: ActorState[], config: GameConfig, context: EngineContext) {
 		context.logger.info('--- Creating a new Game ---');
-		context.logger.info(`Players: ${JSON.stringify(players)}`);
+		context.logger.info(`Actors: ${JSON.stringify(actorInputs)}`);
 
 		const { roles } = generateRoles(config, context.logger, context.rng);
-		const shuffledPlayers = context.rng.shuffle(players.map((player) => ({ ...player })));
+		const shuffledActors = context.rng.shuffle(
+			actorInputs.map((actorInput) => ({ ...actorInput })),
+		);
 		const shuffledRoles = context.rng.shuffle(roles);
 
-		if (shuffledPlayers.length > shuffledRoles.length) {
+		if (shuffledActors.length > shuffledRoles.length) {
 			shuffledRoles.push(
-				...Array<string>(shuffledPlayers.length - shuffledRoles.length).fill('Citizen'),
+				...Array<string>(shuffledActors.length - shuffledRoles.length).fill('Citizen'),
 			);
 		}
 
 		context.logger.info('--- Allocating roles ---');
-		for (const [index, player] of shuffledPlayers.entries()) {
-			player.number = index + 1;
-			player.role = shuffledRoles[index];
+		for (const [index, actorInput] of shuffledActors.entries()) {
+			actorInput.number = index + 1;
+			actorInput.role = shuffledRoles[index];
 			context.logger.info(
-				`  |-> ${player.alias} (${player.name}):`.padEnd(40) + ` ${player.role}`,
+				`  |-> ${actorInput.alias} (${actorInput.name}):`.padEnd(40) +
+					` ${actorInput.role}`,
 			);
 		}
 
-		return new Game(1, shuffledPlayers, config, context);
+		return new Game(1, shuffledActors, config, context);
 	}
 
 	static load(
-		players: PlayerInput[],
-		config: GameConfigInput,
-		state: GameStateInput,
+		actorInputs: ActorState[],
+		config: GameConfig,
+		state: GameState,
 		context: EngineContext,
 	) {
 		context.logger.info('--- Loading Game ---');
-		context.logger.info(`Players: ${JSON.stringify(players)}`);
-		for (const player of players) {
+		context.logger.info(`Actors: ${JSON.stringify(actorInputs)}`);
+		for (const actorInput of actorInputs) {
 			context.logger.info(
-				`  |-> ${player.alias} (${player.name}):`.padEnd(40) +
-					` ${player.role ?? 'Unknown'} ${player.alive ? '' : '(DEAD)'}`,
+				`  |-> ${actorInput.alias} (${actorInput.name}):`.padEnd(40) +
+					` ${actorInput.role ?? 'Unknown'} ${actorInput.alive ? '' : '(DEAD)'}`,
 			);
 		}
 
-		const game = new Game(state.day, players, config, context);
+		const game = new Game(state.day, actorInputs, config, context);
 		game.graveyard = state.graveyard ?? [];
-		game.applyTargetsFromPlayers();
+		game.applyTargetsFromInputs();
 		return game;
 	}
 
-	private applyTargetsFromPlayers() {
+	private applyTargetsFromInputs() {
 		for (const actor of this.actors) {
-			const targets = (actor.player.targets ?? [])
+			const targets = (actor.input.targets ?? [])
 				.map((targetNumber: number) => this.getActorByNumber(targetNumber))
 				.filter((target: Actor | undefined): target is Actor => Boolean(target));
 			actor.setTargets(targets);
@@ -239,13 +242,13 @@ class Game {
 	lynch(number: number) {
 		const actor = this.getActorByNumber(number);
 		if (!actor) {
-			throw new InputError('engine.actor_not_found', 'Actor not found', { number });
+			throw new EngineError('engine.actor_not_found', 'Actor not found', { number });
 		}
 		actor.lynched();
 	}
 
 	resolve() {
-		this.context.logger.info('--- Resolving all player actions ---');
+		this.context.logger.info('--- Resolving all actor actions ---');
 		this.day += 1;
 		this.generateAlliesAndPossibleTargets();
 		this.actors.sort(
@@ -327,10 +330,10 @@ class Game {
 		];
 	}
 
-	get state(): GameStateInput {
+	get state(): GameState {
 		return {
 			day: this.day,
-			players: this.actors.map((actor) => ({
+			actors: this.actors.map((actor) => ({
 				number: actor.number ?? 0,
 				alias: actor.alias,
 				alive: Boolean(actor.alive),
@@ -355,8 +358,8 @@ const buildResult = (game: Game, winners: WinnerSummary[] | null, logger: Engine
 const summarizeWinners = (winners: ReturnType<Game['checkForWin']>): WinnerSummary[] | null => {
 	if (!winners || winners.length === 0) return null;
 	return winners.map((winner) => ({
-		id: winner.player.id,
-		name: winner.player.name,
+		id: winner.input.id,
+		name: winner.input.name,
 		alias: winner.alias,
 		number: winner.number ?? 0,
 		role: winner.roleName,
@@ -369,10 +372,10 @@ export const newGame = (input: EngineInput): EngineResult => {
 	const logger = new EngineLogger();
 	const options = EngineOptionsSchema.parse(parsed.options ?? {});
 	const rng = createRng(options.seed);
-	const players = parsePlayers(parsed.players);
+	const actors = parseActors(parsed.actors);
 	const config = parseConfig(parsed.config);
 
-	const game = Game.new(players, config, { logger, rng });
+	const game = Game.new(actors, config, { logger, rng });
 	const winners = summarizeWinners(game.checkForWin());
 	return buildResult(game, winners, logger);
 };
@@ -380,16 +383,16 @@ export const newGame = (input: EngineInput): EngineResult => {
 export const loadGame = (input: EngineInput): EngineResult => {
 	const parsed = parseInput(input);
 	if (!parsed.state) {
-		throw new InputError('engine.missing_state', 'State is required to load a game');
+		throw new EngineError('engine.missing_state', 'State is required to load a game');
 	}
 	const logger = new EngineLogger();
 	const options = EngineOptionsSchema.parse(parsed.options ?? {});
 	const rng = createRng(options.seed);
-	const players = parsePlayers(parsed.players);
+	const actors = parseActors(parsed.actors);
 	const config = parseConfig(parsed.config);
 	const state = parseState(parsed.state);
 
-	const game = Game.load(players, config, state, { logger, rng });
+	const game = Game.load(actors, config, state, { logger, rng });
 	const winners = summarizeWinners(game.checkForWin());
 	return buildResult(game, winners, logger);
 };
@@ -397,16 +400,16 @@ export const loadGame = (input: EngineInput): EngineResult => {
 export const resolveGame = (input: EngineInput): EngineResult => {
 	const parsed = parseInput(input);
 	if (!parsed.state) {
-		throw new InputError('engine.missing_state', 'State is required to resolve a game');
+		throw new EngineError('engine.missing_state', 'State is required to resolve a game');
 	}
 	const logger = new EngineLogger();
 	const options = EngineOptionsSchema.parse(parsed.options ?? {});
 	const rng = createRng(options.seed);
-	const players = parsePlayers(parsed.players);
+	const actors = parseActors(parsed.actors);
 	const config = parseConfig(parsed.config);
 	const state = parseState(parsed.state);
 
-	const game = Game.load(players, config, state, { logger, rng });
+	const game = Game.load(actors, config, state, { logger, rng });
 	game.resolve();
 	const winners = summarizeWinners(game.checkForWin());
 	return buildResult(game, winners, logger);

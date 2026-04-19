@@ -1,13 +1,12 @@
 import {
 	DEFAULT_CONFIG,
 	type ActorState,
-	type GameConfigInput,
-	type PlayerInput,
+	type GameConfig,
 } from '../src/index';
 
 export const DEFAULT_SEED = 42;
 
-export const dummyPlayers = (count: number): PlayerInput[] =>
+export const dummyActors = (count: number): ActorState[] =>
 	Array.from({ length: count }, (_, index) => ({
 		id: `user-${index + 1}`,
 		name: `UserName${index + 1}`,
@@ -20,19 +19,19 @@ export const dummyPlayers = (count: number): PlayerInput[] =>
 	}));
 
 /**
- * Returns DEFAULT_CONFIG sliced to the given player count.
+ * Returns DEFAULT_CONFIG sliced to the given actor count.
  * For backwards compatibility with existing tests.
  */
-export const dummyConfig = (playerCount = 3): GameConfigInput => ({
+export const dummyConfig = (actorCount = 3): GameConfig => ({
 	...DEFAULT_CONFIG,
-	tags: DEFAULT_CONFIG.tags.slice(0, playerCount),
+	tags: DEFAULT_CONFIG.tags.slice(0, actorCount),
 });
 
-export const toPlayerInput = (player: ActorState): PlayerInput => ({
-	...player,
-	alive: player.alive ?? true,
-	possibleTargets: player.possibleTargets ?? [],
-	targets: player.targets ?? [],
-	allies: player.allies ?? [],
-	roleActions: player.roleActions ?? {},
+export const toActorInput = (actor: ActorState): ActorState => ({
+	...actor,
+	alive: actor.alive ?? true,
+	possibleTargets: actor.possibleTargets ?? [],
+	targets: actor.targets ?? [],
+	allies: actor.allies ?? [],
+	roleActions: actor.roleActions ?? {},
 });

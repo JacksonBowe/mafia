@@ -1,18 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { Citizen } from '../../src/roles/citizen';
 import { Mafioso } from '../../src/roles/mafioso';
-import { createContext, makePlayer } from './fixtures';
+import { createContext, makeActor } from './fixtures';
 
 describe('citizen', () => {
 	it('finds possible targets', () => {
 		const context = createContext();
 		const citizen = new Citizen(
-			makePlayer({ name: 'A', alias: 'test_citizen_1', number: 1, id: '1' }),
+			makeActor({ name: 'A', alias: 'test_citizen_1', number: 1, id: '1' }),
 			{},
 			context,
 		);
 		const mafioso = new Mafioso(
-			makePlayer({ name: 'C', alias: 'test_mafioso_1', number: 3, id: '3' }),
+			makeActor({ name: 'C', alias: 'test_mafioso_1', number: 3, id: '3' }),
 			{},
 			context,
 		);
@@ -27,17 +27,17 @@ describe('citizen', () => {
 	it('does not assign allies', () => {
 		const context = createContext();
 		const citizen1 = new Citizen(
-			makePlayer({ name: 'A', alias: 'test_citizen_1', number: 1, id: '1' }),
+			makeActor({ name: 'A', alias: 'test_citizen_1', number: 1, id: '1' }),
 			{},
 			context,
 		);
 		const citizen2 = new Citizen(
-			makePlayer({ name: 'B', alias: 'test_citizen_2', number: 2, id: '2' }),
+			makeActor({ name: 'B', alias: 'test_citizen_2', number: 2, id: '2' }),
 			{},
 			context,
 		);
 		const mafioso = new Mafioso(
-			makePlayer({ name: 'C', alias: 'test_mafioso_1', number: 3, id: '3' }),
+			makeActor({ name: 'C', alias: 'test_mafioso_1', number: 3, id: '3' }),
 			{},
 			context,
 		);
@@ -49,7 +49,7 @@ describe('citizen', () => {
 	it('uses vest and updates remaining count', () => {
 		const context = createContext();
 		const citizen = new Citizen(
-			makePlayer({ name: 'A', alias: 'test_citizen_1', number: 1, id: '1' }),
+			makeActor({ name: 'A', alias: 'test_citizen_1', number: 1, id: '1' }),
 			{},
 			context,
 		);
@@ -72,17 +72,17 @@ describe('citizen', () => {
 	it('handles win conditions', () => {
 		const context = createContext();
 		const citizen1 = new Citizen(
-			makePlayer({ name: 'A', alias: 'test_citizen_1', number: 1, id: '1' }),
+			makeActor({ name: 'A', alias: 'test_citizen_1', number: 1, id: '1' }),
 			{},
 			context,
 		);
 		const citizen2 = new Citizen(
-			makePlayer({ name: 'B', alias: 'test_citizen_2', number: 2, id: '2' }),
+			makeActor({ name: 'B', alias: 'test_citizen_2', number: 2, id: '2' }),
 			{},
 			context,
 		);
 		const mafioso = new Mafioso(
-			makePlayer({ name: 'C', alias: 'test_mafioso_1', number: 3, id: '3' }),
+			makeActor({ name: 'C', alias: 'test_mafioso_1', number: 3, id: '3' }),
 			{},
 			context,
 		);

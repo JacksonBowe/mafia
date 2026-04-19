@@ -15,9 +15,9 @@ export const GameConfigSchema = z.object({
 	roles: z.record(z.string(), RoleSettingsSchema),
 });
 
-export type GameConfigInput = z.infer<typeof GameConfigSchema>;
+export type GameConfig = z.infer<typeof GameConfigSchema>;
 
-export const PlayerSchema = z.object({
+export const ActorStateSchema = z.object({
 	id: z.string(),
 	name: z.string(),
 	alias: z.string(),
@@ -33,15 +33,15 @@ export const PlayerSchema = z.object({
 	roleActions: z.record(z.string(), z.any()).default({}),
 });
 
-export type PlayerInput = z.infer<typeof PlayerSchema>;
+export type ActorState = z.infer<typeof ActorStateSchema>;
 
-export const StatePlayerSchema = z.object({
+export const StateActorSchema = z.object({
 	number: z.number().int().min(1).max(15),
 	alias: z.string(),
 	alive: z.boolean(),
 });
 
-export type StatePlayer = z.infer<typeof StatePlayerSchema>;
+export type StateActor = z.infer<typeof StateActorSchema>;
 
 export const StateGraveyardRecordSchema = z.object({
 	number: z.number().int().min(1).max(15),
@@ -56,11 +56,11 @@ export type StateGraveyardRecord = z.infer<typeof StateGraveyardRecordSchema>;
 
 export const GameStateSchema = z.object({
 	day: z.number().int().min(0).default(0),
-	players: z.array(StatePlayerSchema).default([]),
+	actors: z.array(StateActorSchema).default([]),
 	graveyard: z.array(StateGraveyardRecordSchema).default([]),
 });
 
-export type GameStateInput = z.infer<typeof GameStateSchema>;
+export type GameState = z.infer<typeof GameStateSchema>;
 
 export const EngineOptionsSchema = z
 	.object({
@@ -71,7 +71,7 @@ export const EngineOptionsSchema = z
 export type EngineOptions = z.infer<typeof EngineOptionsSchema>;
 
 export const EngineInputSchema = z.object({
-	players: z.array(PlayerSchema),
+	actors: z.array(ActorStateSchema),
 	config: GameConfigSchema,
 	state: GameStateSchema.optional(),
 	options: EngineOptionsSchema.optional(),
@@ -79,30 +79,29 @@ export const EngineInputSchema = z.object({
 
 export type EngineInput = z.infer<typeof EngineInputSchema>;
 
-export type ActorState = {
-	id: string;
-	name: string;
-	alias: string;
-	role?: string;
-	number?: number;
-	alive?: boolean;
-	possibleTargets: number[][];
-	targets: number[];
-	allies: Array<{ alias: string; number: number; role: string; alive: boolean }>;
-	roleActions: Record<string, unknown>;
-};
+export const WinnerSummarySchema = z.object({
+	id: z.string(),
+	name: z.string(),
+	alias: z.string(),
+	number: z.number().int().min(1).max(15),
+	role: z.string(),
+	alignment: z.enum(['Town', 'Mafia']),
+});
 
-export type WinnerSummary = {
-	id: string;
-	name: string;
-	alias: string;
-	number: number;
-	role: string;
-	alignment: 'Town' | 'Mafia';
-};
+export type WinnerSummary = z.infer<typeof WinnerSummarySchema>;
+
+export const EngineOutputSchema = z.object({
+	state: GameStateSchema,
+	actors: z.array(ActorStateSchema),
+	events: z.array(z.object({}).passthrough()),
+	winners: z.array(WinnerSummarySchema).nullable(),
+	log: z.array(z.string()).default([]),
+});
+
+export type EngineOutput = z.infer<typeof EngineOutputSchema>;
 
 export type EngineResult = {
-	state: GameStateInput;
+	state: GameState;
 	actors: ActorState[];
 	events: GameEventGroupDump;
 	winners: WinnerSummary[] | null;

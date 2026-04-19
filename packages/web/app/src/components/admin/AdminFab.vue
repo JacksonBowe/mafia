@@ -85,7 +85,10 @@ const isGameRoute = computed(() => route.path.startsWith('/game'));
 
 const loadDummyGame = () => {
 	gameStore.lastSyncTs = 0;
-	gameStore.hydrateFromSync({ ...dummyGameSync, syncTs: Date.now() });
+	gameStore.hydrateFromSync({
+		...dummyGameSync,
+		info: { ...dummyGameSync.info, syncTs: Date.now() },
+	});
 };
 
 const unloadDummyGame = () => {

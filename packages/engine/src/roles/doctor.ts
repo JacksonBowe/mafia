@@ -1,4 +1,4 @@
-import type { PlayerInput } from '../types';
+import type { ActorState } from '../types';
 import { GameEvent, GameEventGroup } from '../events';
 import { Town, type ActorContext, type Actor } from './actor';
 
@@ -6,11 +6,11 @@ export class Doctor extends Town {
 	static override tags = ['any_random', 'town_random', 'town_protective'];
 
 	constructor(
-		player: PlayerInput,
+		input: ActorState,
 		_settings: Record<string, unknown> = {},
 		context: ActorContext,
 	) {
-		super(player, context);
+		super(input, context);
 	}
 
 	override findPossibleTargets(actors: Actor[] = []) {
@@ -36,14 +36,14 @@ export class Doctor extends Town {
 		reviveEventGroup.newEvent(
 			new GameEvent(
 				'doctor_revive_success',
-				[this.player.id],
+				[this.input.id],
 				'Your target was attacked last night, but you successfully revived them',
 			),
 		);
 		reviveEventGroup.newEvent(
 			new GameEvent(
 				'revive_by_doctor',
-				[target.player.id],
+				[target.input.id],
 				'You were revived by a doctor. Rock on',
 			),
 		);

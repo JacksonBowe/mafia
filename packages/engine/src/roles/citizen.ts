@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { PlayerInput } from '../types';
+import type { ActorState } from '../types';
 import { Town, type ActorContext, type Actor } from './actor';
 
 const CitizenSettingsSchema = z.object({
@@ -11,13 +11,13 @@ export class Citizen extends Town {
 	private remainingVests = 0;
 
 	constructor(
-		player: PlayerInput,
+		input: ActorState,
 		settings: Record<string, unknown> = {},
 		context: ActorContext,
 	) {
-		super(player, context);
+		super(input, context);
 		const parsed = CitizenSettingsSchema.parse(settings);
-		const fromActions = player.roleActions?.remainingVests as number | undefined;
+		const fromActions = input.roleActions?.remainingVests as number | undefined;
 		this.remainingVests = typeof fromActions === 'number' ? fromActions : parsed.maxVests;
 	}
 

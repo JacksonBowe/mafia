@@ -1,20 +1,20 @@
 import { newGame, resolveGame } from '../src/index';
-import { DEFAULT_SEED, dummyConfig, dummyPlayers, toPlayerInput } from './_helpers';
+import { DEFAULT_SEED, dummyConfig, dummyActors, toActorInput } from './_helpers';
 
 const run = () => {
-	const players = dummyPlayers(3);
+	const actors = dummyActors(3);
 	const config = dummyConfig();
-	const created = newGame({ players, config, options: { seed: DEFAULT_SEED } });
-	const loadedPlayers = created.actors.map(toPlayerInput);
+	const created = newGame({ actors, config, options: { seed: DEFAULT_SEED } });
+	const loadedActors = created.actors.map(toActorInput);
 
-	const mafia = loadedPlayers.find((player) => player.role === 'Mafioso');
-	const target = loadedPlayers.find((player) => player.role !== 'Mafioso');
+	const mafia = loadedActors.find((actor) => actor.role === 'Mafioso');
+	const target = loadedActors.find((actor) => actor.role !== 'Mafioso');
 	if (mafia && target?.number) {
 		mafia.targets = [target.number];
 	}
 
 	const resolved = resolveGame({
-		players: loadedPlayers,
+		actors: loadedActors,
 		config,
 		state: created.state,
 		options: { seed: DEFAULT_SEED },

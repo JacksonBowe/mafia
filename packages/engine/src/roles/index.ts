@@ -1,5 +1,5 @@
 import type { Actor, ActorContext } from './actor';
-import type { PlayerInput } from '../types';
+import type { ActorState } from '../types';
 import { Bodyguard } from './bodyguard';
 import { Citizen } from './citizen';
 import { Doctor } from './doctor';
@@ -13,7 +13,7 @@ export const ROLE_TAGS_MAP = Object.fromEntries(
 ) as Record<string, string[]>;
 
 export type RoleConstructor = new (
-	player: PlayerInput,
+	input: ActorState,
 	settings: Record<string, unknown>,
 	context: ActorContext,
 ) => Actor;

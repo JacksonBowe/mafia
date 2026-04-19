@@ -1,6 +1,8 @@
 import { and, eq, sql } from 'drizzle-orm';
 import { ulid } from 'ulid';
 import { z } from 'zod';
+import { ActorStateSchema, GameConfigSchema, GameStateSchema } from '@mafia/engine';
+import type { ActorState, GameConfig, GameState } from '@mafia/engine';
 import { EntityBaseSchema } from '../db/types';
 import { useTransaction } from '../db/transaction';
 import { InputError, isULID } from '../error';
@@ -159,7 +161,7 @@ export const RealtimeEvents = {
 		'game.state',
 		z.object({
 			gameId: isULID(),
-			state: z.unknown(), // GameStateInput from engine
+			state: z.unknown(), // GameState from engine
 		}),
 		(p) => GameTopics.public(p.gameId),
 	),
@@ -242,7 +244,7 @@ export const RealtimeEvents = {
 		z.object({
 			gameId: isULID(),
 			actorId: z.string(),
-			actor: z.unknown(), // ActorState from engine
+	actor: ActorStateSchema,
 		}),
 		(p) => GameTopics.actor(p.gameId, p.actorId),
 	),
@@ -338,8 +340,8 @@ export const GameInfoSchema = EntityBaseSchema.extend({
 	status: GameStatusSchema,
 	phase: GamePhaseSchema,
 	startedAt: z.date(),
-	engineState: z.unknown(),
-	engineConfig: z.unknown(),
+	engineState: GameStateSchema,
+	engineConfig: GameConfigSchema,
 	actors: z.unknown(),
 	players: z.array(GamePlayerSchema),
 	pollCount: z.number().int(),
@@ -347,11 +349,12 @@ export const GameInfoSchema = EntityBaseSchema.extend({
 
 export type GameInfo = z.infer<typeof GameInfoSchema>;
 
+
 // ---------------------
-// Input schemas
+// Core functions
 // ---------------------
 
-export const CreateGameInputSchema = z.object({
+export const create = fn(z.object({
 	engineState: z.unknown(),
 	engineConfig: z.unknown(),
 	actors: z.unknown(),
@@ -363,15 +366,7 @@ export const CreateGameInputSchema = z.object({
 			role: z.string().nullable(),
 		}),
 	),
-});
-
-export type CreateGameInput = z.infer<typeof CreateGameInputSchema>;
-
-// ---------------------
-// Core functions
-// ---------------------
-
-export const create = fn(CreateGameInputSchema, async (input) =>
+}), async (input) =>
 	useTransaction(async (tx) => {
 		const gameId = ulid();
 
@@ -408,82 +403,41 @@ export const create = fn(CreateGameInputSchema, async (input) =>
 );
 
 // ---------------------
-// Sync types + query
+// Client sync types
 // ---------------------
 
-/** Public player info visible to all players */
-export const SyncPlayerSchema = z.object({
-	number: z.number().int(),
-	alias: z.string(),
-	alive: z.boolean(),
-	vote: z.number().int().nullable(),
-	verdict: VerdictSchema.nullable(),
-	onTrial: z.boolean(),
-});
-export type SyncPlayer = z.infer<typeof SyncPlayerSchema>;
-
-/** Public engine state (day counter, graveyard, player list from engine) */
-export const SyncEngineStateSchema = z.object({
-	day: z.number().int(),
-	players: z.array(
-		z.object({
-			number: z.number().int(),
-			alias: z.string(),
-			alive: z.boolean(),
-		}),
-	),
-	graveyard: z.array(
-		z.object({
-			number: z.number().int(),
-			alias: z.string(),
-			cod: z.string(),
-			dod: z.number().int(),
-			role: z.string(),
-			will: z.string(),
-		}),
-	),
-});
-export type SyncEngineState = z.infer<typeof SyncEngineStateSchema>;
-
-/** Private actor data for the requesting player */
-export const SyncActorSchema = z.object({
+/** Metadata about the game visible to all players */
+export const ClientGameInfoSchema = z.object({
 	id: z.string(),
-	name: z.string(),
-	alias: z.string(),
-	role: z.string().optional(),
-	number: z.number().int().optional(),
-	alive: z.boolean().optional(),
-	possibleTargets: z.array(z.array(z.number().int())),
-	targets: z.array(z.number().int()),
-	allies: z.array(
-		z.object({
-			alias: z.string(),
-			number: z.number().int(),
-			role: z.string(),
-			alive: z.boolean(),
-		}),
-	),
-	roleActions: z.record(z.string(), z.unknown()),
-});
-export type SyncActor = z.infer<typeof SyncActorSchema>;
-
-/** Full sync response returned by GET /game/sync */
-export const GameSyncSchema = z.object({
-	gameId: z.string(),
 	status: GameStatusSchema,
 	phase: GamePhaseSchema,
 	pollCount: z.number().int(),
-	engineState: SyncEngineStateSchema,
-	players: z.array(SyncPlayerSchema),
-	actor: SyncActorSchema,
 	/** Server-authoritative timestamp (ms since epoch) for ordering sync responses */
 	syncTs: z.number(),
 });
-export type GameSync = z.infer<typeof GameSyncSchema>;
+export type ClientGameInfo = z.infer<typeof ClientGameInfoSchema>;
+
+/** Re-export engine types so consumers don't need to import from @mafia/engine directly */
+export type { ActorState, GameConfig, GameState } from '@mafia/engine';
+
+/** Full sync response returned by GET /game */
+export interface GameSyncResponse {
+	info: ClientGameInfo;
+	state: GameState;
+	config: GameConfig;
+	actor: ActorState;
+}
+
+export const GameSyncResponseSchema = z.object({
+	info: ClientGameInfoSchema,
+	state: GameStateSchema,
+	config: GameConfigSchema,
+	actor: z.unknown(), // ActorState from engine
+});
 
 /**
- * Build a GameSync payload for a specific user.
- * Finds the user's active game, extracts public state + their private actor.
+ * Build a game sync payload for a specific user.
+ * Finds the user's active game, extracts public state, config, and their private actor.
  */
 export const sync = fn(z.object({ userId: z.string() }), async ({ userId }) =>
 	useTransaction(async (tx) => {
@@ -504,60 +458,39 @@ export const sync = fn(z.object({ userId: z.string() }), async ({ userId }) =>
 
 		const { gameId } = playerRow;
 
-		// Fetch game + all players in parallel
-		const [[game], players] = await Promise.all([
-			tx.select().from(gameTable).where(eq(gameTable.id, gameId)),
-			tx.select().from(gamePlayerTable).where(eq(gamePlayerTable.gameId, gameId)),
-		]);
+		// Fetch game record
+		const [game] = await tx.select().from(gameTable).where(eq(gameTable.id, gameId));
 
 		if (!game) {
 			throw new InputError(Errors.GameNotFound, 'Game not found');
 		}
 
-		// Parse engine state (public)
-		const engineState = SyncEngineStateSchema.parse(game.engineState);
+		// Parse engine state and config — schemas re-exported from engine (source of truth)
+		const state: GameState = GameStateSchema.parse(game.engineState);
+
+		const config: GameConfig = GameConfigSchema.parse(game.engineConfig);
 
 		// Extract the requesting user's actor from the actors array
-		const actors = (game.actors ?? []) as Array<{
-			id: string;
-			name: string;
-			alias: string;
-			role?: string;
-			number?: number;
-			alive?: boolean;
-			possibleTargets: number[][];
-			targets: number[];
-			allies: Array<{ alias: string; number: number; role: string; alive: boolean }>;
-			roleActions: Record<string, unknown>;
-		}>;
+		const actors = (game.actors ?? []) as ActorState[];
 
 		const playerNumber = Number(playerRow.number);
-		const myActor = actors.find((a) => a.number === playerNumber);
+		const rawActor = actors.find((a) => a.number === playerNumber);
 
-		if (!myActor) {
+		if (!rawActor) {
 			throw new InputError(Errors.PlayerNotFound, 'Actor not found for player');
 		}
 
-		// Build public player list
-		const syncPlayers: SyncPlayer[] = players.map((p) => ({
-			number: Number(p.number),
-			alias: p.alias,
-			alive: engineState.players.find((ep) => ep.number === Number(p.number))?.alive ?? true,
-			vote: p.vote,
-			verdict: p.verdict as Verdict | null,
-			onTrial: p.onTrial,
-		}));
+		const myActor: ActorState = ActorStateSchema.parse(rawActor);
 
-		return GameSyncSchema.parse({
-			gameId,
+		const info = ClientGameInfoSchema.parse({
+			id: gameId,
 			status: game.status,
 			phase: game.phase,
 			pollCount: game.pollCount,
-			engineState,
-			players: syncPlayers,
-			actor: myActor,
 			syncTs: game.updatedAt.getTime(),
 		});
+
+		return { info, state, config, actor: myActor } satisfies GameSyncResponse;
 	}),
 );
 

@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { loadGame, newGame, resolveGame } from '../src/index';
-import { DEFAULT_SEED, dummyConfig, dummyPlayers, toPlayerInput } from './fixtures';
+import { DEFAULT_SEED, dummyConfig, dummyActors, toActorInput } from './fixtures';
 
 describe('engine', () => {
 	it('creates a new game with actors and state', () => {
-		const players = dummyPlayers(3);
+		const actors = dummyActors(3);
 		const config = dummyConfig();
 
-		const result = newGame({ players, config, options: { seed: DEFAULT_SEED } });
+		const result = newGame({ actors, config, options: { seed: DEFAULT_SEED } });
 
 		expect(result.actors).toHaveLength(3);
 		expect(result.state.day).toBe(1);
@@ -16,12 +16,12 @@ describe('engine', () => {
 	});
 
 	it('loads a game from existing state', () => {
-		const players = dummyPlayers(3);
+		const actors = dummyActors(3);
 		const config = dummyConfig();
 
-		const created = newGame({ players, config, options: { seed: DEFAULT_SEED } });
+		const created = newGame({ actors, config, options: { seed: DEFAULT_SEED } });
 		const loaded = loadGame({
-			players: created.actors.map(toPlayerInput),
+			actors: created.actors.map(toActorInput),
 			config,
 			state: created.state,
 			options: { seed: DEFAULT_SEED },
@@ -32,7 +32,7 @@ describe('engine', () => {
 	});
 
 	it('resolves actions without a winner', () => {
-		const players = [
+		const actors = [
 			{
 				id: 'user-2',
 				name: 'UserName2',
@@ -82,7 +82,7 @@ describe('engine', () => {
 
 		const state = {
 			day: 1,
-			players: [
+			actors: [
 				{ number: 1, alias: 'UserAlias2', alive: true },
 				{ number: 2, alias: 'UserAlias3', alive: true },
 				{ number: 3, alias: 'UserAlias1', alive: true },
@@ -91,7 +91,7 @@ describe('engine', () => {
 		};
 
 		const resolved = resolveGame({
-			players,
+			actors,
 			config,
 			state,
 			options: { seed: DEFAULT_SEED },
@@ -101,7 +101,7 @@ describe('engine', () => {
 	});
 
 	it('resolves actions with a town win', () => {
-		const players = [
+		const actors = [
 			{
 				id: 'user-2',
 				name: 'UserName2',
@@ -152,7 +152,7 @@ describe('engine', () => {
 
 		const state = {
 			day: 1,
-			players: [
+			actors: [
 				{ number: 1, alias: 'UserAlias2', alive: true },
 				{ number: 2, alias: 'UserAlias3', alive: true },
 				{ number: 3, alias: 'UserAlias1', alive: true },
@@ -161,7 +161,7 @@ describe('engine', () => {
 		};
 
 		const resolved = resolveGame({
-			players,
+			actors,
 			config,
 			state,
 			options: { seed: DEFAULT_SEED },

@@ -22,6 +22,7 @@
 	"dependencies": {
 		"@aws-sdk/client-iot-data-plane": "^3.953.0",
 		"@hono/zod-validator": "^0.7.5",
+		"@mafia/engine": "workspace:",
 		"@neondatabase/serverless": "^1.0.1",
 		"deep-object-diff": "^1.1.9",
 		"drizzle-orm": "^0.44.2",
