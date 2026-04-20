@@ -3,7 +3,7 @@ import { InvalidRefreshTokenError } from '@openauthjs/openauth/error';
 import { LocalStorage } from 'quasar';
 import { boot } from 'quasar/wrappers';
 import { client } from 'src/lib/auth';
-import { fetchGame } from 'src/lib/game/api';
+import { api } from 'src/boot/axios';
 import { getLogger } from 'src/lib/log';
 import { useAuthStore } from 'src/stores/auth';
 import { useGameStore } from 'src/stores/game';
@@ -271,7 +271,7 @@ export default boot(({ router }) => {
 		if (requiresGame) {
 			if (!gameStore.info?.id && gameStore.status !== 'transitioning') {
 				try {
-					const syncData = await fetchGame();
+					const syncData = await api.getGame();
 					if (syncData) {
 						gameStore.hydrateFromSync(syncData);
 					}

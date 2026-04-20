@@ -31,7 +31,7 @@
 </template>
 
 <script setup lang="ts">
-import type { RelatedEntity } from '@mafia/core/db/types';
+import type { RelatedEntity } from '@mafia/sdk';
 import { computed } from 'vue';
 
 const props = defineProps<{

@@ -1,14 +1,14 @@
 import { useMutation } from '@tanstack/vue-query';
-import { terminateGames, terminateLobbies } from './api';
+import { api } from 'src/boot/axios';
 
 export const useTerminateLobbies = () => {
 	return useMutation({
-		mutationFn: terminateLobbies,
+		mutationFn: api.terminateLobbies,
 	});
 };
 
 export const useTerminateGames = () => {
 	return useMutation({
-		mutationFn: terminateGames,
+		mutationFn: api.terminateGames,
 	});
 };

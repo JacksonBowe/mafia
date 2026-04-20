@@ -1,6 +1,6 @@
 import { assertActor } from '@mafia/core/actor';
 import { afterTx, createTransaction } from '@mafia/core/db';
-import { isULID, zValidator } from '@mafia/core/error';
+import { zValidator } from '@mafia/core/error';
 import { Game } from '@mafia/core/game/index';
 import { Lobby } from '@mafia/core/lobby/index';
 import { realtime } from '@mafia/core/realtime';
@@ -8,16 +8,16 @@ import { User } from '@mafia/core/user/index';
 import { DEFAULT_CONFIG, newGame, type ActorState } from '@mafia/engine';
 import { Hono } from 'hono';
 import { Resource } from 'sst';
-import { z } from 'zod';
+import {
+	CreateLobbyJsonSchema,
+	LobbyIdPathParamsSchema,
+} from './schemas/lobby.schemas';
 
 type Bindings = Record<string, never>;
 
 const lobbyRoutes = new Hono<{ Bindings: Bindings }>();
 
 // Create
-export const CreateLobbyJsonSchema = z.object({ name: z.string().min(3).max(50) });
-export type CreateLobbyJson = z.infer<typeof CreateLobbyJsonSchema>;
-
 lobbyRoutes.post('/', zValidator('json', CreateLobbyJsonSchema), async (c) => {
 	const { name } = c.req.valid('json');
 
@@ -38,8 +38,7 @@ lobbyRoutes.get('/', async (c) => {
 });
 
 // Get
-export const GetLobbyParamsSchema = z.object({ lobbyId: isULID() });
-lobbyRoutes.get('/:lobbyId', zValidator('param', GetLobbyParamsSchema), async (c) => {
+lobbyRoutes.get('/:lobbyId', zValidator('param', LobbyIdPathParamsSchema), async (c) => {
 	const { lobbyId } = c.req.valid('param');
 
 	const lobby = await Lobby.get({ lobbyId });
@@ -48,13 +47,7 @@ lobbyRoutes.get('/:lobbyId', zValidator('param', GetLobbyParamsSchema), async (c
 });
 
 // TODO: Join
-export const JoinLobbyParamsSchema = z.object({
-	lobbyId: isULID(),
-});
-
-export type JoinLobbyParams = z.infer<typeof JoinLobbyParamsSchema>;
-
-lobbyRoutes.post('/:lobbyId/join', zValidator('param', JoinLobbyParamsSchema), async (c) => {
+lobbyRoutes.post('/:lobbyId/join', zValidator('param', LobbyIdPathParamsSchema), async (c) => {
 	const { lobbyId } = c.req.valid('param');
 
 	const actor = assertActor('user');
@@ -78,9 +71,6 @@ lobbyRoutes.post('/leave', async (c) => {
 });
 
 // Start game
-export const StartLobbyParamsSchema = z.object({
-	lobbyId: isULID(),
-});
 
 // Generate a random alias for a player
 const generateAlias = (index: number): string => {
@@ -124,7 +114,7 @@ const generateAlias = (index: number): string => {
 	return `${adj}${noun}`;
 };
 
-lobbyRoutes.post('/:lobbyId/start', zValidator('param', StartLobbyParamsSchema), async (c) => {
+lobbyRoutes.post('/:lobbyId/start', zValidator('param', LobbyIdPathParamsSchema), async (c) => {
 	const { lobbyId } = c.req.valid('param');
 	const actor = assertActor('user');
 	const userId = actor.properties.userId;

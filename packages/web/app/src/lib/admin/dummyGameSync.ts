@@ -1,4 +1,4 @@
-import type { GameSyncResponse } from '@mafia/core/game/index';
+import type { GameSyncResponse } from '@mafia/sdk';
 
 const aliases = [
 	'Shadow',
@@ -26,27 +26,36 @@ const makeState = (): GameSyncResponse['state'] => ({
 		alive: i < 13,
 	})),
 	graveyard: [
-		{ number: 14, alias: 'Thorn', cod: 'Killed by Mafia', dod: 1, role: 'Doctor', will: '' },
+		{
+			number: 14,
+			alias: 'Thorn',
+			cod: 'Killed by Mafia',
+			dod: 1,
+			role: 'Doctor',
+			will: '',
+			alignment: 'Town',
+		},
 		{
 			number: 15,
 			alias: 'Wraith',
 			cod: 'Killed by Serial Killer',
 			dod: 1,
-			role: 'Lookout',
+			role: 'Bodyguard',
 			will: 'N1: watched #3',
+			alignment: 'Town',
 		},
 	],
 });
 
 const makeConfig = (): GameSyncResponse['config'] => ({
-	tags: ['classic'],
+	tags: ['town_random', 'mafia_random'],
 	settings: {},
 	roles: {
 		Mafioso: { max: 1, weight: 1, settings: {} },
 		Godfather: { max: 1, weight: 1, settings: {} },
 		Doctor: { max: 1, weight: 1, settings: {} },
-		Lookout: { max: 1, weight: 1, settings: {} },
-		Townie: { max: 11, weight: 1, settings: {} },
+		Bodyguard: { max: 1, weight: 1, settings: {} },
+		Citizen: { max: 11, weight: 1, settings: {} },
 	},
 });
 
@@ -61,6 +70,7 @@ const makeActor = (): GameSyncResponse['actor'] => ({
 	targets: [],
 	allies: [{ alias: 'Viper', number: 2, role: 'Godfather', alive: true }],
 	roleActions: {},
+	alignment: 'Mafia',
 });
 
 export const dummyGameSync: GameSyncResponse = {

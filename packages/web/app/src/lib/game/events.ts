@@ -1,4 +1,4 @@
-import type { GameState } from '@mafia/core/game/index';
+import type { GameState } from '@mafia/sdk';
 import { useQueryClient } from '@tanstack/vue-query';
 import type { AppBus } from 'src/boot/bus';
 import { useGameStore } from 'src/stores/game';

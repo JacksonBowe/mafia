@@ -15,8 +15,7 @@
 		"postinstall": "quasar prepare"
 	},
 	"dependencies": {
-		"@mafia/core": "workspace:^",
-		"@mafia/functions": "workspace:^",
+		"@mafia/sdk": "workspace:^",
 		"@openauthjs/openauth": "^0.4.3",
 		"@quasar/extras": "^1.16.4",
 		"@tanstack/vue-query": "^5.92.1",

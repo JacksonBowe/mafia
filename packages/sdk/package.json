@@ -1,0 +1,22 @@
+{
+	"name": "@mafia/sdk",
+	"version": "0.0.0",
+	"type": "module",
+	"module": "src/index.ts",
+	"exports": {
+		".": "./src/index.ts",
+		"./*": "./src/*.ts"
+	},
+	"scripts": {
+		"format": "prettier --write . --config ../../.prettierrc.json",
+		"lint": "eslint ."
+	},
+	"dependencies": {
+		"@mafia/functions": "workspace:",
+		"@mafia/core": "workspace:",
+		"axios": "^1.9.0"
+	},
+	"peerDependencies": {
+		"typescript": "^5.0.0"
+	}
+}

@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/vue-query';
+import { api } from 'src/boot/axios';
 import { useAuthStore } from 'src/stores/auth';
-import { getActor, getPresence } from './api';
 
 export const useActor = () => {
 	return useQuery({
 		queryKey: ['actor'],
 		queryFn: async () => {
-			const actor = await getActor();
+			const actor = await api.getMe();
 
 			const aStore = useAuthStore();
 			aStore.userId = actor.id;
@@ -19,6 +19,6 @@ export const useActor = () => {
 export const usePresence = () => {
 	return useQuery({
 		queryKey: ['actor', 'presence'],
-		queryFn: getPresence,
+		queryFn: api.getPresence,
 	});
 };

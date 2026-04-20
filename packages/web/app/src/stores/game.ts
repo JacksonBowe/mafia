@@ -4,9 +4,9 @@ import type {
 	GameConfig,
 	GameState,
 	GameSyncResponse,
-} from '@mafia/core/game/index';
+} from '@mafia/sdk';
 import { defineStore } from 'pinia';
-import { fetchGame } from 'src/lib/game/api';
+import { api } from 'src/boot/axios';
 
 /**
  * Lifecycle states:
@@ -92,7 +92,7 @@ export const useGameStore = defineStore('game', {
 			this.error = null;
 
 			try {
-				const data = await fetchGame();
+				const data = await api.getGame();
 
 				// Guard: store may have been cleared while the request was in-flight
 				if (this.status === 'idle') return;

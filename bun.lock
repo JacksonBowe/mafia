@@ -74,12 +74,23 @@
         "@types/aws-lambda": "^8.10.150",
       },
     },
+    "packages/sdk": {
+      "name": "@mafia/sdk",
+      "version": "0.0.0",
+      "dependencies": {
+        "@mafia/core": "workspace:",
+        "@mafia/functions": "workspace:",
+        "axios": "^1.9.0",
+      },
+      "peerDependencies": {
+        "typescript": "^5.0.0",
+      },
+    },
     "packages/web/app": {
       "name": "@mafia/app",
       "version": "0.0.1",
       "dependencies": {
-        "@mafia/core": "workspace:^",
-        "@mafia/functions": "workspace:^",
+        "@mafia/sdk": "workspace:^",
         "@openauthjs/openauth": "^0.4.3",
         "@quasar/extras": "^1.16.4",
         "@tanstack/vue-query": "^5.92.1",
@@ -306,6 +317,8 @@
     "@mafia/engine": ["@mafia/engine@workspace:packages/engine"],
 
     "@mafia/functions": ["@mafia/functions@workspace:packages/functions"],
+
+    "@mafia/sdk": ["@mafia/sdk@workspace:packages/sdk"],
 
     "@modelcontextprotocol/sdk": ["@modelcontextprotocol/sdk@1.6.1", "", { "dependencies": { "content-type": "^1.0.5", "cors": "^2.8.5", "eventsource": "^3.0.2", "express": "^5.0.1", "express-rate-limit": "^7.5.0", "pkce-challenge": "^4.1.0", "raw-body": "^3.0.0", "zod": "^3.23.8", "zod-to-json-schema": "^3.24.1" } }, "sha512-oxzMzYCkZHMntzuyerehK3fV6A2Kwh5BD6CGEJSVDU2QNEhfLOptf2X7esQgaHZXHZY0oHmMsOtIDLP71UJXgA=="],
 

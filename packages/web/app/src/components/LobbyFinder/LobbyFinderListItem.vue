@@ -70,7 +70,7 @@
 </template>
 
 <script setup lang="ts">
-import type { LobbyInfo } from '@mafia/core/lobby/index';
+import type { LobbyInfo } from '@mafia/sdk';
 import { computed } from 'vue';
 
 const props = defineProps<{

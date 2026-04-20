@@ -1,4 +1,4 @@
-import type { Presence } from '@mafia/core/user/presence';
+import type { Presence } from '@mafia/sdk';
 import { useQueryClient } from '@tanstack/vue-query';
 import { Loading, QSpinnerGears } from 'quasar';
 import type { AppBus } from 'src/boot/bus';
