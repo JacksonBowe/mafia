@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { loadGame, newGame, resolveGame, type GameConfig } from '../src/index';
-import { DEFAULT_SEED, dummyConfig, dummyActors, toActorInput } from './fixtures';
+import { DEFAULT_SEED, dummyConfig, dummyActors, toActorInput } from '@mafia/engine/testing';
 
 describe('engine', () => {
 	it('creates a new game with actors and state', () => {

@@ -1,6 +1,6 @@
 // boot/axios.ts
 import { defineBoot } from '#q-app/wrappers';
-import { createClient, type ApiClient, type PublicError } from '@mafia/sdk';
+import { createClient, type ApiClient, type PublicErrorPayload } from '@mafia/sdk';
 import type { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { Notify } from 'quasar';
 import { useAuthStore } from 'src/stores/auth';
@@ -33,7 +33,7 @@ function notifyValidation(payload: unknown) {
 	});
 }
 
-function notifyBadRequest(data: PublicError) {
+function notifyBadRequest(data: PublicErrorPayload) {
 	Notify.create({
 		message: data?.message ?? 'Bad request',
 		caption: data?.details ? JSON.stringify(data.details) : '',
@@ -48,7 +48,7 @@ function notifyServerError(err: TimedAxiosError) {
 		message:
 			err.duration && err.duration > 10_000
 				? 'Request timed out'
-				: ((err.response?.data as PublicError)?.message ?? 'Server error'),
+				: ((err.response?.data as PublicErrorPayload)?.message ?? 'Server error'),
 		color: 'negative',
 		timeout: 2000,
 	});
@@ -81,7 +81,7 @@ export default defineBoot(({ app, router }) => {
 			}
 
 			const status = err.response?.status;
-			const data = err.response?.data as PublicError;
+			const data = err.response?.data as PublicErrorPayload;
 
 			// 401 – clear + bounce on specific codes
 			if (status === 401 && !cfg?._retry && authStore.session?.refreshToken) {

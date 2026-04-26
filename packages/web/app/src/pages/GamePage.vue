@@ -47,7 +47,12 @@
 								class="col-12 col-sm-6 col-md-4"
 								:entries="graveyardEntries"
 							/>
-							<game-roles key="roles" class="col-12 col-sm-5 col-md-3" />
+							<game-roles
+								v-if="gameStore.config?.tags"
+								:tags="gameStore.config.tags"
+								key="roles"
+								class="col-12 col-sm-5 col-md-3"
+							/>
 						</transition-group>
 					</div>
 
@@ -62,11 +67,11 @@
 					<div class="col row justify-end items-stretch">
 						<transition enter-active-class="animated slideInRight">
 							<game-role
-								v-if="gameStore.actor"
+								v-if="gameStore.actor && gameStore.actor.role"
 								key="role"
 								class="col-12 col-sm-9 col-md-6 col-lg-5 full-height"
-								:role-name="gameStore.actor.role ?? 'Unknown'"
-								:config="roleConfig"
+								:role-name="gameStore.actor.role"
+								:settings="gameStore.config?.roles?.[gameStore.actor.role]?.settings ?? {}"
 							/>
 						</transition>
 					</div>
@@ -104,10 +109,10 @@
 </template>
 
 <script setup lang="ts">
+import type { StateGraveyardRecord } from '@mafia/sdk';
 import GameTimer from 'src/components/game/GameTimer.vue';
 import GameActions from 'src/components/game/actions/GameActions.vue';
 import GameChat from 'src/components/game/chat/GameChat.vue';
-import type { GraveyardEntry } from 'src/components/game/graveyard/GameGraveyard.vue';
 import GameGraveyard from 'src/components/game/graveyard/GameGraveyard.vue';
 import GameJury from 'src/components/game/jury/GameJury.vue';
 import GameRole from 'src/components/game/role/GameRole.vue';
@@ -122,27 +127,22 @@ onUnmounted(() => {
 });
 
 /** Build a simple role config display from actor data */
-const roleConfig = computed<Record<string, string>>(() => {
-	const actor = gameStore.actor;
-	if (!actor) return {};
+// const roleConfig = computed<Record<string, string>>(() => {
+// 	const actor = gameStore.actor;
+// 	if (!actor) return {};
 
-	const config: Record<string, string> = {};
-	if (actor.allies.length > 0) {
-		config['Allies'] = actor.allies.map((a) => a.alias).join(', ');
-	}
-	return config;
-});
+// 	const config: Record<string, string> = {};
+// 	if (actor.allies.length > 0) {
+// 		config['Allies'] = actor.allies
+// 			.map((a) => (a as { alias?: string }).alias ?? '')
+// 			.filter(Boolean)
+// 			.join(', ');
+// 	}
+// 	return config;
+// });
 
-/** Graveyard entries from engine state */
-const graveyardEntries = computed<GraveyardEntry[]>(() => {
-	return (gameStore.state?.graveyard ?? []).map((g) => ({
-		number: g.number,
-		alias: g.alias,
-		role: g.role,
-		cod: g.cod,
-		dod: g.dod,
-	}));
-});
+/** Graveyard entries from engine state — typed via SDK re-export */
+const graveyardEntries = computed<StateGraveyardRecord[]>(() => gameStore.state?.graveyard ?? []);
 
 /** Find the player currently on trial */
 const playerOnTrial = computed(() => {

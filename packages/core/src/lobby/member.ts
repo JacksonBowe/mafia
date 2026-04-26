@@ -4,16 +4,15 @@ import { bus } from 'sst/aws/bus';
 import { ulid } from 'ulid';
 import { z } from 'zod';
 import { afterTx, useTransaction } from '../db/transaction';
-import { EntityBaseSchema } from '../db/types';
 import { InputError, isULID } from '../error';
 import { defineEvent } from '../event';
 import { defineRealtimeEvent, realtime } from '../realtime';
 import { fn } from '../util/fn';
 import { lobbyMemberTable, lobbyTable } from './lobby.sql';
+import { LobbyMemberErrors as Errors, LobbyMemberInfoSchema } from './schema';
 
-export enum Errors {
-	LobbyMemberNotFound = 'lobby.member.not_found',
-}
+export { Errors, LobbyMemberInfoSchema };
+export type { LobbyMemberInfo } from './schema';
 
 export const Events = {
 	MemberJoin: defineEvent(
@@ -61,13 +60,6 @@ export const RealtimeEvents = {
 		(p) => `lobby/${p.lobbyId}`,
 	),
 };
-
-export const LobbyMembberInfoSchema = EntityBaseSchema.extend({
-	lobbyId: isULID(),
-	userId: isULID(),
-});
-
-export type LobbyMemberInfo = z.infer<typeof LobbyMembberInfoSchema>;
 
 export const add = fn(
 	z.object({

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { BROADCAST_TARGET, DeathReasons, EventIds } from '../constants';
 import type { ActorState } from '../types';
 import { Duration, GameEvent, GameEventGroup } from '../events';
 import { Town, type ActorContext, type Actor } from './actor';
@@ -9,24 +10,22 @@ export type BodyguardSettings = z.infer<typeof BodyguardSettingsSchema>;
 
 export class Bodyguard extends Town {
 	static override tags = ['any_random', 'town_random', 'town_protective', 'town_killing'];
+	static override roleName = 'Bodyguard' as const;
+	static override priority = 2;
+
 	private guarding?: Actor;
 
 	constructor(
 		input: ActorState,
-		_settings: Record<string, unknown> = {},
+		settings: Record<string, unknown> = {},
 		context: ActorContext,
 	) {
 		super(input, context);
-		BodyguardSettingsSchema.parse(_settings);
+		BodyguardSettingsSchema.parse(settings);
 	}
 
 	override findPossibleTargets(actors: Actor[] = []) {
-		const numTargets = 1;
-		this.possibleTargets = [];
-		for (let i = 0; i < numTargets; i += 1) {
-			this.possibleTargets[i] = actors.filter((actor) => actor.alive && actor !== this);
-		}
-		return this.possibleTargets;
+		return this.setSingleTarget(actors, (actor) => actor.alive && actor !== this);
 	}
 
 	override action() {
@@ -40,15 +39,19 @@ export class Bodyguard extends Town {
 
 	shootout(attacker: Actor) {
 		this.logger.info(`${this.toString()} defends their target from ${attacker.toString()}`);
-		const shootoutEventGroup = new GameEventGroup('shootout');
+		const shootoutEventGroup = new GameEventGroup(EventIds.BODYGUARD_SHOOTOUT);
 		shootoutEventGroup.duration = Duration.SHOOTOUT;
 		shootoutEventGroup.newEvent(
-			new GameEvent('bodyguard_shootout', ['*'], 'You hear sounds of a shootout'),
+			new GameEvent(
+				EventIds.BODYGUARD_SHOOTOUT,
+				[BROADCAST_TARGET],
+				'You hear sounds of a shootout',
+			),
 		);
 		if (this.guarding) {
 			shootoutEventGroup.newEvent(
 				new GameEvent(
-					'bodyguard_protected',
+					EventIds.BODYGUARD_PROTECTED_TARGET,
 					[this.guarding.input.id],
 					'You were protected by a bodyguard',
 				),
@@ -56,20 +59,20 @@ export class Bodyguard extends Town {
 		}
 		shootoutEventGroup.newEvent(
 			new GameEvent(
-				'bodyguard_protected',
+				EventIds.BODYGUARD_KILLED_ATTACKER,
 				[attacker.input.id],
 				'You were killed by the Bodyguard defending your target',
 			),
 		);
 		shootoutEventGroup.newEvent(
 			new GameEvent(
-				'bodyguard_protected',
+				EventIds.BODYGUARD_DIED_DEFENDING,
 				[this.input.id],
 				'You died defending your target',
 			),
 		);
 		this.actionEvents.newEventGroup(shootoutEventGroup);
-		this.die('Died in a shootout');
-		attacker.die('Died in a shootout');
+		this.die(DeathReasons.SHOOTOUT);
+		attacker.die(DeathReasons.SHOOTOUT);
 	}
 }

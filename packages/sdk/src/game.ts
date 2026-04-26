@@ -1,4 +1,4 @@
-import type { GameSyncResponse } from '@mafia/core/game/index';
+import type { GameSyncResponse } from '@mafia/core/game/schema';
 import type { AxiosRequestConfig } from 'axios';
 
 export type RequestFn = <T>(config: AxiosRequestConfig) => Promise<T>;

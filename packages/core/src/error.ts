@@ -1,10 +1,18 @@
-// export { DatabaseError } from "@neondatabase/serverless";
-import { HTTPException } from 'hono/http-exception';
-import type { ContentfulStatusCode } from 'hono/utils/http-status';
-
+// ---------------------------------------------------------------------------
+// Server-only error machinery.
+// Pure error contracts (PublicErrorSchema, ULID helpers, zBoolQuery) live in
+// ./error/schema and are re-exported here for backend convenience.
+// ---------------------------------------------------------------------------
 import { zValidator as zv } from '@hono/zod-validator';
 import type { ValidationTargets } from 'hono';
-import { z } from 'zod';
+import { HTTPException } from 'hono/http-exception';
+import type { ContentfulStatusCode } from 'hono/utils/http-status';
+import type { z } from 'zod';
+import type { PublicErrorPayload } from './error/schema';
+
+// Re-export pure pieces so existing backend imports continue to work.
+export { PublicErrorSchema, isULID, zBoolQuery } from './error/schema';
+export type { PublicErrorPayload, ULID } from './error/schema';
 
 export const zValidator = <T extends z.ZodType, Target extends keyof ValidationTargets>(
 	target: Target,
@@ -20,7 +28,11 @@ export const zValidator = <T extends z.ZodType, Target extends keyof ValidationT
 		}
 	});
 
-export class PublicError extends HTTPException {
+/**
+ * Server-side error class. The HTTP layer serialises instances of this class
+ * into JSON conforming to {@link PublicErrorSchema}.
+ */
+export class PublicError extends HTTPException implements PublicErrorPayload {
 	constructor(
 		public override status: ContentfulStatusCode,
 		public code: string,
@@ -54,24 +66,3 @@ export class UnhandledServerError extends ServerError {
 		super('unhandled_exception', message, details);
 	}
 }
-
-export function isULID() {
-	return z.string().regex(new RegExp(`^[0-9A-HJKMNP-TV-Z]{26}$`), {
-		message: `Must be a valid ULID"`,
-	});
-}
-
-export type ULID = z.infer<ReturnType<typeof isULID>>;
-
-// true/false/1/0/yes/no/on/off (case-insensitive)
-// empty/missing -> undefined
-export const zBoolQuery = z.preprocess((v) => {
-	if (typeof v === 'string') {
-		const s = v.trim().toLowerCase();
-		if (s === '') return undefined;
-		if (['true', '1', 't', 'yes', 'y', 'on'].includes(s)) return true;
-		if (['false', '0', 'f', 'no', 'n', 'off'].includes(s)) return false;
-		return undefined; // unknown token -> treat as unset
-	}
-	return v;
-}, z.boolean().optional());

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { isULID } from '@mafia/core/error';
+import { isULID } from '@mafia/core/error/schema';
 
 // ---------------------------------------------------------------------------
 // Path Params

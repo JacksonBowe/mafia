@@ -1,29 +1,20 @@
 import { DrizzleQueryError, eq, inArray } from 'drizzle-orm';
+import { Resource } from 'sst';
 import { ulid } from 'ulid';
 import { z } from 'zod';
 import { afterTx, createTransaction, useTransaction } from '../db/transaction';
-import {
-	EntityBaseSchema,
-	getConstraintName,
-	isUniqueViolation,
-	RelatedEntitySchema,
-} from '../db/types';
+import { getConstraintName, isUniqueViolation } from '../db/types';
 import { InputError, isULID } from '../error';
 import { defineRealtimeEvent, realtime } from '../realtime';
 import { userTable } from '../user/user.sql';
 import { fn } from '../util/fn';
 import { lobbyMemberTable, lobbyTable } from './lobby.sql';
 import * as Member from './member';
-import { Resource } from 'sst';
-export * as Lobby from './';
-export { Member };
+import { LobbyErrors as Errors, LobbyInfoSchema, MAX_PLAYERS, MIN_PLAYERS } from './schema';
 
-export enum Errors {
-	LobbyExists = 'lobby.exists',
-	LobbyDuplicateHost = 'lobby.duplicate_host',
-	LobbyNotFound = 'lobby.not_found',
-	LobbyDeleteFailed = 'lobby.delete_failed',
-}
+export * as Lobby from './';
+export { Errors, LobbyInfoSchema, MAX_PLAYERS, MIN_PLAYERS, Member };
+export type { LobbyInfo } from './schema';
 
 export const RealtimeEvents = {
 	LobbyTerminated: defineRealtimeEvent(
@@ -42,15 +33,6 @@ export const RealtimeEvents = {
 		(p) => `lobby/${p.lobbyId}`,
 	),
 };
-
-export const LobbyInfoSchema = EntityBaseSchema.extend({
-	name: z.string(),
-	host: RelatedEntitySchema,
-	config: z.object({}).passthrough(),
-	members: z.array(RelatedEntitySchema),
-});
-
-export type LobbyInfo = z.infer<typeof LobbyInfoSchema>;
 
 export const create = fn(
 	z.object({
@@ -190,9 +172,6 @@ export const get = fn(
 			});
 		}),
 );
-
-export const MIN_PLAYERS = 1;
-export const MAX_PLAYERS = 15;
 
 export const prepareForStart = fn(
 	z.object({

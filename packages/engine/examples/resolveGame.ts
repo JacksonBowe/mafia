@@ -1,5 +1,5 @@
-import { newGame, resolveGame } from '../src/index';
-import { DEFAULT_SEED, dummyConfig, dummyActors, toActorInput } from './_helpers';
+import { newGame, resolveGame } from '@mafia/engine';
+import { DEFAULT_SEED, dummyConfig, dummyActors, toActorInput } from '@mafia/engine/testing';
 
 const run = () => {
 	const actors = dummyActors(3);

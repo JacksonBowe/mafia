@@ -1,47 +1,24 @@
-import type { ActorContext } from './actor';
+import { EngineErrorCodes } from '../constants';
+import { EngineError } from '../error';
 import type { ActorState } from '../types';
+import type { ActorContext } from './actor';
 import { Bodyguard } from './bodyguard';
 import { Citizen } from './citizen';
 import { Doctor } from './doctor';
 import { Godfather } from './godfather';
 import { Mafioso } from './mafioso';
+import { ROLE_NAMES, type RoleName } from './constants';
 
+export {
+	ROLE_NAMES,
+	GAME_TAGS,
+	FALLBACK_ROLE,
+	type RoleName,
+	type GameTag,
+} from './constants';
+
+/** Ordered list of every concrete role class. */
 export const ROLE_LIST = [Citizen, Doctor, Bodyguard, Godfather, Mafioso] as const;
-
-/** Union of all known role names. */
-export type RoleName = 'Citizen' | 'Doctor' | 'Bodyguard' | 'Godfather' | 'Mafioso';
-
-export const ROLE_NAMES = ['Citizen', 'Doctor', 'Bodyguard', 'Godfather', 'Mafioso'] as const satisfies readonly RoleName[];
-
-/**
- * All valid game tags. Includes role-specific tags plus category tags
- * that may not map directly to a role name.
- */
-export const GAME_TAGS = [
-	'any_random',
-	'town_random',
-	'town_government',
-	'town_protective',
-	'town_killing',
-	'mafia_random',
-	'mafia_killing',
-	'neutral_random',
-] as const;
-
-export type GameTag = (typeof GAME_TAGS)[number];
-
-/** Priority order for action resolution. Lower index = resolves first. */
-export const ROLE_PRIORITY: Record<RoleName, number> = Object.fromEntries(
-	ROLE_LIST.map((role, index) => [role.name, index]),
-) as Record<RoleName, number>;
-
-export const ROLE_TAGS_MAP: Record<RoleName, readonly string[]> = {
-	Citizen: Citizen.tags,
-	Doctor: Doctor.tags,
-	Bodyguard: Bodyguard.tags,
-	Godfather: Godfather.tags,
-	Mafioso: Mafioso.tags,
-};
 
 export type RoleConstructor = new (
 	input: ActorState,
@@ -49,23 +26,47 @@ export type RoleConstructor = new (
 	context: ActorContext,
 ) => InstanceType<(typeof ROLE_LIST)[number]>;
 
-export const ROLE_REGISTRY: Record<RoleName, RoleConstructor> = {
-	Citizen,
-	Doctor,
-	Bodyguard,
-	Godfather,
-	Mafioso,
-};
-
-/** The default fallback role when a tag cannot be filled. */
-export const FALLBACK_ROLE: RoleName = 'Citizen';
-
-export const importRole = (roleName: string): RoleConstructor => {
-	const role = ROLE_REGISTRY[roleName as RoleName];
-	if (!role) {
-		throw new Error(`Unknown role: ${roleName}`);
+const buildRoleRecord = <V>(
+	pick: (role: (typeof ROLE_LIST)[number]) => V,
+): Record<RoleName, V> => {
+	const record = {} as Record<RoleName, V>;
+	for (const role of ROLE_LIST) {
+		record[role.roleName] = pick(role);
 	}
-	return role;
+	return record;
 };
 
-export const isRoleName = (value: string): value is RoleName => value in ROLE_REGISTRY;
+/** Lookup table from role name to role constructor. */
+export const ROLE_REGISTRY: Record<RoleName, RoleConstructor> = buildRoleRecord(
+	(role) => role satisfies RoleConstructor,
+);
+
+/**
+ * Action-resolution priority. Lower runs first. Derived from each role's
+ * static `priority` field rather than `ROLE_LIST` index, so source ordering
+ * cannot accidentally change semantics.
+ */
+export const ROLE_PRIORITY: Record<RoleName, number> = buildRoleRecord(
+	(role) => role.priority,
+);
+
+/** Tags advertised by each role. */
+export const ROLE_TAGS_MAP: Record<RoleName, readonly string[]> = buildRoleRecord(
+	(role) => role.tags,
+);
+
+/**
+ * Resolve a role name to its constructor. Throws an {@link EngineError} for
+ * unknown names rather than a raw `Error` so consumers can match on `code`.
+ */
+export const importRole = (roleName: string): RoleConstructor => {
+	if (!isRoleName(roleName)) {
+		throw new EngineError(EngineErrorCodes.UNKNOWN_ROLE, `Unknown role: ${roleName}`, {
+			roleName,
+		});
+	}
+	return ROLE_REGISTRY[roleName];
+};
+
+export const isRoleName = (value: string): value is RoleName =>
+	(ROLE_NAMES as readonly string[]).includes(value);

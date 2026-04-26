@@ -1,5 +1,4 @@
-import type { Presence } from '@mafia/core/user/presence';
-import type { UserInfo } from '@mafia/core/user/index';
+import type { Presence, UserInfo } from '@mafia/core/user/schema';
 import type { AxiosRequestConfig } from 'axios';
 
 export type RequestFn = <T>(config: AxiosRequestConfig) => Promise<T>;

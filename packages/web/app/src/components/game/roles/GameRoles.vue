@@ -1,23 +1,25 @@
 <template>
 	<MCard>
-		<MCardHeader title="Roles" :separated="false" />
+		<MCardHeader subtitle="Roles" :separated="false" />
 		<MCardContent>
-			<div class="q-gutter-y-xs">
-				<!-- <div v-for="n in totalSlots" :key="n" class="text-body2 text-grey-4">-</div> -->
+			<div v-for="tag in tags" :key="tag" class="">
+				<GameConfigTag :tag="tag" />
 			</div>
 		</MCardContent>
 	</MCard>
 </template>
 
 <script setup lang="ts">
+import type { GameConfig } from '@mafia/sdk';
 import { MCard, MCardContent, MCardHeader } from 'src/components/ui/Card';
+import GameConfigTag from '../GameConfigTag.vue';
 
 withDefaults(
 	defineProps<{
-		totalSlots?: number;
+		tags: GameConfig['tags'];
 	}>(),
 	{
-		totalSlots: 15,
+		tags: () => [],
 	},
 );
 </script>

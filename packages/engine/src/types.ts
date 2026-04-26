@@ -1,5 +1,7 @@
 import { z } from 'zod';
+import { MAX_ACTORS } from './constants';
 import type { GameEventGroupDump } from './events';
+import { GAME_TAGS, ROLE_NAMES } from './roles/constants';
 
 // ---------------------------------------------------------------------------
 // Role & Tag schemas
@@ -9,24 +11,11 @@ import type { GameEventGroupDump } from './events';
  * Known role names. Validated at the schema boundary so downstream code
  * can trust the value is a member of the union.
  */
-export const RoleNameSchema = z.enum([
-	'Citizen',
-	'Doctor',
-	'Bodyguard',
-	'Godfather',
-	'Mafioso',
-]);
+export const RoleNameSchema = z.enum(ROLE_NAMES);
 
-export const GameTagSchema = z.enum([
-	'any_random',
-	'town_random',
-	'town_government',
-	'town_protective',
-	'town_killing',
-	'mafia_random',
-	'mafia_killing',
-	'neutral_random',
-]);
+export const GameTagSchema = z.enum(GAME_TAGS);
+
+export type { RoleName, GameTag } from './roles/constants';
 
 // ---------------------------------------------------------------------------
 // Role settings
@@ -47,14 +36,14 @@ export type RoleSettings = z.infer<typeof RoleSettingsSchema>;
 export const GameConfigSchema = z.object({
 	tags: z.array(GameTagSchema),
 	settings: z.record(z.string(), z.unknown()).default({}),
-	roles: z
-		.record(z.string(), RoleSettingsSchema)
-		.refine(
-			(roles): roles is Partial<Record<z.infer<typeof RoleNameSchema>, z.infer<typeof RoleSettingsSchema>>> => {
-				return Object.keys(roles).every((key) => RoleNameSchema.safeParse(key).success);
-			},
-			{ message: 'All role keys must be valid role names' },
-		),
+	/**
+	 * Role keys are constrained to {@link RoleNameSchema} so the inferred type
+	 * is `Partial<Record<RoleName, RoleSettings>>` without resorting to a refine
+	 * predicate cast. Unknown role keys are rejected at parse time; missing
+	 * known role keys are permitted (use {@link z.partialRecord} so callers
+	 * supply only the roles they configure).
+	 */
+	roles: z.partialRecord(RoleNameSchema, RoleSettingsSchema),
 });
 
 export type GameConfig = z.infer<typeof GameConfigSchema>;
@@ -68,42 +57,61 @@ export const ActorAlignmentSchema = z.enum(['Town', 'Mafia', 'Neutral']);
 export type ActorAlignment = z.infer<typeof ActorAlignmentSchema>;
 
 // ---------------------------------------------------------------------------
-// Actor state — input variant (what callers provide, alignment optional)
+// Ally summary
 // ---------------------------------------------------------------------------
 
-export const ActorStateInputSchema = z.object({
+/**
+ * Lightweight ally projection produced by {@link Actor.dumpState}.
+ * Strict (no passthrough) so consumers know exactly what to expect.
+ */
+export const AllySchema = z.object({
+	number: z.number().int().min(1).max(MAX_ACTORS),
+	alias: z.string(),
+	role: RoleNameSchema,
+	alive: z.boolean(),
+});
+
+export type Ally = z.infer<typeof AllySchema>;
+
+// ---------------------------------------------------------------------------
+// Actor state
+//
+// `ActorStateInput` and `ActorState` are aliases of the same schema. The
+// distinction is preserved as a public naming convention (input vs resolved)
+// even though Zod's input/output types coincide here.
+// ---------------------------------------------------------------------------
+
+export const ActorStateSchema = z.object({
 	id: z.string(),
 	name: z.string(),
 	alias: z.string(),
 	role: RoleNameSchema.optional(),
-	number: z.number().int().min(1).max(15).optional(),
+	number: z.number().int().min(1).max(MAX_ACTORS).optional(),
 	alive: z.boolean().default(true),
 	possibleTargets: z
-		.array(z.array(z.number().int().min(1).max(15)).max(15))
+		.array(z.array(z.number().int().min(1).max(MAX_ACTORS)).max(MAX_ACTORS))
 		.max(2)
 		.default([]),
-	targets: z.array(z.number().int().min(1).max(15)).max(15).default([]),
-	allies: z.array(z.object({}).passthrough()).default([]),
+	targets: z.array(z.number().int().min(1).max(MAX_ACTORS)).max(MAX_ACTORS).default([]),
+	allies: z.array(AllySchema).default([]),
 	roleActions: z.record(z.string(), z.unknown()).default({}),
 	alignment: ActorAlignmentSchema.nullable().default(null),
+	will: z.string().optional(),
 });
 
-export type ActorStateInput = z.infer<typeof ActorStateInputSchema>;
+export type ActorState = z.infer<typeof ActorStateSchema>;
 
-// ---------------------------------------------------------------------------
-// Actor state — normalised (after Zod parse, alignment always present)
-// ---------------------------------------------------------------------------
-
-export const ActorStateSchema = ActorStateInputSchema;
-
-export type ActorState = z.output<typeof ActorStateSchema>;
+/** @deprecated alias for {@link ActorStateSchema}; kept for SDK consumers. */
+export const ActorStateInputSchema = ActorStateSchema;
+/** @deprecated alias for {@link ActorState}; kept for SDK consumers. */
+export type ActorStateInput = ActorState;
 
 // ---------------------------------------------------------------------------
 // State sub-types
 // ---------------------------------------------------------------------------
 
 export const StateActorSchema = z.object({
-	number: z.number().int().min(1).max(15),
+	number: z.number().int().min(1).max(MAX_ACTORS),
 	alias: z.string(),
 	alive: z.boolean(),
 });
@@ -111,12 +119,12 @@ export const StateActorSchema = z.object({
 export type StateActor = z.infer<typeof StateActorSchema>;
 
 export const StateGraveyardRecordSchema = z.object({
-	number: z.number().int().min(1).max(15),
+	number: z.number().int().min(1).max(MAX_ACTORS),
 	alias: z.string(),
 	cod: z.string(),
 	dod: z.number().int().min(0),
-	role: z.string(),
-	will: z.string(),
+	role: RoleNameSchema,
+	will: z.string().default(''),
 	alignment: ActorAlignmentSchema,
 });
 
@@ -143,7 +151,7 @@ export const EngineOptionsSchema = z
 export type EngineOptions = z.infer<typeof EngineOptionsSchema>;
 
 export const EngineInputSchema = z.object({
-	actors: z.array(ActorStateInputSchema),
+	actors: z.array(ActorStateSchema),
 	config: GameConfigSchema,
 	state: GameStateSchema.optional(),
 	options: EngineOptionsSchema.optional(),
@@ -155,22 +163,12 @@ export const WinnerSummarySchema = z.object({
 	id: z.string(),
 	name: z.string(),
 	alias: z.string(),
-	number: z.number().int().min(1).max(15),
-	role: z.string(),
+	number: z.number().int().min(1).max(MAX_ACTORS),
+	role: RoleNameSchema,
 	alignment: ActorAlignmentSchema,
 });
 
 export type WinnerSummary = z.infer<typeof WinnerSummarySchema>;
-
-export const EngineOutputSchema = z.object({
-	state: GameStateSchema,
-	actors: z.array(ActorStateSchema),
-	events: z.array(z.object({}).passthrough()),
-	winners: z.array(WinnerSummarySchema).nullable(),
-	log: z.array(z.string()).default([]),
-});
-
-export type EngineOutput = z.infer<typeof EngineOutputSchema>;
 
 export type EngineResult = {
 	state: GameState;

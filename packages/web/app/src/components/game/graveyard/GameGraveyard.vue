@@ -15,15 +15,10 @@
 </template>
 
 <script setup lang="ts">
+import type { StateGraveyardRecord } from '@mafia/sdk';
 import { MCard, MCardContent, MCardHeader } from 'src/components/ui/Card';
 
-export interface GraveyardEntry {
-	number: number;
-	alias: string;
-	role: string;
-	cod: string;
-	dod: number;
-}
+export type GraveyardEntry = StateGraveyardRecord;
 
 withDefaults(
 	defineProps<{

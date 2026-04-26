@@ -1,4 +1,4 @@
-import type { LobbyInfo } from '@mafia/core/lobby/index';
+import type { LobbyInfo } from '@mafia/core/lobby/schema';
 import type { AxiosRequestConfig } from 'axios';
 import type { CreateLobbyJson, LobbyIdPathParams } from '@mafia/functions/api/schemas/lobby.schemas';
 

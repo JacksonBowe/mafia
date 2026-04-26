@@ -2,6 +2,7 @@ import type {
 	ActorState,
 	ClientGameInfo,
 	GameConfig,
+	GamePhase,
 	GameState,
 	GameSyncResponse,
 } from '@mafia/sdk';
@@ -26,7 +27,7 @@ export const useGameStore = defineStore('game', {
 		config: null as GameConfig | null,
 		actor: null as ActorState | null,
 		error: null as string | null,
-		phaseMeta: null as { phase: string; duration: number } | null,
+		phaseMeta: null as { phase: GamePhase; duration: number } | null,
 		/** Server-authoritative timestamp (ms) of the last applied sync */
 		lastSyncTs: 0,
 	}),
@@ -34,7 +35,7 @@ export const useGameStore = defineStore('game', {
 		hasActiveGame: (s) => !!s.info,
 		isReady: (s) => s.status === 'ready' && !!s.info,
 		/** Convenience: current game phase */
-		phase: (s): string | null => s.info?.phase ?? null,
+		phase: (s): GamePhase | null => s.info?.phase ?? null,
 		/** Convenience: poll count */
 		pollCount: (s): number => s.info?.pollCount ?? 0,
 
@@ -154,10 +155,10 @@ export const useGameStore = defineStore('game', {
 		/**
 		 * Update phase metadata from a realtime phase change event.
 		 */
-		applyPhaseEvent(phase: string, duration: number) {
+		applyPhaseEvent(phase: GamePhase, duration: number) {
 			this.phaseMeta = { phase, duration };
 			if (this.info) {
-				this.info = { ...this.info, phase: phase as ClientGameInfo['phase'] };
+				this.info = { ...this.info, phase };
 			}
 		},
 
@@ -171,7 +172,7 @@ export const useGameStore = defineStore('game', {
 		/**
 		 * Legacy compat: setPhaseMeta
 		 */
-		setPhaseMeta(phaseMeta: { phase: string; duration: number } | null) {
+		setPhaseMeta(phaseMeta: { phase: GamePhase; duration: number } | null) {
 			this.phaseMeta = phaseMeta;
 		},
 

@@ -1,3 +1,6 @@
+import { EngineErrorCodes } from './constants';
+import { EngineError } from './error';
+
 export type Rng = {
 	(): number;
 	int: (min: number, max: number) => number;
@@ -16,6 +19,9 @@ const mulberry32 = (seed: number) => {
 	};
 };
 
+const emptyListError = (op: string) =>
+	new EngineError(EngineErrorCodes.RNG_EMPTY_LIST, `Cannot ${op} empty list`);
+
 export const createRng = (seed?: number): Rng => {
 	const base = seed === undefined ? Math.random : mulberry32(seed);
 	const rng = base as Rng;
@@ -23,11 +29,11 @@ export const createRng = (seed?: number): Rng => {
 	rng.int = (min, max) => Math.floor(rng() * (max - min + 1)) + min;
 	rng.choice = <T>(items: T[]): T => {
 		if (items.length === 0) {
-			throw new Error('Cannot choose from empty list');
+			throw emptyListError('choose from');
 		}
 		const choice = items[Math.floor(rng() * items.length)];
 		if (choice === undefined) {
-			throw new Error('Cannot choose from empty list');
+			throw emptyListError('choose from');
 		}
 		return choice;
 	};
@@ -38,7 +44,7 @@ export const createRng = (seed?: number): Rng => {
 			const current = copy[i];
 			const swap = copy[j];
 			if (current === undefined || swap === undefined) {
-				throw new Error('Cannot shuffle empty list');
+				throw emptyListError('shuffle');
 			}
 			copy[i] = swap;
 			copy[j] = current;
@@ -47,10 +53,14 @@ export const createRng = (seed?: number): Rng => {
 	};
 	rng.choices = (items, weights, k = 1) => {
 		if (items.length !== weights.length) {
-			throw new Error('weights length must match items length');
+			throw new EngineError(
+				EngineErrorCodes.RNG_WEIGHT_MISMATCH,
+				'weights length must match items length',
+				{ items: items.length, weights: weights.length },
+			);
 		}
 		if (items.length === 0) {
-			throw new Error('Cannot choose from empty list');
+			throw emptyListError('choose from');
 		}
 		const total = weights.reduce((sum, w) => sum + w, 0);
 		const cumulative = weights.reduce<number[]>((acc, w, idx) => {
@@ -63,7 +73,7 @@ export const createRng = (seed?: number): Rng => {
 			const index = cumulative.findIndex((c) => r <= c);
 			const selected = items[index === -1 ? items.length - 1 : index];
 			if (selected === undefined) {
-				throw new Error('Cannot choose from empty list');
+				throw emptyListError('choose from');
 			}
 			picks.push(selected);
 		}

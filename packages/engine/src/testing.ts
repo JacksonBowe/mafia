@@ -1,4 +1,12 @@
-import type { ActorState, GameConfig } from '../src/index';
+import { DEFAULT_CONFIG } from './config';
+import type { ActorState, GameConfig } from './types';
+
+/**
+ * Shared test/example fixtures. Importable as `@mafia/engine/testing`.
+ *
+ * Not part of the runtime API surface — used by the package's own tests and
+ * runnable examples to avoid duplicating boilerplate actor and config payloads.
+ */
 
 export const DEFAULT_SEED = 42;
 
@@ -15,14 +23,13 @@ export const dummyActors = (count: number): ActorState[] =>
 		alignment: null,
 	}));
 
-export const dummyConfig = (): GameConfig => ({
-	tags: ['town_random', 'town_protective', 'mafia_killing'],
-	settings: {},
-	roles: {
-		Citizen: { max: 3, weight: 1, settings: { maxVests: 2 } },
-		Bodyguard: { max: 1, weight: 1, settings: {} },
-		Mafioso: { max: 1, weight: 1, settings: {} },
-	},
+/**
+ * Returns {@link DEFAULT_CONFIG} sliced to the given actor count so the tag
+ * list matches the number of seats at the table.
+ */
+export const dummyConfig = (actorCount = 3): GameConfig => ({
+	...DEFAULT_CONFIG,
+	tags: DEFAULT_CONFIG.tags.slice(0, actorCount),
 });
 
 export const toActorInput = (actor: ActorState): ActorState => ({

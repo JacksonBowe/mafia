@@ -15,15 +15,16 @@
 </template>
 
 <script setup lang="ts">
+import type { GamePhase } from '@mafia/sdk';
 import { computed } from 'vue';
 import { MCard, MCardActions, MCardContent, MCardHeader } from 'src/components/ui/Card';
 
-const DAY_PHASES = ['day', 'discussion', 'voting', 'defense', 'trial'];
-const NIGHT_PHASES = ['night'];
+const DAY_PHASES: GamePhase[] = ['day', 'poll', 'defense', 'trial'];
+const NIGHT_PHASES: GamePhase[] = ['night'];
 
 const props = withDefaults(
 	defineProps<{
-		phase?: string | null;
+		phase?: GamePhase | null;
 		alive?: boolean;
 		hasTargets?: boolean;
 	}>(),
@@ -45,7 +46,9 @@ const phaseLabel = computed(() => {
 
 const canAct = computed(() => props.alive && !!props.phase && props.phase !== 'pregame');
 
-const canVote = computed(() => canAct.value && DAY_PHASES.includes(props.phase ?? ''));
+const canVote = computed(
+	() => canAct.value && !!props.phase && DAY_PHASES.includes(props.phase),
+);
 
 const canUseAbility = computed(() => canAct.value && props.hasTargets);
 </script>

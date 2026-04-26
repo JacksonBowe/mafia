@@ -1,4 +1,4 @@
-import type { GameState } from '@mafia/sdk';
+import { GamePhaseSchema, type GameState } from '@mafia/sdk';
 import { useQueryClient } from '@tanstack/vue-query';
 import type { AppBus } from 'src/boot/bus';
 import { useGameStore } from 'src/stores/game';
@@ -10,7 +10,7 @@ const ULID = z.string().min(26);
 export const GameEventSchemas = {
 	'realtime.game.phase': z.object({
 		gameId: ULID,
-		phase: z.string(),
+		phase: GamePhaseSchema,
 		duration: z.number().int(),
 	}),
 	'realtime.game.state': z.object({

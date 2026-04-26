@@ -1,28 +1,29 @@
+// ---------------------------------------------------------------------------
+// Drizzle column helpers + Postgres error utilities (server-only).
+// Pure schemas live in ./schema and are re-exported here for convenience.
+// ---------------------------------------------------------------------------
 import { char, timestamp as pgTimestamp } from 'drizzle-orm/pg-core';
-import { z } from 'zod';
-import { isULID } from '../error';
 
-// ULID field for Postgres (same length as before)
+
+// ULID column for Postgres
 export const ulid = (name: string) => char(name, { length: 26 });
 
 // ID helper with primary key
 export const id = {
 	get id() {
-		return ulid('id').primaryKey(); // Primary key using ULID
+		return ulid('id').primaryKey();
 	},
 };
 
-export const idSchema = z.string();
-
-// Timestamp field for Postgres
+// Timestamp column for Postgres
 export const timestamp = (name: string) =>
 	pgTimestamp(name, {
-		precision: 3, // Postgres uses 'precision' instead of 'fsp'
+		precision: 3,
 		withTimezone: true,
-		mode: 'date', // Optional: Mode setting if needed
+		mode: 'date',
 	});
 
-// Common timestamps: created, updated, and deleted
+// Common timestamps: created, updated
 export const timestamps = {
 	createdAt: timestamp('created_at').notNull().defaultNow(),
 	updatedAt: timestamp('updated_at')
@@ -30,25 +31,10 @@ export const timestamps = {
 		.$onUpdate(() => new Date()),
 };
 
-export const timestampsSchema = z.object({
-	createdAt: z.date(), // Created timestamp
-	updatedAt: z.date().optional(), // Optional updated timestamp
-});
+// ---------------------------------------------------------------------------
+// Postgres error helpers
+// ---------------------------------------------------------------------------
 
-export const RelatedEntitySchema = z.object({
-	id: isULID(),
-	name: z.string(),
-});
-
-export const EntityBaseSchema = z.object({
-	id: isULID(), // ULID as a string
-	createdAt: z.date(), // Created timestamp
-	updatedAt: z.date().optional(), // Optional updated timestamp
-});
-
-export type RelatedEntity = z.infer<typeof RelatedEntitySchema>;
-
-// Postgres unique violation code
 const PG_UNIQUE_VIOLATION = '23505';
 
 export type PgLikeError = {
@@ -82,21 +68,8 @@ export function isUniqueViolation(e: unknown): boolean {
 
 export function getConstraintName(e: unknown): string | undefined {
 	const pg = getPgError(e);
-	// best case: driver provides constraint explicitly
 	if (pg?.constraint) return pg.constraint;
-
-	// fallback: sometimes only message has it
 	const msg = pg?.message ?? '';
-	// e.g. 'duplicate key value violates unique constraint "lobby_name_uq"'
 	const m = msg.match(/unique constraint "([^"]+)"/i);
 	return m?.[1];
 }
-
-export type Page<T> = {
-	items: T[];
-	meta: {
-		limit: number;
-		hasMore: boolean;
-		nextCursor: string | null;
-	};
-};

@@ -2,6 +2,7 @@
 // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file
 
 import { defineConfig } from '#q-app/wrappers';
+// import path from 'path';
 
 export default defineConfig((/* ctx */) => {
 	return {
@@ -88,6 +89,10 @@ export default defineConfig((/* ctx */) => {
 					{ server: false },
 				],
 			],
+
+			// alias: {
+			// 	'@mafia/sdk': path.resolve(__dirname, '../../sdk/src')
+			// }
 		},
 
 		// Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#devserver
