@@ -7,17 +7,20 @@ import { Town, type ActorContext, type Actor } from './actor';
 export const BodyguardSettingsSchema = z.object({}).strict();
 
 export type BodyguardSettings = z.infer<typeof BodyguardSettingsSchema>;
+export type BodyguardSettingsInput = z.input<typeof BodyguardSettingsSchema>;
 
 export class Bodyguard extends Town {
 	static override tags = ['any_random', 'town_random', 'town_protective', 'town_killing'];
 	static override roleName = 'Bodyguard' as const;
 	static override priority = 2;
+	static settingsSchema = BodyguardSettingsSchema;
+	static description = 'Town protector that intercepts attacks at target home.';
 
 	private guarding?: Actor;
 
 	constructor(
 		input: ActorState,
-		settings: Record<string, unknown> = {},
+		settings: BodyguardSettingsInput = {},
 		context: ActorContext,
 	) {
 		super(input, context);

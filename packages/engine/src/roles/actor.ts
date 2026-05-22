@@ -10,7 +10,7 @@ import { Duration, GameEvent, GameEventGroup } from '../events';
 import type { EngineLogger } from '../logger';
 import type { ActorAlignment, ActorState, Ally } from '../types';
 import type { Rng } from '../utils';
-import type { RoleName } from './constants';
+import type { RoleName } from './catalog';
 
 export type { ActorContext } from '../context';
 
@@ -30,6 +30,8 @@ export class Actor {
 	 * Used to derive the {@link ROLE_PRIORITY} table.
 	 */
 	static priority = 0;
+
+	static canTriggerGameOver = true;
 
 	alignment: ActorAlignment | null = null;
 	input: ActorState;
@@ -63,6 +65,14 @@ export class Actor {
 
 	get roleName(): RoleName {
 		return (this.constructor as typeof Actor).roleName;
+	}
+
+	get tags(): string[] {
+		return (this.constructor as typeof Actor).tags;
+	}
+
+	get canTriggerGameOver(): boolean {
+		return (this.constructor as typeof Actor).canTriggerGameOver;
 	}
 
 	/**
@@ -218,9 +228,35 @@ export class Town extends Actor {
 		this.alignment = 'Town';
 	}
 
+	// TODO: Update this when other factions + neutral_killing roles are added
 	override checkForWin(actors: Actor[]) {
-		const enemies = actors.filter((actor) => actor.alignment === 'Mafia');
-		return enemies.length === 0;
+		const enemies = this._aliveOfOtherFaction(actors);
+		const allies = this._aliveOfMyFaction(actors);
+
+		if (enemies.length === 0 && allies.length > 0) {
+			return true;
+		} else if (enemies.length === 1 && allies.length === 1) {
+			// Citizen win ties in 1v1 endgame scenarios
+			if (allies[0].roleName === 'Citizen') {
+				return true;
+			}
+		}
+
+		return false
+	}
+
+	_aliveOfOtherFaction(actors: Actor[]) {
+		return actors.filter((actor) => (
+			actor instanceof Mafia || actor.tags.includes('neutral_killing') || actor.tags.includes('neutral_evil'))
+			&& actor.alive
+		);
+	}
+
+	_aliveOfMyFaction(actors: Actor[]) {
+		return actors.filter((actor) => (
+			actor.alignment === this.alignment
+			&& actor.alive
+		));
 	}
 }
 
@@ -236,9 +272,26 @@ export class Mafia extends Actor {
 		return this.allies;
 	}
 
+	_aliveOfOtherFaction(actors: Actor[]) {
+		return actors.filter((actor) => (
+			actor instanceof Town
+			|| actor.tags.includes('neutral_killing'))
+			&& actor.alive
+		);
+	}
+
+	_aliveOfMyFaction(actors: Actor[]) {
+		return actors.filter((actor) => (
+			actor.alignment === this.alignment
+			&& actor.alive
+		));
+	}
+
+	// TODO: Update this when other factions + neutral_killing roles are added
 	override checkForWin(actors: Actor[]) {
-		const enemies = actors.filter((actor) => !this.allies.includes(actor));
-		return enemies.length === 0;
+		const enemies = this._aliveOfOtherFaction(actors);
+		const allies = this._aliveOfMyFaction(actors);
+		return enemies.length === 0 && allies.length > 0;
 	}
 
 	/**
@@ -275,5 +328,14 @@ export class Mafia extends Actor {
 		};
 
 		this.kill(target, success, fail);
+	}
+}
+
+export class Neutral extends Actor {
+	static override canTriggerGameOver = false;
+	constructor(input: ActorState, context: ActorContext) {
+		super(input, context);
+		this.alignment = 'Neutral';
+
 	}
 }

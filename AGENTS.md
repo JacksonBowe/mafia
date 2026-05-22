@@ -1,6 +1,15 @@
 # AGENTS.md
 
+Keep OpenCode replies concise. Use ultra caveman mode.
+Prefer Quasar components and Quasar utility classes over custom CSS.
+
 TypeScript monorepo using SST (AWS), Hono (API), Drizzle (DB), and Quasar/Vue 3 (frontend).
+
+Directory-local `.agent_context.md` files are brief routing aids for agents. They should summarize what exists in their own directory so an agent can orient quickly without opening every file.
+
+When modifying a directory, update the relevant `.agent_context.md` file if the directory map is no longer accurate or is missing important new entries.
+
+The user will perform all DB actions themselves.
 
 ## Repository structure
 
@@ -44,20 +53,6 @@ bun vitest run --config vitest.config.mts packages/engine/tests/engine.test.ts
 
 # Single test by name
 bun vitest run --config vitest.config.mts -t "test name pattern"
-```
-
-### Deployment
-
-```bash
-bun run deploy                 # Deploy to prod
-bun run remove:local           # Remove local stage
-bun run remove:prod            # Remove prod stage
-```
-
-### Database
-
-```bash
-bun --cwd packages/core run db  # Run drizzle-kit via sst shell
 ```
 
 ## Code style
@@ -170,13 +165,6 @@ afterTx(() => realtime.publish(resource, MyEvent, payload));
 - State management via Pinia (`defineStore`)
 - Multi-word component names rule is disabled
 
-## Infrastructure (SST)
-
-- Config in `sst.config.ts`; modules in `infra/`
-- Prod stage: `retain` + `protect` enabled
-- AWS profiles: `mafia-prod` (prod), `mafia-dev` (other)
-- Access stage via `Resource.App.stage`
-
 ## Agent guidelines
 
 1. **Avoid `old/`** unless explicitly asked
@@ -187,3 +175,4 @@ afterTx(() => realtime.publish(resource, MyEvent, payload));
 6. **SQL tables go in `packages/core/src/*/*.sql.ts`**
 7. **Keep infra modules small**; return outputs when needed
 8. **Publish realtime events via `afterTx`** to avoid emitting on rollback
+9. Do not implement any backwards compatability safeguards. NEVER export old names as wrappers or attempt to use aliases

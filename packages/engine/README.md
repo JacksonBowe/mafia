@@ -40,7 +40,8 @@ Targeting is explicit and ordered:
 - `targets` is an ordered list of chosen targets aligned to those slots.
 - `resolveGame` validates each target against `possibleTargets` and clears invalid targets.
 
-Turn order is defined by `ROLE_LIST` in `src/roles/index.ts`.
+Turn order is defined by role metadata (`priority`) in the canonical role catalog at
+`src/roles/catalog.ts`.
 
 ## Examples
 

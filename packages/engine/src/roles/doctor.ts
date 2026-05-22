@@ -7,15 +7,18 @@ import { Town, type ActorContext, type Actor } from './actor';
 export const DoctorSettingsSchema = z.object({}).strict();
 
 export type DoctorSettings = z.infer<typeof DoctorSettingsSchema>;
+export type DoctorSettingsInput = z.input<typeof DoctorSettingsSchema>;
 
 export class Doctor extends Town {
 	static override tags = ['any_random', 'town_random', 'town_protective'];
 	static override roleName = 'Doctor' as const;
 	static override priority = 1;
+	static settingsSchema = DoctorSettingsSchema;
+	static description = 'Town protective role that can heal one target each night.';
 
 	constructor(
 		input: ActorState,
-		settings: Record<string, unknown> = {},
+		settings: DoctorSettingsInput = {},
 		context: ActorContext,
 	) {
 		super(input, context);

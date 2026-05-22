@@ -45,14 +45,24 @@ export {
 	FALLBACK_ROLE,
 	GAME_TAGS,
 	importRole,
+	importRoleDefinition,
+	instantiateRole,
 	isRoleName,
+	ROLE_CATALOG,
+	ROLE_DESCRIPTIONS,
 	ROLE_LIST,
 	ROLE_NAMES,
 	ROLE_PRIORITY,
 	ROLE_REGISTRY,
 	ROLE_TAGS_MAP,
 } from './roles';
-export type { GameTag, RoleConstructor, RoleName } from './roles';
+export type {
+	GameTag,
+	RoleCatalog,
+	RoleConstructor,
+	RoleDefinition,
+	RoleName,
+} from './roles';
 
 export { Actor, Mafia, Town } from './roles/actor';
 export { Bodyguard, BodyguardSettingsSchema } from './roles/bodyguard';
@@ -65,6 +75,8 @@ export { Godfather, GodfatherSettingsSchema } from './roles/godfather';
 export type { GodfatherSettings } from './roles/godfather';
 export { Mafioso, MafiosoSettingsSchema } from './roles/mafioso';
 export type { MafiosoSettings } from './roles/mafioso';
+export { Survivor, SurvivorSettingsSchema } from './roles/survivor';
+export type { SurvivorSettings } from './roles/survivor';
 
 // ---------------------------------------------------------------------------
 // Contexts

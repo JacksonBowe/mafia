@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { MAX_ACTORS } from './constants';
 import type { GameEventGroupDump } from './events';
-import { GAME_TAGS, ROLE_NAMES } from './roles/constants';
+import { GAME_TAGS, ROLE_NAMES } from './roles/catalog';
 
 // ---------------------------------------------------------------------------
 // Role & Tag schemas
@@ -15,7 +15,7 @@ export const RoleNameSchema = z.enum(ROLE_NAMES);
 
 export const GameTagSchema = z.enum(GAME_TAGS);
 
-export type { RoleName, GameTag } from './roles/constants';
+export type { RoleName, GameTag } from './roles/catalog';
 
 // ---------------------------------------------------------------------------
 // Role settings

@@ -5,15 +5,18 @@ import { Mafia, type ActorContext, type Actor } from './actor';
 export const MafiosoSettingsSchema = z.object({}).strict();
 
 export type MafiosoSettings = z.infer<typeof MafiosoSettingsSchema>;
+export type MafiosoSettingsInput = z.input<typeof MafiosoSettingsSchema>;
 
 export class Mafioso extends Mafia {
 	static override tags = ['any_random', 'mafia_random', 'mafia_killing'];
 	static override roleName = 'Mafioso' as const;
 	static override priority = 4;
+	static settingsSchema = MafiosoSettingsSchema;
+	static description = 'Mafia attacker that carries out faction kills.';
 
 	constructor(
 		input: ActorState,
-		settings: Record<string, unknown> = {},
+		settings: MafiosoSettingsInput = {},
 		context: ActorContext,
 	) {
 		super(input, context);

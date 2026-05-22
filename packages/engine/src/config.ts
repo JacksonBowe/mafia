@@ -27,8 +27,8 @@ export const DEFAULT_CONFIG: GameConfig = {
 		'mafia_random',
 		'mafia_random',
 
-		// 3 Neutral slots (will fall back to Citizen until neutral roles exist)
-		'neutral_random',
+		// 3 Neutral slots
+		'neutral_benign', // Guaranteed Survivor-eligible slot
 		'neutral_random',
 		'neutral_random',
 
@@ -66,6 +66,13 @@ export const DEFAULT_CONFIG: GameConfig = {
 			max: 3,
 			weight: 1,
 			settings: {},
+		},
+
+		// Neutral roles
+		Survivor: {
+			max: 2,
+			weight: 1,
+			settings: { maxVests: 4 },
 		},
 	},
 };

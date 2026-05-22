@@ -10,15 +10,18 @@ export const GodfatherSettingsSchema = z.object({
 });
 
 export type GodfatherSettings = z.infer<typeof GodfatherSettingsSchema>;
+export type GodfatherSettingsInput = z.input<typeof GodfatherSettingsSchema>;
 
 export class Godfather extends Mafia {
 	static override tags = ['any_random', 'mafia_random', 'mafia_killing'];
 	static override roleName = 'Godfather' as const;
 	static override priority = 3;
+	static settingsSchema = GodfatherSettingsSchema;
+	static description = 'Mafia leader who can delegate kills and starts night-immune.';
 
 	constructor(
 		input: ActorState,
-		settings: Record<string, unknown> = {},
+		settings: GodfatherSettingsInput = {},
 		context: ActorContext,
 	) {
 		super(input, context);

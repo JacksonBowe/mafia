@@ -1,24 +1,27 @@
 import { z } from 'zod';
 import { DEFAULT_VESTS } from '../constants';
 import type { ActorState } from '../types';
-import { Town, type ActorContext, type Actor } from './actor';
+import { Town, type Actor, type ActorContext } from './actor';
 
 export const CitizenSettingsSchema = z.object({
 	maxVests: z.number().int().min(0).default(DEFAULT_VESTS),
 });
 
 export type CitizenSettings = z.infer<typeof CitizenSettingsSchema>;
+export type CitizenSettingsInput = z.input<typeof CitizenSettingsSchema>;
 
 export class Citizen extends Town {
 	static override tags = ['any_random', 'town_random', 'town_government'];
 	static override roleName = 'Citizen' as const;
 	static override priority = 0;
+	static settingsSchema = CitizenSettingsSchema;
+	static description = 'Town role with limited self-protection vests.';
 
 	private remainingVests = 0;
 
 	constructor(
 		input: ActorState,
-		settings: Record<string, unknown> = {},
+		settings: CitizenSettingsInput = {},
 		context: ActorContext,
 	) {
 		super(input, context);
@@ -35,12 +38,12 @@ export class Citizen extends Town {
 		};
 	}
 
-	override checkForWin(actors: Actor[]) {
-		const factionWin = super.checkForWin(actors);
-		if (factionWin) return true;
-		if (actors.length === 2 && actors.some((actor) => actor instanceof Citizen)) return true;
-		return false;
-	}
+	// override checkForWin(actors: Actor[]) {
+	// 	const factionWin = super.checkForWin(actors);
+	// 	if (factionWin) return true;
+
+	// 	return false;
+	// }
 
 	override findPossibleTargets(_actors: Actor[] = []) {
 		this.possibleTargets = [];

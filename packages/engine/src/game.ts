@@ -8,7 +8,7 @@ import {
 	FALLBACK_ROLE,
 	ROLE_PRIORITY,
 	ROLE_TAGS_MAP,
-	importRole,
+	instantiateRole,
 	type RoleName,
 } from './roles';
 import { type Actor } from './roles/actor';
@@ -155,9 +155,8 @@ class Game {
 					{ actor: actorInput },
 				);
 			}
-			const Role = importRole(actorInput.role);
 			const settings = this.config.roles[actorInput.role]?.settings ?? {};
-			const actor = new Role(actorInput, settings, {
+			const actor = instantiateRole(actorInput.role, actorInput, settings, {
 				logger: this.context.logger,
 				actionEvents: this.actionEvents,
 				rng: this.context.rng,
@@ -207,7 +206,7 @@ class Game {
 		for (const actorInput of actorInputs) {
 			context.logger.info(
 				`  |-> ${actorInput.alias} (${actorInput.name}):`.padEnd(40) +
-					` ${actorInput.role ?? 'Unknown'} ${actorInput.alive ? '' : '(DEAD)'}`,
+				` ${actorInput.role ?? 'Unknown'} ${actorInput.alive ? '' : '(DEAD)'}`,
 			);
 		}
 
@@ -289,13 +288,25 @@ class Game {
 
 	checkForWin() {
 		this.context.logger.info('--- Checking for win conditions ---');
-		const winners = this.actors.filter((actor) => actor.checkForWin(this.aliveActors));
-		if (winners.length > 0) {
-			this.context.logger.info(`Winners: ${winners.map((w) => w.alias).join(', ')}`);
-			return winners;
+
+		const primaryWinners = this.actors.filter(
+			(actor) => actor.canTriggerGameOver && actor.checkForWin(this.actors),
+		);
+
+		if (primaryWinners.length === 0) {
+			this.context.logger.info('No winners found');
+			return null;
 		}
-		this.context.logger.info('No winners found');
-		return null;
+
+		const coWinners = this.actors.filter(
+			(actor) => !actor.canTriggerGameOver && actor.checkForWin(this.actors),
+		);
+
+		const winners = [...primaryWinners, ...coWinners];
+
+		this.context.logger.info(`Winners: ${winners.map((w) => w.alias).join(', ')}`);
+
+		return winners;
 	}
 
 	getActorByNumber(number: number): Actor | undefined {
