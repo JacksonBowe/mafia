@@ -237,7 +237,7 @@ export class Town extends Actor {
 			return true;
 		} else if (enemies.length === 1 && allies.length === 1) {
 			// Citizen win ties in 1v1 endgame scenarios
-			if (allies[0].roleName === 'Citizen') {
+			if (allies[0]!.roleName === 'Citizen') {
 				return true;
 			}
 		}

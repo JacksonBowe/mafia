@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { Citizen } from '../../src/roles/citizen';
 import { Mafioso } from '../../src/roles/mafioso';
 import { Survivor } from '../../src/roles/survivor';
 import { createContext, makeActor } from './fixtures';
