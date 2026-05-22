@@ -352,7 +352,7 @@ describe('engine', () => {
 		];
 
 		const config: GameConfig = {
-			tags: ['neutral_benign', 'any_random'],
+			tags: ['survivor', 'any_random'],
 			settings: {},
 			roles: {
 				Citizen: { max: 1, weight: 1, settings: { maxVests: 0 } },
@@ -371,7 +371,8 @@ describe('engine', () => {
 
 		const resolved = resolveGame({ actors, config, state, options: { seed: DEFAULT_SEED } });
 
-		console.log('Winners', resolved.winners);
+		// console.log('Actors', resolved.actors);
+		// console.log('Winners', resolved.winners);
 
 		for (const winner of resolved.winners ?? []) {
 			console.log('Winner', winner.name, winner.role, winner.alignment);

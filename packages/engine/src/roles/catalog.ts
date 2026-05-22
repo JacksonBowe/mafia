@@ -21,8 +21,9 @@ export const ROLE_NAMES = [
 
 export type RoleName = (typeof ROLE_NAMES)[number];
 
-export const GAME_TAGS = [
+export const ROLE_TAGS = [
 	'any_random',
+	'survivor',
 	'town_random',
 	'town_government',
 	'town_protective',
@@ -33,7 +34,7 @@ export const GAME_TAGS = [
 	'neutral_benign',
 ] as const;
 
-export type GameTag = (typeof GAME_TAGS)[number];
+export type RoleTag = (typeof ROLE_TAGS)[number];
 
 export const FALLBACK_ROLE: RoleName = 'Citizen';
 

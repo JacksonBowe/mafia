@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { MAX_ACTORS } from './constants';
 import type { GameEventGroupDump } from './events';
-import { GAME_TAGS, ROLE_NAMES } from './roles/catalog';
+import { ROLE_NAMES, ROLE_TAGS } from './roles/catalog';
 
 // ---------------------------------------------------------------------------
 // Role & Tag schemas
@@ -13,9 +13,9 @@ import { GAME_TAGS, ROLE_NAMES } from './roles/catalog';
  */
 export const RoleNameSchema = z.enum(ROLE_NAMES);
 
-export const GameTagSchema = z.enum(GAME_TAGS);
+export const RoleTagSchema = z.enum(ROLE_TAGS);
 
-export type { RoleName, GameTag } from './roles/catalog';
+export type { RoleName, RoleTag } from './roles/catalog';
 
 // ---------------------------------------------------------------------------
 // Role settings
@@ -34,7 +34,7 @@ export type RoleSettings = z.infer<typeof RoleSettingsSchema>;
 // ---------------------------------------------------------------------------
 
 export const GameConfigSchema = z.object({
-	tags: z.array(GameTagSchema),
+	tags: z.array(RoleTagSchema),
 	settings: z.record(z.string(), z.unknown()).default({}),
 	/**
 	 * Role keys are constrained to {@link RoleNameSchema} so the inferred type

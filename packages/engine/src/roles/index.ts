@@ -1,7 +1,5 @@
 export {
-	FALLBACK_ROLE,
-	GAME_TAGS,
-	importRole,
+	FALLBACK_ROLE, importRole,
 	importRoleDefinition,
 	instantiateRole,
 	isRoleName,
@@ -10,14 +8,13 @@ export {
 	ROLE_LIST,
 	ROLE_NAMES,
 	ROLE_PRIORITY,
-	ROLE_REGISTRY,
-	ROLE_TAGS_MAP,
+	ROLE_REGISTRY, ROLE_TAGS, ROLE_TAGS_MAP
 } from './catalog';
 
 export type {
-	GameTag,
 	RoleCatalog,
 	RoleConstructor,
 	RoleDefinition,
-	RoleName,
+	RoleName, RoleTag
 } from './catalog';
+

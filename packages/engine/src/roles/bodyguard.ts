@@ -10,7 +10,7 @@ export type BodyguardSettings = z.infer<typeof BodyguardSettingsSchema>;
 export type BodyguardSettingsInput = z.input<typeof BodyguardSettingsSchema>;
 
 export class Bodyguard extends Town {
-	static override tags = ['any_random', 'town_random', 'town_protective', 'town_killing'];
+	static override tags = ['bodyguard', 'any_random', 'town_random', 'town_protective', 'town_killing'];
 	static override roleName = 'Bodyguard' as const;
 	static override priority = 2;
 	static settingsSchema = BodyguardSettingsSchema;

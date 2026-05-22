@@ -21,7 +21,7 @@ export type SurvivorSettingsInput = z.input<typeof SurvivorSettingsSchema>;
  * the resolution cycle. Vest count is configurable via `maxVests`.
  */
 export class Survivor extends Neutral {
-	static override tags = ['neutral_random', 'neutral_benign'];
+	static override tags = ['survivor', 'neutral_random', 'neutral_benign'];
 	static override roleName = 'Survivor' as const;
 	static override priority = 0;
 	static settingsSchema = SurvivorSettingsSchema;

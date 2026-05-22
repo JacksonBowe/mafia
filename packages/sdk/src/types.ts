@@ -8,27 +8,24 @@
 // ---------------------------------------------------------------------------
 
 // --- DB schemas & types ---
-export { RelatedEntitySchema, EntityBaseSchema } from '@mafia/core/db/schema';
-export type { RelatedEntity, EntityBase, Page } from '@mafia/core/db/schema';
+export { EntityBaseSchema, RelatedEntitySchema } from '@mafia/core/db/schema';
+export type { EntityBase, Page, RelatedEntity } from '@mafia/core/db/schema';
 
 // --- Error schemas & types ---
-export { PublicErrorSchema, isULID, zBoolQuery } from '@mafia/core/error/schema';
+export { isULID, PublicErrorSchema, zBoolQuery } from '@mafia/core/error/schema';
 export type { PublicErrorPayload, ULID } from '@mafia/core/error/schema';
 
 // --- Game schemas & types ---
 export {
 	ClientGameInfoSchema,
-	DeathRecordSchema,
-	GameEventSchema,
+	DeathRecordSchema, GameErrors, GameEventSchema,
 	GameInfoSchema,
 	GamePhaseSchema,
 	GamePlayerSchema,
 	GameStatusSchema,
 	GameSyncResponseSchema,
-	GameTopics,
-	GameErrors,
-	VerdictSchema,
-	WinnerSummarySchema,
+	GameTopics, VerdictSchema,
+	WinnerSummarySchema
 } from '@mafia/core/game/schema';
 export type {
 	ActorState,
@@ -43,7 +40,7 @@ export type {
 	GameStatus,
 	GameSyncResponse,
 	Verdict,
-	WinnerSummary,
+	WinnerSummary
 } from '@mafia/core/game/schema';
 
 // --- Engine types & values (canonical role/tag/alignment surface) ---
@@ -51,37 +48,24 @@ export {
 	ActorAlignmentSchema,
 	ActorStateInputSchema,
 	ActorStateSchema,
-	FALLBACK_ROLE,
-	GAME_TAGS,
-	GameConfigSchema,
-	GameStateSchema,
-	GameTagSchema,
-	isRoleName,
+	FALLBACK_ROLE, GameConfigSchema,
+	GameStateSchema, isRoleName,
 	ROLE_LIST,
 	ROLE_NAMES,
 	ROLE_PRIORITY,
-	ROLE_REGISTRY,
-	ROLE_TAGS_MAP,
-	RoleNameSchema,
+	ROLE_REGISTRY, ROLE_TAGS, ROLE_TAGS_MAP,
+	RoleNameSchema, RoleTagSchema
 } from '@mafia/engine';
 export type {
 	ActorAlignment,
-	ActorStateInput,
-	GameTag,
-	RoleName,
-	RoleSettings,
-	StateActor,
-	StateGraveyardRecord,
+	ActorStateInput, RoleName,
+	RoleSettings, RoleTag, StateActor,
+	StateGraveyardRecord
 } from '@mafia/engine';
 
 // --- Lobby schemas & types ---
 export {
-	LobbyInfoSchema,
-	LobbyMemberInfoSchema,
-	LobbyErrors,
-	LobbyMemberErrors,
-	MIN_PLAYERS,
-	MAX_PLAYERS,
+	LobbyErrors, LobbyInfoSchema, LobbyMemberErrors, LobbyMemberInfoSchema, MAX_PLAYERS, MIN_PLAYERS
 } from '@mafia/core/lobby/schema';
 export type { LobbyInfo, LobbyMemberInfo } from '@mafia/core/lobby/schema';
 
@@ -94,7 +78,7 @@ export {
 	MessageListSchema,
 	MessageSchema,
 	MessageScopeSchema,
-	MessageSenderSchema,
+	MessageSenderSchema
 } from '@mafia/core/message';
 export type {
 	AppChannel,
@@ -105,9 +89,10 @@ export type {
 	MessageKind,
 	MessageList,
 	MessageScope,
-	MessageSender,
+	MessageSender
 } from '@mafia/core/message';
 
 // --- User schemas & types ---
-export { UserInfoSchema, PresenceSchema, UserErrors } from '@mafia/core/user/schema';
-export type { UserInfo, Presence } from '@mafia/core/user/schema';
+export { PresenceSchema, UserErrors, UserInfoSchema } from '@mafia/core/user/schema';
+export type { Presence, UserInfo } from '@mafia/core/user/schema';
+

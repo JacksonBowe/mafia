@@ -1,20 +1,17 @@
 // ---------------------------------------------------------------------------
 // Errors & constants
 // ---------------------------------------------------------------------------
-export { EngineError } from './error';
 export {
-	BROADCAST_TARGET,
-	DEFAULT_ALIGNMENT,
+	BROADCAST_TARGET, DeathReasons, DEFAULT_ALIGNMENT,
 	DEFAULT_NIGHT_IMMUNE,
-	DEFAULT_VESTS,
-	DeathReasons,
-	EngineErrorCodes,
+	DEFAULT_VESTS, EngineErrorCodes,
 	EventGroupIds,
 	EventIds,
 	MAX_ACTORS,
-	MIN_ACTORS,
+	MIN_ACTORS
 } from './constants';
 export type { DeathReason, EngineErrorCode, EventId } from './constants';
+export { EngineError } from './error';
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -24,7 +21,7 @@ export { DEFAULT_CONFIG } from './config';
 // ---------------------------------------------------------------------------
 // Top-level entry points
 // ---------------------------------------------------------------------------
-export { Game, newGame, loadGame, resolveGame } from './game';
+export { Game, loadGame, newGame, resolveGame } from './game';
 
 // ---------------------------------------------------------------------------
 // Events & logging
@@ -34,7 +31,7 @@ export type {
 	GameEventDump,
 	GameEventEntry,
 	GameEventGroupDump,
-	GameEventTargets,
+	GameEventTargets
 } from './events';
 export { EngineLogger } from './logger';
 
@@ -42,9 +39,7 @@ export { EngineLogger } from './logger';
 // Roles
 // ---------------------------------------------------------------------------
 export {
-	FALLBACK_ROLE,
-	GAME_TAGS,
-	importRole,
+	FALLBACK_ROLE, importRole,
 	importRoleDefinition,
 	instantiateRole,
 	isRoleName,
@@ -53,15 +48,13 @@ export {
 	ROLE_LIST,
 	ROLE_NAMES,
 	ROLE_PRIORITY,
-	ROLE_REGISTRY,
-	ROLE_TAGS_MAP,
+	ROLE_REGISTRY, ROLE_TAGS, ROLE_TAGS_MAP
 } from './roles';
 export type {
-	GameTag,
 	RoleCatalog,
 	RoleConstructor,
 	RoleDefinition,
-	RoleName,
+	RoleName, RoleTag
 } from './roles';
 
 export { Actor, Mafia, Town } from './roles/actor';
@@ -100,13 +93,10 @@ export {
 	EngineInputSchema,
 	EngineOptionsSchema,
 	GameConfigSchema,
-	GameStateSchema,
-	GameTagSchema,
-	RoleNameSchema,
-	RoleSettingsSchema,
-	StateActorSchema,
+	GameStateSchema, RoleNameSchema,
+	RoleSettingsSchema, RoleTagSchema, StateActorSchema,
 	StateGraveyardRecordSchema,
-	WinnerSummarySchema,
+	WinnerSummarySchema
 } from './types';
 export type {
 	ActorAlignment,
@@ -121,5 +111,6 @@ export type {
 	RoleSettings,
 	StateActor,
 	StateGraveyardRecord,
-	WinnerSummary,
+	WinnerSummary
 } from './types';
+

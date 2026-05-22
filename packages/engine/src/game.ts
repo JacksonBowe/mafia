@@ -287,26 +287,87 @@ class Game {
 	}
 
 	checkForWin() {
+		// Scenarios:
+		// 1. An actor/s that can trigger game over meets win conditions -> that actor/s wins immediately + all coWinners who have met their win conditions
+		// 2. There are no actors that can trigger a game over, but all coWinners have met their win conditions -> all coWinners win immediately
+		// 3. There are no actors that can trigger a game over, and not all coWinners have met their win conditions -> no winners
+		// 4. There is only one actor left alive -> game is over -> anyone who meets win condition is a winner
+
 		this.context.logger.info('--- Checking for win conditions ---');
 
-		const primaryWinners = this.actors.filter(
-			(actor) => actor.canTriggerGameOver && actor.checkForWin(this.actors),
+		const primaryWinCandidates = this.actors.filter((actor) => actor.canTriggerGameOver);
+		const coWinCandidates = this.actors.filter((actor) => !actor.canTriggerGameOver);
+
+		const primaryWinners = primaryWinCandidates.filter((actor) =>
+			actor.checkForWin(this.actors),
 		);
 
-		if (primaryWinners.length === 0) {
-			this.context.logger.info('No winners found');
-			return null;
-		}
-
-		const coWinners = this.actors.filter(
-			(actor) => !actor.canTriggerGameOver && actor.checkForWin(this.actors),
+		const coWinners = coWinCandidates.filter((actor) =>
+			actor.checkForWin(this.actors),
 		);
 
 		const winners = [...primaryWinners, ...coWinners];
 
-		this.context.logger.info(`Winners: ${winners.map((w) => w.alias).join(', ')}`);
+		// console.log('Primary win candidates', primaryWinCandidates.map((a) => a.toString()));
+		// console.log('Co win candidates', coWinCandidates.map((a) => a.toString()));
+		// console.log('Primary winners', primaryWinners.map((a) => a.toString()));
+		// console.log('Co winners', coWinners.map((a) => a.toString()));
 
-		return winners;
+		// Scenario 1:
+		// If any primary actor wins, game over immediately.
+		// Include any co-winners who have also met their win conditions.
+		if (primaryWinners.length > 0) {
+			this.context.logger.info(`Winners: ${winners.map((w) => w.alias).join(', ')}`);
+			return winners;
+		}
+
+		// Scenario 4:
+		// If only one actor is left alive, the game is over.
+		// Return anyone who currently meets their win condition.
+		const livingActors = this.actors.filter((actor) => actor.alive);
+
+		if (livingActors.length === 1) {
+			if (winners.length > 0) {
+				this.context.logger.info(
+					'Only one actor left alive, game over',
+				);
+
+				this.context.logger.info(`Winners: ${winners.map((w) => w.alias).join(', ')}`);
+
+				return winners;
+			}
+
+			this.context.logger.info(
+				'Only one actor left alive, but no actors meet their win conditions',
+			);
+
+			return null;
+		}
+
+		// Scenario 2:
+		// If there are no living primary actors left, all co-winners must have met their win conditions.
+		const livingPrimaryWinCandidates = primaryWinCandidates.filter(
+			(actor) => actor.alive,
+		);
+
+		if (
+			livingPrimaryWinCandidates.length === 0 &&
+			coWinCandidates.length > 0 &&
+			coWinners.length === coWinCandidates.length
+		) {
+			this.context.logger.info(
+				'All actors that cannot trigger game over have won, game over',
+			);
+
+			this.context.logger.info(`Winners: ${coWinners.map((w) => w.alias).join(', ')}`);
+
+			return coWinners;
+		}
+
+		// Scenario 3:
+		this.context.logger.info('No winners found');
+
+		return null;
 	}
 
 	getActorByNumber(number: number): Actor | undefined {
