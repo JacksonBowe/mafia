@@ -1,12 +1,10 @@
-import type { RelatedEntity } from '@mafia/core/db/types';
-import type { LobbyInfo } from '@mafia/core/lobby/index';
-import type { Presence } from '@mafia/core/user/presence';
+import type { RelatedEntity, LobbyInfo, Presence } from '@mafia/sdk';
 import { useMutation, useQuery, useQueryClient, type UseQueryOptions } from '@tanstack/vue-query';
+import { api } from 'src/boot/axios';
 import { useLobbyStore } from 'src/stores/lobby';
 import { useMessageStore } from 'src/stores/message';
 import { useRealtime } from 'src/stores/realtime';
 import { computed, type MaybeRef, unref } from 'vue';
-import { fetchLobby, hostLobby, joinLobby, leaveLobby, listLobbies, startLobby } from './api';
 
 export const useHostLobby = () => {
 	const queryClient = useQueryClient();
@@ -14,7 +12,7 @@ export const useHostLobby = () => {
 	const rt = useRealtime();
 	const mStore = useMessageStore(); // TODO
 	return useMutation({
-		mutationFn: hostLobby,
+		mutationFn: api.createLobby,
 		onMutate: () => {
 			lStore.setJoinLobbyPending();
 		},
@@ -44,7 +42,7 @@ export const useHostLobby = () => {
 export const useLobbies = () => {
 	return useQuery({
 		queryKey: ['lobbies'],
-		queryFn: listLobbies,
+		queryFn: api.listLobbies,
 		retry: false,
 		staleTime: Infinity,
 	});
@@ -58,7 +56,7 @@ export const useLobby = (
 
 	return useQuery({
 		queryKey: computed(() => ['lobby', idRef.value ?? ''] as const),
-		queryFn: () => fetchLobby(idRef.value!),
+		queryFn: () => api.getLobby({ lobbyId: idRef.value! }),
 		enabled: computed(() => !!idRef.value),
 		...options,
 	});
@@ -81,7 +79,7 @@ export const useJoinLobby = () => {
 	const lStore = useLobbyStore();
 	const rt = useRealtime();
 	return useMutation({
-		mutationFn: joinLobby,
+		mutationFn: (lobbyId: string) => api.joinLobby({ lobbyId }),
 		onMutate: () => {
 			lStore.setJoinLobbyPending();
 		},
@@ -114,7 +112,7 @@ export const useLeaveLobby = () => {
 	const lStore = useLobbyStore();
 	const rt = useRealtime();
 	return useMutation({
-		mutationFn: leaveLobby,
+		mutationFn: () => api.leaveLobby(),
 
 		onMutate: () => {
 			lStore.setLeaveLobbyPending();
@@ -172,7 +170,7 @@ export const useLeaveLobby = () => {
 export const useStartLobby = () => {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: startLobby,
+		mutationFn: (lobbyId: string) => api.startLobby({ lobbyId }),
 		onSuccess: async () => {
 			await queryClient.invalidateQueries({ queryKey: ['lobbies'] });
 			await queryClient.invalidateQueries({ queryKey: ['presence'] });

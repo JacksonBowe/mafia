@@ -2,7 +2,7 @@ import { GameEventGroup } from '../../src/events';
 import { EngineLogger } from '../../src/logger';
 import type { ActorContext } from '../../src/roles/actor';
 import { createRng } from '../../src/utils';
-import type { PlayerInput } from '../../src/types';
+import type { ActorState } from '../../src/types';
 
 export const createContext = (seed = 1): ActorContext => ({
 	logger: new EngineLogger(),
@@ -10,7 +10,7 @@ export const createContext = (seed = 1): ActorContext => ({
 	rng: createRng(seed),
 });
 
-export const makePlayer = (overrides: Partial<PlayerInput>): PlayerInput => ({
+export const makeActor = (overrides: Partial<ActorState>): ActorState => ({
 	id: '1',
 	name: 'UserName',
 	alias: 'UserAlias',
@@ -19,5 +19,6 @@ export const makePlayer = (overrides: Partial<PlayerInput>): PlayerInput => ({
 	targets: [],
 	allies: [],
 	roleActions: {},
+	alignment: null,
 	...overrides,
 });

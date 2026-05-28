@@ -3,6 +3,7 @@ import { InvalidRefreshTokenError } from '@openauthjs/openauth/error';
 import { LocalStorage } from 'quasar';
 import { boot } from 'quasar/wrappers';
 import { client } from 'src/lib/auth';
+import { api } from 'src/boot/axios';
 import { getLogger } from 'src/lib/log';
 import { useAuthStore } from 'src/stores/auth';
 import { useGameStore } from 'src/stores/game';
@@ -268,11 +269,25 @@ export default boot(({ router }) => {
 
 		// 5) game route protection - must have active game or be in transition
 		if (requiresGame) {
-			const hasGame = gameStore.currentGameId || gameStore.transitionPending;
+			if (!gameStore.info?.id && gameStore.status !== 'transitioning') {
+				try {
+					const syncData = await api.getGame();
+					if (syncData) {
+						gameStore.hydrateFromSync(syncData);
+					}
+				} catch (error) {
+					log.warn('game-route: game sync bootstrap failed', {
+						to: to.fullPath,
+						error: error instanceof Error ? error.message : String(error),
+					});
+				}
+			}
+
+			const hasGame = gameStore.info?.id || gameStore.status === 'transitioning';
 			if (!hasGame) {
 				log.info('game-route: no active game; redirecting to home', {
 					to: to.fullPath,
-					currentGameId: gameStore.currentGameId,
+					gameId: gameStore.info?.id,
 					transitionPending: gameStore.transitionPending,
 				});
 				return { path: '/', replace: true };

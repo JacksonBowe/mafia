@@ -1,23 +1,16 @@
 // boot/axios.ts
 import { defineBoot } from '#q-app/wrappers';
-import { type PublicError } from '@mafia/core/error';
-import axios, { type AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
+import { createClient, type ApiClient, type PublicErrorPayload } from '@mafia/sdk';
+import type { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { Notify } from 'quasar';
 import { useAuthStore } from 'src/stores/auth';
-
-declare module 'vue' {
-	interface ComponentCustomProperties {
-		$axios: AxiosInstance;
-		$api: AxiosInstance;
-	}
-}
 
 type RequestMeta = { startTime: number };
 type RetryableConfig = InternalAxiosRequestConfig & { _retry?: boolean; metadata?: RequestMeta };
 type TimedAxiosError = AxiosError & { duration?: number };
 
-const api = axios.create({
-	baseURL: import.meta.env.VITE_API_ENDPOINT!,
+const api: ApiClient = createClient({
+	baseUrl: import.meta.env.VITE_API_ENDPOINT!,
 });
 
 function nowMs() {
@@ -40,7 +33,7 @@ function notifyValidation(payload: unknown) {
 	});
 }
 
-function notifyBadRequest(data: PublicError) {
+function notifyBadRequest(data: PublicErrorPayload) {
 	Notify.create({
 		message: data?.message ?? 'Bad request',
 		caption: data?.details ? JSON.stringify(data.details) : '',
@@ -55,7 +48,7 @@ function notifyServerError(err: TimedAxiosError) {
 		message:
 			err.duration && err.duration > 10_000
 				? 'Request timed out'
-				: ((err.response?.data as PublicError)?.message ?? 'Server error'),
+				: ((err.response?.data as PublicErrorPayload)?.message ?? 'Server error'),
 		color: 'negative',
 		timeout: 2000,
 	});
@@ -64,7 +57,7 @@ function notifyServerError(err: TimedAxiosError) {
 export default defineBoot(({ app, router }) => {
 	const authStore = useAuthStore();
 
-	api.interceptors.request.use((config) => {
+	api.axios.interceptors.request.use((config) => {
 		const cfg = config as RetryableConfig;
 		cfg.metadata = { startTime: nowMs() };
 
@@ -77,7 +70,7 @@ export default defineBoot(({ app, router }) => {
 		return cfg;
 	});
 
-	api.interceptors.response.use(
+	api.axios.interceptors.response.use(
 		(res) => res,
 		async (e: TimedAxiosError) => {
 			const err = e;
@@ -88,16 +81,15 @@ export default defineBoot(({ app, router }) => {
 			}
 
 			const status = err.response?.status;
-			const data = err.response?.data as PublicError;
+			const data = err.response?.data as PublicErrorPayload;
 
-			// 401 – your current behaviour: clear + bounce on specific codes
+			// 401 – clear + bounce on specific codes
 			if (status === 401 && !cfg?._retry && authStore.session?.refreshToken) {
 				const code = data?.code;
 				if (code === 'user_not_found' || code === 'invalid_access_token') {
 					authStore.clearSession();
 					await router.push('/start');
 				}
-				// If you later add refresh here, set cfg._retry = true before retrying.
 			}
 
 			if (status === 403) {
@@ -111,7 +103,7 @@ export default defineBoot(({ app, router }) => {
 				notifyServerError(err);
 			}
 
-			// Preserve Axios error for callers (don’t wrap/lose response/config)
+			// Preserve Axios error for callers (don't wrap/lose response/config)
 			return Promise.reject(err);
 		},
 	);

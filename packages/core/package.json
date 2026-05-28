@@ -8,8 +8,11 @@
 		"lint": "eslint ."
 	},
 	"exports": {
-		"./*": "./src/*.ts",
-		"./db*": "./src/db/index.ts"
+		"./db": "./src/db/index.ts",
+		"./db/transaction": "./src/db/transaction.ts",
+		"./db/schema": "./src/db/schema.ts",
+		"./db/types": "./src/db/types.ts",
+		"./*": "./src/*.ts"
 	},
 	"devDependencies": {
 		"@types/bun": "latest",
@@ -22,11 +25,12 @@
 	"dependencies": {
 		"@aws-sdk/client-iot-data-plane": "^3.953.0",
 		"@hono/zod-validator": "^0.7.5",
+		"@mafia/engine": "workspace:",
 		"@neondatabase/serverless": "^1.0.1",
 		"deep-object-diff": "^1.1.9",
 		"drizzle-orm": "^0.44.2",
 		"hono": "^4.11.1",
-		"sst": "3.17.23",
+		"sst": "4.8.0",
 		"ulid": "^3.0.2",
 		"valibot": "^1.1.0",
 		"ws": "^8.18.3",

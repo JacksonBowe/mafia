@@ -1,11 +1,11 @@
-import { newGame } from '../src/index';
-import { DEFAULT_SEED, dummyConfig, dummyPlayers } from './_helpers';
+import { newGame } from '@mafia/engine';
+import { DEFAULT_SEED, dummyConfig, dummyActors } from '@mafia/engine/testing';
 
 const run = () => {
-	const players = dummyPlayers(3);
+	const actors = dummyActors(3);
 	const config = dummyConfig();
 
-	const result = newGame({ players, config, options: { seed: DEFAULT_SEED } });
+	const result = newGame({ actors, config, options: { seed: DEFAULT_SEED } });
 
 	console.log('Game created with the following actors:');
 	for (const actor of result.actors) {

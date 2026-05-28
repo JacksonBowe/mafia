@@ -10,13 +10,11 @@
 		"lint": "eslint -c ./eslint.config.js \"./src*/**/*.{ts,js,cjs,mjs,vue}\"",
 		"format": "prettier --write \"**/*.{js,ts,vue,scss,html,md,json}\" --ignore-path .gitignore",
 		"test": "echo \"No test specified\" && exit 0",
-		"dev": "bunx sst dev quasar dev",
+		"dev": "bunx sst dev -- quasar dev",
 		"build": "quasar build",
 		"postinstall": "quasar prepare"
 	},
 	"dependencies": {
-		"@mafia/core": "workspace:^",
-		"@mafia/functions": "workspace:^",
 		"@openauthjs/openauth": "^0.4.3",
 		"@quasar/extras": "^1.16.4",
 		"@tanstack/vue-query": "^5.92.1",
@@ -32,6 +30,7 @@
 		"zod": "^4.2.1"
 	},
 	"devDependencies": {
+		"@mafia/sdk": "workspace:",
 		"@eslint/js": "^9.14.0",
 		"eslint": "^9.14.0",
 		"eslint-plugin-vue": "^10.4.0",

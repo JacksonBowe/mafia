@@ -1,19 +1,15 @@
-// src/user/user.ts (or wherever your user domain funcs live)
+// src/user/presence.ts
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { useTransaction } from '../db/transaction';
-import { RelatedEntitySchema } from '../db/types';
 import { isULID } from '../error';
 import { gamePlayerTable, gameTable } from '../game/game.sql';
 import { lobbyMemberTable, lobbyTable } from '../lobby/lobby.sql';
 import { fn } from '../util/fn';
+import { PresenceSchema } from './schema';
 
-export const PresenceSchema = z.object({
-	lobby: RelatedEntitySchema.nullable().optional(),
-	gameId: isULID().nullable(),
-});
-
-export type Presence = z.infer<typeof PresenceSchema>;
+export { PresenceSchema };
+export type { Presence } from './schema';
 
 export const getPresence = fn(
 	z.object({

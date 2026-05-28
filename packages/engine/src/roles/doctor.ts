@@ -1,25 +1,38 @@
-import type { PlayerInput } from '../types';
+import { z } from 'zod';
+import { EventIds } from '../constants';
 import { GameEvent, GameEventGroup } from '../events';
-import { Town, type ActorContext, type Actor } from './actor';
+import { Town, type Actor, type ActorContext, type ActorState } from './actor';
+import { RoleTags } from './role';
+
+export const DoctorSettingsSchema = z.object({}).strict();
+
+export type DoctorSettings = z.infer<typeof DoctorSettingsSchema>;
+export type DoctorSettingsInput = z.input<typeof DoctorSettingsSchema>;
 
 export class Doctor extends Town {
-	static override tags = ['any_random', 'town_random', 'town_protective'];
+	static override tags = [
+		...super.tags,
+		RoleTags.TownProtective,
+	] as const;
+
+	static override roleName = 'Doctor' as const;
+	static override roleKey = 'doctor' as const;
+
+	static override priority = 1;
+	static settingsSchema = DoctorSettingsSchema;
+	static description = 'Town protective role that can heal one target each night.';
 
 	constructor(
-		player: PlayerInput,
-		_settings: Record<string, unknown> = {},
+		input: ActorState,
+		settings: DoctorSettingsInput = {},
 		context: ActorContext,
 	) {
-		super(player, context);
+		super(input, context);
+		DoctorSettingsSchema.parse(settings);
 	}
 
 	override findPossibleTargets(actors: Actor[] = []) {
-		const numTargets = 1;
-		this.possibleTargets = [];
-		for (let i = 0; i < numTargets; i += 1) {
-			this.possibleTargets[i] = actors.filter((actor) => actor.alive && actor !== this);
-		}
-		return this.possibleTargets;
+		return this.setSingleTarget(actors, (actor) => actor.alive && actor !== this);
 	}
 
 	override action() {
@@ -32,18 +45,18 @@ export class Doctor extends Town {
 
 	reviveTarget(target: Actor) {
 		this.logger.info(`${this.toString()} revives ${target.toString()}`);
-		const reviveEventGroup = new GameEventGroup('doctor_revive');
+		const reviveEventGroup = new GameEventGroup(EventIds.DOCTOR_REVIVE);
 		reviveEventGroup.newEvent(
 			new GameEvent(
-				'doctor_revive_success',
-				[this.player.id],
+				EventIds.DOCTOR_REVIVE_SUCCESS,
+				[this.input.id],
 				'Your target was attacked last night, but you successfully revived them',
 			),
 		);
 		reviveEventGroup.newEvent(
 			new GameEvent(
-				'revive_by_doctor',
-				[target.player.id],
+				EventIds.REVIVE_BY_DOCTOR,
+				[target.input.id],
 				'You were revived by a doctor. Rock on',
 			),
 		);

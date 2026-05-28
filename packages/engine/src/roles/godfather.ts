@@ -1,79 +1,64 @@
 import { z } from 'zod';
-import type { PlayerInput } from '../types';
-import { Duration, GameEvent, GameEventGroup, CommonEvents } from '../events';
-import { Mafia, type ActorContext, type Actor } from './actor';
+import { DEFAULT_NIGHT_IMMUNE, EventIds } from '../constants';
+import { GameEvent, GameEventGroup } from '../events';
+import { Mafia, type ActorContext, type Actor, type ActorState } from './actor';
 import { Mafioso } from './mafioso';
+import { RoleTags } from './role';
 
-const GodfatherSettingsSchema = z.object({
-	nightImmune: z.number().int().min(0).default(2),
+export const GodfatherSettingsSchema = z.object({
+	nightImmune: z.number().int().min(0).default(DEFAULT_NIGHT_IMMUNE),
 });
 
+export type GodfatherSettings = z.infer<typeof GodfatherSettingsSchema>;
+export type GodfatherSettingsInput = z.input<typeof GodfatherSettingsSchema>;
+
 export class Godfather extends Mafia {
+	static override tags = [
+		...super.tags,
+		RoleTags.MafiaKilling,
+	];
+
+	static override roleName = 'Godfather' as const;
+	static override roleKey = 'godfather' as const;
+
+	static override priority = 3;
+	static settingsSchema = GodfatherSettingsSchema;
+	static description = 'Mafia leader who can delegate kills and starts night-immune.';
+
 	constructor(
-		player: PlayerInput,
-		settings: Record<string, unknown> = {},
+		input: ActorState,
+		settings: GodfatherSettingsInput = {},
 		context: ActorContext,
 	) {
-		super(player, context);
+		super(input, context);
 		const parsed = GodfatherSettingsSchema.parse(settings);
 		this.nightImmune = parsed.nightImmune > 0;
 	}
 
 	override findPossibleTargets(actors: Actor[] = []) {
-		const numTargets = 1;
-		this.possibleTargets = [];
-		for (let i = 0; i < numTargets; i += 1) {
-			this.possibleTargets[i] = actors.filter(
-				(actor) => actor.alive && actor.alignment !== this.alignment && actor !== this,
-			);
-		}
-		return this.possibleTargets;
+		return this.setSingleTarget(
+			actors,
+			(actor) => actor.alive && actor.alignment !== this.alignment && actor !== this,
+		);
 	}
 
 	override action() {
 		const target = this.targets[0];
 		if (!target) return;
 
-		const success = () => {
-			const successEventGroup = new GameEventGroup('godfather_action_success');
-			successEventGroup.duration = Duration.MAFIA_KILL;
-			successEventGroup.newEvent(
-				new GameEvent(
-					'godfather_kill_success',
-					['*'],
-					'There are sounds of shots in the streets',
-				),
-			);
-			successEventGroup.newEvent(
-				new GameEvent(
-					CommonEvents.KILLED_BY_MAFIA,
-					[target.player.id],
-					'You were killed by a member of the Mafia',
-				),
-			);
-			this.actionEvents.newEventGroup(successEventGroup);
-		};
-
-		const fail = () => {
-			const failEventGroup = new GameEventGroup('godfather_action_fail');
-			failEventGroup.duration = Duration.MAFIA_KILL;
-			failEventGroup.newEvent(new GameEvent('godfather_kill_fail', ['*'], ''));
-			this.actionEvents.newEventGroup(failEventGroup);
-		};
-
-		const proxies = this.allies.filter((ally) => ally instanceof Mafioso);
+		const proxies = this.allies.filter((ally): ally is Mafioso => ally instanceof Mafioso);
 		if (proxies.length === 0) {
-			this.kill(target, success, fail);
+			this.mafiaKill(target, 'godfather');
 			return;
 		}
 		const proxy = this.rng.choice(proxies);
-		proxy.targets = this.targets;
+		proxy.setTargets(this.targets);
 
-		const proxyEventGroup = new GameEventGroup('godfather_proxy');
+		const proxyEventGroup = new GameEventGroup(EventIds.GODFATHER_PROXY);
 		proxyEventGroup.newEvent(
 			new GameEvent(
-				'godfather_proxy_choice',
-				this.allies.map((ally) => ally.player.id),
+				EventIds.GODFATHER_PROXY_CHOICE,
+				this.allies.map((ally) => ally.input.id),
 				`The Godfather has chosen ${proxy.alias} to carry out the hit`,
 			),
 		);

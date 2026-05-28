@@ -1,12 +1,16 @@
+import { EventIds } from './constants';
+
+/**
+ * Named tick durations for animation/timing of resolved event groups.
+ * The runtime value is a plain `number` so groups can sum durations safely.
+ */
 export const Duration = {
 	ZERO: 0,
 	MAFIA_KILL: 3,
 	SHOOTOUT: 3,
 } as const;
 
-export type DurationValue = (typeof Duration)[keyof typeof Duration];
-
-export type GameEventTargets = Array<string>;
+export type GameEventTargets = string[];
 
 export type GameEventDump = {
 	eventId: string;
@@ -16,7 +20,7 @@ export type GameEventDump = {
 
 export type GameEventGroupDump = {
 	groupId: string | null;
-	duration: DurationValue;
+	duration: number;
 	events: Array<GameEventDump | GameEventGroupDump>;
 };
 
@@ -30,7 +34,7 @@ export class GameEvent {
 	dump(): GameEventDump {
 		return {
 			eventId: this.eventId,
-			targets: this.targets,
+			targets: [...this.targets],
 			message: this.message,
 		};
 	}
@@ -39,7 +43,7 @@ export class GameEvent {
 export type GameEventEntry = GameEvent | GameEventGroup;
 
 export class GameEventGroup {
-	public duration: DurationValue = Duration.ZERO;
+	public duration: number = Duration.ZERO;
 	public events: GameEventEntry[] = [];
 
 	constructor(public groupId: string | null = null) {}
@@ -49,27 +53,19 @@ export class GameEventGroup {
 	}
 
 	newEventGroup(eventGroup: GameEventGroup) {
-		this.duration = (this.duration + eventGroup.duration) as DurationValue;
+		this.duration += eventGroup.duration;
 		this.events.push(eventGroup);
 	}
 
 	reset(newId?: string) {
 		this.events = [];
 		this.duration = Duration.ZERO;
-		if (newId) this.groupId = newId;
+		if (newId !== undefined) this.groupId = newId;
 		return this;
 	}
 
-	getById(id: string) {
-		for (const event of this.events) {
-			if (event instanceof GameEventGroup && event.groupId === id) return event;
-			if (event instanceof GameEvent && event.eventId === id) return event;
-		}
-		return undefined;
-	}
-
-	clone() {
-		const group = new GameEventGroup(this.groupId ?? null);
+	clone(): GameEventGroup {
+		const group = new GameEventGroup(this.groupId);
 		group.duration = this.duration;
 		group.events = this.events.map((event) =>
 			event instanceof GameEventGroup
@@ -83,16 +79,16 @@ export class GameEventGroup {
 		return {
 			groupId: this.groupId,
 			duration: this.duration,
-			events: this.events.map((event) =>
-				event instanceof GameEventGroup ? event.dump() : event.dump(),
-			),
+			events: this.events.map((event) => event.dump()),
 		};
 	}
 }
 
+/**
+ * @deprecated Use {@link EventIds} from `@mafia/engine` directly.
+ * Retained for backward compatibility with existing consumers.
+ */
 export const CommonEvents = {
-	INVALID_TARGET: 'invalid_target',
-	NIGHT_IMMUNE: 'night_immune',
-	KILLED_BY_MAFIA: 'killed_by_mafia',
-	VISITED_BY: 'visited_by',
+	NIGHT_IMMUNE: EventIds.NIGHT_IMMUNE,
+	KILLED_BY_MAFIA: EventIds.KILLED_BY_MAFIA,
 } as const;

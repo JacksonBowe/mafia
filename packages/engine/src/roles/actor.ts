@@ -1,33 +1,73 @@
-import { CommonEvents, GameEvent, GameEventGroup } from '../events';
+import z from 'zod';
+import {
+	BROADCAST_TARGET,
+	DeathReasons,
+	EngineErrorCodes,
+	EventIds,
+	MAX_ACTORS,
+} from '../constants';
+import type { ActorContext } from '../context';
+import { EngineError } from '../error';
+import { Duration, GameEvent, GameEventGroup } from '../events';
 import type { EngineLogger } from '../logger';
-import type { ActorState, PlayerInput } from '../types';
 import type { Rng } from '../utils';
+import { RoleAlignment, RoleAlignmentSchema, RoleAllySchema, RoleNameSchema, RoleTags, type RoleAlly, type RoleName, type RoleTag } from './role';
 
-export type ActorContext = {
-	logger: EngineLogger;
-	actionEvents: GameEventGroup;
-	rng: Rng;
-};
+export type { ActorContext } from '../context';
 
 type BodyguardActor = Actor & { shootout: (attacker: Actor) => void };
 type DoctorActor = Actor & { reviveTarget: (target: Actor) => void };
 
-export class Actor {
-	static tags: string[] = ['any_random'];
+export const ActorStateSchema = z.object({
+	id: z.string(),
+	name: z.string(),
+	alias: z.string(),
+	role: RoleNameSchema.optional(),
+	number: z.number().int().min(1).max(MAX_ACTORS).optional(),
+	alive: z.boolean().default(true),
+	possibleTargets: z
+		.array(z.array(z.number().int().min(1).max(MAX_ACTORS)).max(MAX_ACTORS))
+		.max(2)
+		.default([]),
+	targets: z.array(z.number().int().min(1).max(MAX_ACTORS)).max(MAX_ACTORS).default([]),
+	allies: z.array(RoleAllySchema).default([]),
+	roleActions: z.record(z.string(), z.unknown()).default({}),
+	alignment: RoleAlignmentSchema.nullable().default(null),
+	will: z.string().optional(),
+});
 
-	alignment: Alignment | null = null;
-	player: PlayerInput;
+export type ActorState = z.infer<typeof ActorStateSchema>;
+
+export class Actor {
+	static tags: readonly RoleTag[] = [RoleTags.AnyRandom];
+	/**
+	 * Subclasses MUST override with their own role name. The static field is
+	 * the source of truth for {@link Actor.roleName} (minify-safe; does not rely
+	 * on `this.constructor.name`).
+	 */
+	static roleName: RoleName = 'Citizen';
+	static roleKey = 'citizen';
+	/**
+	 * Action-resolution priority. Lower runs first. Subclasses override.
+	 * Used to derive the {@link ROLE_PRIORITY} table.
+	 */
+	static priority = 0;
+
+	static canTriggerGameOver = true;
+
+	alignment: RoleAlignment | null = null;
+	input: ActorState;
 	alias: string;
 	number?: number | undefined;
-	alive?: boolean;
+	alive: boolean;
 	allies: Actor[] = [];
-	possibleTargets: Array<Array<Actor>> = [];
+	possibleTargets: Actor[][] = [];
 	visitors: Actor[] = [];
 	bodyguards: BodyguardActor[] = [];
 	doctors: DoctorActor[] = [];
 	nightImmune = false;
 	visiting: Actor | null = null;
-	killReason = 'How they died is unknown';
+	killReason: string = DeathReasons.UNKNOWN_LONG;
 	targets: Actor[] = [];
 	cod?: string;
 
@@ -35,58 +75,90 @@ export class Actor {
 	protected readonly actionEvents: GameEventGroup;
 	protected readonly rng: Rng;
 
-	constructor(player: PlayerInput, context: ActorContext) {
-		this.player = player;
-		this.alias = player.alias;
-		this.number = player.number;
-		this.alive = player.alive;
+	constructor(input: ActorState, context: ActorContext) {
+		this.input = input;
+		this.alias = input.alias;
+		this.number = input.number;
+		this.alive = input.alive;
 		this.logger = context.logger;
 		this.actionEvents = context.actionEvents;
 		this.rng = context.rng;
 	}
 
-	get roleName() {
-		return this.constructor.name;
+	get roleName(): RoleName {
+		return (this.constructor as typeof Actor).roleName;
 	}
 
-	dumpState() {
-		const state: ActorState = {
-			id: this.player.id,
-			name: this.player.name,
+	get tags(): readonly RoleTag[] {
+		return [...(this.constructor as typeof Actor).tags];
+	}
+
+	get canTriggerGameOver(): boolean {
+		return (this.constructor as typeof Actor).canTriggerGameOver;
+	}
+
+	/**
+	 * Strict accessor for `number`. Throws an {@link EngineError} when the actor
+	 * has no number assigned yet — preferred over `??` fallbacks that would
+	 * fail downstream Zod validation.
+	 */
+	requireNumber(): number {
+		if (this.number === undefined) {
+			throw new EngineError(
+				EngineErrorCodes.MISSING_NUMBER,
+				`Actor "${this.alias}" has no assigned number`,
+				{ alias: this.alias },
+			);
+		}
+		return this.number;
+	}
+
+	dumpState(): ActorState {
+		return {
+			id: this.input.id,
+			name: this.input.name,
 			alias: this.alias,
-			role: this.player.role ?? this.roleName,
+			role: this.roleName,
 			possibleTargets: this.possibleTargets.map((targetList) =>
-				targetList.map((actor) => actor.number ?? 0),
+				targetList.map((actor) => actor.requireNumber()),
 			),
-			targets: [],
-			allies: this.allies.map((ally) => ({
-				alias: ally.alias,
-				number: ally.number ?? 0,
-				role: ally.roleName,
-				alive: Boolean(ally.alive),
-			})),
-			roleActions: this.player.roleActions,
+			alive: this.alive,
+			number: this.number,
+			alignment: this.alignment,
+			targets: this.targets.map((target) => target.requireNumber()),
+			allies: this.allies.map(
+				(ally): RoleAlly => ({
+					alias: ally.alias,
+					number: ally.requireNumber(),
+					role: ally.roleName,
+					alive: ally.alive,
+				}),
+			),
+			roleActions: this.input.roleActions,
+			...(this.input.will !== undefined ? { will: this.input.will } : {}),
 		};
-		if (this.number !== undefined) {
-			state.number = this.number;
-		}
-		if (this.alive !== undefined) {
-			state.alive = this.alive;
-		}
-		return state;
 	}
 
 	toString() {
 		return `|${this.roleName}| ${this.alias}(${this.number ?? '?'})`;
 	}
 
-	findAllies(_actors: Actor[] = []) {
+	findAllies(_actors: Actor[] = []): Actor[] {
 		this.allies = [];
 		return this.allies;
 	}
 
-	findPossibleTargets(_actors: Actor[] = []) {
+	findPossibleTargets(_actors: Actor[] = []): Actor[][] {
 		this.possibleTargets = [];
+		return this.possibleTargets;
+	}
+
+	/**
+	 * Helper for roles that pick a single target. Sets `possibleTargets` to a
+	 * one-slot list filtered by `predicate` and returns it.
+	 */
+	protected setSingleTarget(actors: Actor[], predicate: (actor: Actor) => boolean) {
+		this.possibleTargets = [actors.filter(predicate)];
 		return this.possibleTargets;
 	}
 
@@ -102,8 +174,12 @@ export class Actor {
 		this.action();
 	}
 
-	action() {
-		throw new Error('Not implemented');
+	action(): void {
+		throw new EngineError(
+			EngineErrorCodes.ACTION_NOT_IMPLEMENTED,
+			`action() not implemented for role "${this.roleName}"`,
+			{ role: this.roleName },
+		);
 	}
 
 	visit(target: Actor) {
@@ -128,11 +204,11 @@ export class Actor {
 			);
 			fail();
 
-			const surviveEventGroup = new GameEventGroup(CommonEvents.NIGHT_IMMUNE);
+			const surviveEventGroup = new GameEventGroup(EventIds.NIGHT_IMMUNE);
 			surviveEventGroup.newEvent(
 				new GameEvent(
-					CommonEvents.NIGHT_IMMUNE,
-					[target.player.id],
+					EventIds.NIGHT_IMMUNE,
+					[target.input.id],
 					'You were attacked tonight but survived due to Night Immunity',
 				),
 			);
@@ -145,11 +221,11 @@ export class Actor {
 	}
 
 	lynched() {
-		this.die('They were lynched', true);
+		this.die(DeathReasons.LYNCHED, true);
 	}
 
-	die(reason = 'Unknown', trueDeath = false) {
-		this.doctors = this.doctors.filter((doctor) => Boolean(doctor.alive));
+	die(reason: string = DeathReasons.UNKNOWN, trueDeath = false) {
+		this.doctors = this.doctors.filter((doctor) => doctor.alive);
 		this.alive = false;
 		if (!trueDeath && this.doctors.length > 0) {
 			const doctor = this.doctors.shift();
@@ -163,33 +239,64 @@ export class Actor {
 		this.logger.info(`${this.toString()} died. Cause of death: ${reason}`);
 	}
 
-	checkForWin(_actors: Actor[]) {
+	checkForWin(_actors: Actor[]): boolean {
 		return false;
 	}
 }
 
-export enum Alignment {
-	Town = 'Town',
-	Mafia = 'Mafia',
-}
-
 export class Town extends Actor {
-	constructor(player: PlayerInput, context: ActorContext) {
-		super(player, context);
-		this.alignment = Alignment.Town;
+	static override tags: readonly RoleTag[] = [
+		...super.tags,
+		RoleTags.TownRandom
+	] as const;
+
+	constructor(input: ActorState, context: ActorContext) {
+		super(input, context);
+		this.alignment = 'Town';
 	}
 
+	// TODO: Update this when other factions + neutral_killing roles are added
 	override checkForWin(actors: Actor[]) {
-		const enemies = actors.filter((actor) => actor.alignment === Alignment.Mafia);
-		return enemies.length === 0;
+		const enemies = this._aliveOfOtherFaction(actors);
+		const allies = this._aliveOfMyFaction(actors);
+
+		if (enemies.length === 0 && allies.length > 0) {
+			return true;
+		} else if (enemies.length === 1 && allies.length === 1) {
+			// Citizen win ties in 1v1 endgame scenarios
+			if (allies[0]!.roleName === 'Citizen') {
+				return true;
+			}
+		}
+
+		return false
+	}
+
+	_aliveOfOtherFaction(actors: Actor[]) {
+		return actors.filter((actor) => (
+			actor instanceof Mafia || actor.tags.includes('neutral_killing') || actor.tags.includes('neutral_evil'))
+			&& actor.alive
+		);
+	}
+
+	_aliveOfMyFaction(actors: Actor[]) {
+		return actors.filter((actor) => (
+			actor.alignment === this.alignment
+			&& actor.alive
+		));
 	}
 }
 
 export class Mafia extends Actor {
-	constructor(player: PlayerInput, context: ActorContext) {
-		super(player, context);
-		this.alignment = Alignment.Mafia;
-		this.killReason = 'They were found riddled with bullets';
+	static override tags: readonly RoleTag[] = [
+		...super.tags,
+		RoleTags.MafiaRandom,
+	] as const;
+
+	constructor(input: ActorState, context: ActorContext) {
+		super(input, context);
+		this.alignment = 'Mafia';
+		this.killReason = DeathReasons.MAFIA_KILL;
 	}
 
 	override findAllies(actors: Actor[] = []) {
@@ -197,8 +304,76 @@ export class Mafia extends Actor {
 		return this.allies;
 	}
 
+	_aliveOfOtherFaction(actors: Actor[]) {
+		return actors.filter((actor) => (
+			actor instanceof Town
+			|| actor.tags.includes('neutral_killing'))
+			&& actor.alive
+		);
+	}
+
+	_aliveOfMyFaction(actors: Actor[]) {
+		return actors.filter((actor) => (
+			actor.alignment === this.alignment
+			&& actor.alive
+		));
+	}
+
+	// TODO: Update this when other factions + neutral_killing roles are added
 	override checkForWin(actors: Actor[]) {
-		const enemies = actors.filter((actor) => !this.allies.includes(actor));
-		return enemies.length === 0;
+		const enemies = this._aliveOfOtherFaction(actors);
+		const allies = this._aliveOfMyFaction(actors);
+		return enemies.length === 0 && allies.length > 0;
+	}
+
+	/**
+	 * Builds the standard Mafia kill success/fail event group callbacks and
+	 * dispatches `kill()` against the chosen target. `idPrefix` distinguishes
+	 * the originating role (e.g. `mafioso`, `godfather`).
+	 */
+	protected mafiaKill(target: Actor, idPrefix: 'mafioso' | 'godfather') {
+		const success = () => {
+			const group = new GameEventGroup(`${idPrefix}_action_success`);
+			group.duration = Duration.MAFIA_KILL;
+			group.newEvent(
+				new GameEvent(
+					`${idPrefix}_kill_success`,
+					[BROADCAST_TARGET],
+					'There are sounds of shots in the streets',
+				),
+			);
+			group.newEvent(
+				new GameEvent(
+					EventIds.KILLED_BY_MAFIA,
+					[target.input.id],
+					'You were killed by a member of the Mafia',
+				),
+			);
+			this.actionEvents.newEventGroup(group);
+		};
+
+		const fail = () => {
+			const group = new GameEventGroup(`${idPrefix}_action_fail`);
+			group.duration = Duration.MAFIA_KILL;
+			group.newEvent(new GameEvent(`${idPrefix}_kill_fail`, [BROADCAST_TARGET], ''));
+			this.actionEvents.newEventGroup(group);
+		};
+
+		this.kill(target, success, fail);
 	}
 }
+
+export class Neutral extends Actor {
+	static override tags: readonly RoleTag[] = [
+		...super.tags,
+		RoleTags.NeutralRandom,
+	] as const;
+
+	static override canTriggerGameOver = false;
+	constructor(input: ActorState, context: ActorContext) {
+		super(input, context);
+		this.alignment = 'Neutral';
+
+	}
+}
+

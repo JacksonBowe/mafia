@@ -1,4 +1,4 @@
-import { MessageSchema } from '@mafia/core/message';
+import { MessageSchema } from '@mafia/sdk';
 import type { AppBus } from 'src/boot/bus';
 import { useMessageStore } from 'src/stores/message';
 import { inject, onMounted, onUnmounted } from 'vue';

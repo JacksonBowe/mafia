@@ -38,7 +38,7 @@
 <script setup lang="ts">
 import type { MenuChannel } from 'src/lib/message';
 import { MCard, MCardContent } from 'src/components/ui/Card';
-import { sendMenuMessage } from 'src/lib/chat/api';
+import { api } from 'src/boot/axios';
 import { usePresence } from 'src/lib/meta/hooks';
 import { computed, ref } from 'vue';
 import MenuMessagesArea from './MenuMessagesArea.vue';
@@ -60,7 +60,7 @@ const sendMessage = async () => {
 	sending.value = true;
 	try {
 		if (selectedChannel.value === 'LOBBY' && !lobbyId.value) return;
-		await sendMenuMessage(text, selectedChannel.value);
+		await api.sendMessage({ text, channel: selectedChannel.value });
 	} finally {
 		sending.value = false;
 	}

@@ -30,7 +30,7 @@
 </template>
 
 <script setup lang="ts">
-import type { RelatedEntity } from '@mafia/core/db/types';
+import type { RelatedEntity } from '@mafia/sdk';
 import LobbyPlayerListItem from './LobbyPlayerListItem.vue';
 
 const props = withDefaults(

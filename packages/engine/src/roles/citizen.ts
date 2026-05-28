@@ -1,24 +1,40 @@
 import { z } from 'zod';
-import type { PlayerInput } from '../types';
-import { Town, type ActorContext, type Actor } from './actor';
+import { DEFAULT_VESTS } from '../constants';
+import { Town, type Actor, type ActorContext, type ActorState } from './actor';
+import { RoleTags } from './role';
 
-const CitizenSettingsSchema = z.object({
-	maxVests: z.number().int().min(0).default(2),
+export const CitizenSettingsSchema = z.object({
+	maxVests: z.number().int().min(0).default(DEFAULT_VESTS),
 });
 
+export type CitizenSettings = z.infer<typeof CitizenSettingsSchema>;
+export type CitizenSettingsInput = z.input<typeof CitizenSettingsSchema>;
+
 export class Citizen extends Town {
-	static override tags = ['any_random', 'town_random', 'town_government'];
+	static override tags = [
+		...super.tags,
+		RoleTags.TownGovernment,
+	] as const;
+
+	static override roleName = 'Citizen' as const;
+	static override roleKey = 'citizen' as const;
+
+	static override priority = 0;
+	static settingsSchema = CitizenSettingsSchema;
+	static description = 'Town role with limited self-protection vests.';
+
 	private remainingVests = 0;
 
 	constructor(
-		player: PlayerInput,
-		settings: Record<string, unknown> = {},
+		input: ActorState,
+		settings: CitizenSettingsInput = {},
 		context: ActorContext,
 	) {
-		super(player, context);
+		super(input, context);
 		const parsed = CitizenSettingsSchema.parse(settings);
-		const fromActions = player.roleActions?.remainingVests as number | undefined;
-		this.remainingVests = typeof fromActions === 'number' ? fromActions : parsed.maxVests;
+		const fromActions = input.roleActions?.remainingVests;
+		this.remainingVests =
+			typeof fromActions === 'number' ? fromActions : parsed.maxVests;
 	}
 
 	override dumpState() {
@@ -28,12 +44,12 @@ export class Citizen extends Town {
 		};
 	}
 
-	override checkForWin(actors: Actor[]) {
-		const factionWin = super.checkForWin(actors);
-		if (factionWin) return true;
-		if (actors.length === 2 && actors.some((actor) => actor instanceof Citizen)) return true;
-		return false;
-	}
+	// override checkForWin(actors: Actor[]) {
+	// 	const factionWin = super.checkForWin(actors);
+	// 	if (factionWin) return true;
+
+	// 	return false;
+	// }
 
 	override findPossibleTargets(_actors: Actor[] = []) {
 		this.possibleTargets = [];
@@ -53,9 +69,7 @@ export class Citizen extends Town {
 		if (!target) return;
 		target.nightImmune = true;
 		this.logger.info(
-			`|${this.roleName}| ${this.alias}(${String(this.number)}) used vest on ${
-				target === this ? 'self' : target.toString()
-			}. ${String(this.remainingVests)} remaining`,
+			`${this.toString()} used vest on ${target === this ? 'self' : target.toString()}. ${String(this.remainingVests)} remaining`,
 		);
 	}
 }

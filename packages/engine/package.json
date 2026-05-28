@@ -17,7 +17,6 @@
 		"./*": "./src/*.ts"
 	},
 	"dependencies": {
-		"@mafia/core": "workspace:",
 		"zod": "^4.2.1"
 	},
 	"peerDependencies": {

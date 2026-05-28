@@ -3,28 +3,28 @@ import { Citizen } from '../../src/roles/citizen';
 import { Doctor } from '../../src/roles/doctor';
 import { Godfather } from '../../src/roles/godfather';
 import { Mafioso } from '../../src/roles/mafioso';
-import { createContext, makePlayer } from './fixtures';
+import { createContext, makeActor } from './fixtures';
 
 describe('godfather', () => {
 	it('finds possible targets', () => {
 		const context = createContext();
 		const citizen = new Citizen(
-			makePlayer({ name: 'A', alias: 'test_citizen', number: 1, id: '1' }),
+			makeActor({ name: 'A', alias: 'test_citizen', number: 1, id: '1' }),
 			{},
 			context,
 		);
 		const godfather = new Godfather(
-			makePlayer({ name: 'B', alias: 'test_godfather', number: 2, id: '2' }),
+			makeActor({ name: 'B', alias: 'test_godfather', number: 2, id: '2' }),
 			{},
 			context,
 		);
 		const mafioso = new Mafioso(
-			makePlayer({ name: 'C', alias: 'test_mafioso', number: 3, id: '3' }),
+			makeActor({ name: 'C', alias: 'test_mafioso', number: 3, id: '3' }),
 			{},
 			context,
 		);
 		const doctor = new Doctor(
-			makePlayer({ name: 'D', alias: 'test_doctor', number: 4, id: '4' }),
+			makeActor({ name: 'D', alias: 'test_doctor', number: 4, id: '4' }),
 			{},
 			context,
 		);
@@ -40,22 +40,22 @@ describe('godfather', () => {
 	it('uses a mafioso proxy when available', () => {
 		const context = createContext();
 		const citizen = new Citizen(
-			makePlayer({ name: 'A', alias: 'test_citizen', number: 1, id: '1' }),
+			makeActor({ name: 'A', alias: 'test_citizen', number: 1, id: '1' }),
 			{},
 			context,
 		);
 		const godfather = new Godfather(
-			makePlayer({ name: 'B', alias: 'test_godfather', number: 2, id: '2' }),
+			makeActor({ name: 'B', alias: 'test_godfather', number: 2, id: '2' }),
 			{},
 			context,
 		);
 		const mafioso = new Mafioso(
-			makePlayer({ name: 'C', alias: 'test_mafioso', number: 3, id: '3' }),
+			makeActor({ name: 'C', alias: 'test_mafioso', number: 3, id: '3' }),
 			{},
 			context,
 		);
 		const doctor = new Doctor(
-			makePlayer({ name: 'D', alias: 'test_doctor', number: 4, id: '4' }),
+			makeActor({ name: 'D', alias: 'test_doctor', number: 4, id: '4' }),
 			{},
 			context,
 		);
@@ -77,17 +77,17 @@ describe('godfather', () => {
 	it('kills directly when no proxy exists', () => {
 		const context = createContext();
 		const citizen = new Citizen(
-			makePlayer({ name: 'A', alias: 'test_citizen', number: 1, id: '1' }),
+			makeActor({ name: 'A', alias: 'test_citizen', number: 1, id: '1' }),
 			{},
 			context,
 		);
 		const godfather = new Godfather(
-			makePlayer({ name: 'B', alias: 'test_godfather', number: 2, id: '2' }),
+			makeActor({ name: 'B', alias: 'test_godfather', number: 2, id: '2' }),
 			{},
 			context,
 		);
 		const doctor = new Doctor(
-			makePlayer({ name: 'D', alias: 'test_doctor', number: 4, id: '4' }),
+			makeActor({ name: 'D', alias: 'test_doctor', number: 4, id: '4' }),
 			{},
 			context,
 		);
@@ -104,12 +104,12 @@ describe('godfather', () => {
 	it('fails to kill a night-immune target', () => {
 		const context = createContext();
 		const citizen = new Citizen(
-			makePlayer({ name: 'A', alias: 'test_citizen', number: 1, id: '1' }),
+			makeActor({ name: 'A', alias: 'test_citizen', number: 1, id: '1' }),
 			{},
 			context,
 		);
 		const godfather = new Godfather(
-			makePlayer({ name: 'B', alias: 'test_godfather', number: 2, id: '2' }),
+			makeActor({ name: 'B', alias: 'test_godfather', number: 2, id: '2' }),
 			{},
 			context,
 		);

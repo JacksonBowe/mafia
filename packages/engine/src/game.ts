@@ -1,129 +1,123 @@
-import { InputError } from '@mafia/core/error';
+import type { z } from 'zod';
+import { DEFAULT_ALIGNMENT, EngineErrorCodes, EventGroupIds } from './constants';
+import type { EngineContext } from './context';
+import { EngineError } from './error';
 import { GameEventGroup } from './events';
 import { EngineLogger } from './logger';
-import { ROLE_LIST, ROLE_TAGS_MAP, importRole } from './roles';
-import { Alignment, type Actor } from './roles/actor';
+import {
+	FALLBACK_ROLE,
+	ROLE_PRIORITY,
+	ROLE_TAGS_MAP,
+	instantiateRole,
+	type RoleName,
+} from './roles';
+import { type Actor } from './roles/actor';
 import {
 	EngineInputSchema,
-	EngineOptionsSchema,
-	GameConfigSchema,
-	GameStateSchema,
-	PlayerSchema,
+	type ActorState,
 	type EngineInput,
 	type EngineResult,
-	type GameConfigInput,
-	type GameStateInput,
-	type PlayerInput,
+	type GameConfig,
+	type GameState,
 	type WinnerSummary,
 } from './types';
 import { createRng, toSnakeCase, type Rng } from './utils';
 
-type EngineContext = {
-	logger: EngineLogger;
-	rng: Rng;
-};
-
 const toValidationError = (error: unknown) =>
-	new InputError('engine.validation_error', 'Invalid engine input', error);
+	new EngineError(EngineErrorCodes.VALIDATION_ERROR, 'Invalid engine input', error);
 
-const parseInput = (input: EngineInput) => {
+const parseWith = <S extends z.ZodTypeAny>(schema: S, value: unknown): z.infer<S> => {
 	try {
-		return EngineInputSchema.parse(input);
+		return schema.parse(value);
 	} catch (err) {
 		throw toValidationError(err);
 	}
 };
 
-const parsePlayers = (players: PlayerInput[]) => {
-	try {
-		return players.map((player) => PlayerSchema.parse(player));
-	} catch (err) {
-		throw toValidationError(err);
-	}
+type RoleOption = readonly [RoleName, number, number];
+type TagRoleOptions = [string, RoleOption[]];
+
+const compareRoleOptionEntries = (a: TagRoleOptions, b: TagRoleOptions) => {
+	const aEmpty = a[1].length === 0 ? 1 : 0;
+	const bEmpty = b[1].length === 0 ? 1 : 0;
+	if (aEmpty !== bEmpty) return aEmpty - bEmpty;
+	return a[1].length - b[1].length;
 };
 
-const parseConfig = (config: GameConfigInput) => {
-	try {
-		return GameConfigSchema.parse(config);
-	} catch (err) {
-		throw toValidationError(err);
-	}
+type GenerateRolesResult = {
+	roles: RoleName[];
+	failedRoles: string[];
 };
 
-const parseState = (state: GameStateInput) => {
-	try {
-		return GameStateSchema.parse(state);
-	} catch (err) {
-		throw toValidationError(err);
-	}
-};
-
-const generateRoles = (config: GameConfigInput, logger: EngineLogger, rng: Rng) => {
+const generateRoles = (
+	config: GameConfig,
+	logger: EngineLogger,
+	rng: Rng,
+): GenerateRolesResult => {
 	logger.info('--- Generating roles ---');
 	logger.info(`Tags: ${JSON.stringify(config.tags)}`);
 
 	const failedRoles: string[] = [];
-	const roleOptions: Array<[string, Array<[string, number, number]>]> = config.tags.map(
-		(tag: string) => {
-			const possibleRoles: Array<[string, number, number]> = [];
-			for (const [role, settings] of Object.entries(config.roles)) {
-				const roleTags = ROLE_TAGS_MAP[role] ?? [];
-				if (roleTags.includes(tag) || tag === role) {
-					possibleRoles.push([role, settings.weight, settings.max]);
-				}
+	const roleOptions: TagRoleOptions[] = config.tags.map((tag) => {
+		const possibleRoles: RoleOption[] = [];
+		for (const [roleName, settings] of Object.entries(config.roles) as Array<
+			[RoleName, GameConfig['roles'][RoleName] & {}]
+		>) {
+			if (!settings) continue;
+			const roleTags = ROLE_TAGS_MAP[roleName] ?? [];
+			if (roleTags.includes(tag)) {
+				possibleRoles.push([roleName, settings.weight, settings.max]);
 			}
-			return [tag, possibleRoles];
-		},
-	);
-
-	roleOptions.sort((a, b) => {
-		const aEmpty = a[1].length === 0 ? 1 : 0;
-		const bEmpty = b[1].length === 0 ? 1 : 0;
-		if (aEmpty !== bEmpty) return aEmpty - bEmpty;
-		return a[1].length - b[1].length;
+		}
+		return [tag, possibleRoles];
 	});
 
-	const selectedRoles: string[] = [];
-	const blacklist: string[] = [];
+	roleOptions.sort(compareRoleOptionEntries);
+
+	const selectedRoles: RoleName[] = [];
+	const blacklist = new Set<RoleName>();
 
 	while (roleOptions.length > 0) {
-		for (const [role, settings] of Object.entries(config.roles)) {
-			const count = selectedRoles.filter((selected) => selected === role).length;
-			if (count === settings.max && !blacklist.includes(role)) {
-				logger.info(`- Max reached for '${role}' -> adding to blacklist`);
-				blacklist.push(role);
+		for (const [roleName, settings] of Object.entries(config.roles) as Array<
+			[RoleName, GameConfig['roles'][RoleName] & {}]
+		>) {
+			if (!settings) continue;
+			const count = selectedRoles.filter((selected) => selected === roleName).length;
+			if (count === settings.max && !blacklist.has(roleName)) {
+				logger.info(`- Max reached for '${roleName}' -> adding to blacklist`);
+				blacklist.add(roleName);
 				for (const option of roleOptions) {
-					option[1] = option[1].filter((entry) => entry[0] !== role);
+					option[1] = option[1].filter((entry) => entry[0] !== roleName);
 				}
 			}
 		}
 
-		roleOptions.sort((a, b) => {
-			const aEmpty = a[1].length === 0 ? 1 : 0;
-			const bEmpty = b[1].length === 0 ? 1 : 0;
-			if (aEmpty !== bEmpty) return aEmpty - bEmpty;
-			return a[1].length - b[1].length;
-		});
+		roleOptions.sort(compareRoleOptionEntries);
 
 		const entry = roleOptions[0];
 		if (!entry) {
-			throw new Error('No role options available');
+			throw new EngineError(
+				EngineErrorCodes.NO_ROLE_OPTIONS,
+				'No role options available',
+			);
 		}
-		const [tag, options]: [string, Array<[string, number, number]>] = entry;
-		const availableRoles = options.filter(
-			(role: [string, number, number]) => !blacklist.includes(role[0]),
-		);
-		let choice = 'Citizen';
+		const [tag, options] = entry;
+		const availableRoles = options.filter((role) => !blacklist.has(role[0]));
+		let choice: RoleName = FALLBACK_ROLE;
 
 		if (availableRoles.length === 0) {
 			logger.warn(`Picking ${tag}: ${choice} <--- FAILED!!!`);
 			failedRoles.push(tag);
 		} else {
-			const roles = availableRoles.map((option: [string, number, number]) => option[0]);
-			const weights = availableRoles.map((option: [string, number, number]) => option[1]);
+			const roles = availableRoles.map((option) => option[0]);
+			const weights = availableRoles.map((option) => option[1]);
 			const [picked] = rng.choices(roles, weights, 1);
 			if (!picked) {
-				throw new Error('Failed to pick a role');
+				throw new EngineError(
+					EngineErrorCodes.ROLE_PICK_FAILED,
+					'Failed to pick a role',
+					{ tag, roles, weights },
+				);
 			}
 			choice = picked;
 			logger.info(`Picking ${tag}: ${choice}`);
@@ -142,28 +136,27 @@ const generateRoles = (config: GameConfigInput, logger: EngineLogger, rng: Rng) 
 
 class Game {
 	public actors: Actor[] = [];
-	public events = new GameEventGroup('root');
-	public actionEvents = new GameEventGroup('action');
-	private graveyard: GameStateInput['graveyard'] = [];
+	public events = new GameEventGroup(EventGroupIds.ROOT);
+	public actionEvents = new GameEventGroup(EventGroupIds.ACTION);
+	private graveyard: GameState['graveyard'] = [];
 
 	constructor(
 		public day: number,
-		public players: PlayerInput[],
-		public config: GameConfigInput,
+		public actorInputs: ActorState[],
+		public config: GameConfig,
 		public context: EngineContext,
 	) {
 		this.context.logger.info('Importing required roles and instantiating actors');
-		for (const player of players) {
-			if (!player.role) {
-				throw new InputError(
-					'engine.missing_role',
-					'Player role is required for game construction',
-					{ player },
+		for (const actorInput of actorInputs) {
+			if (!actorInput.role) {
+				throw new EngineError(
+					EngineErrorCodes.MISSING_ROLE,
+					'Actor role is required for game construction',
+					{ actor: actorInput },
 				);
 			}
-			const Role = importRole(player.role);
-			const settings = this.config.roles[player.role]?.settings ?? {};
-			const actor = new Role(player, settings, {
+			const settings = this.config.roles[actorInput.role]?.settings ?? {};
+			const actor = instantiateRole(actorInput.role, actorInput, settings, {
 				logger: this.context.logger,
 				actionEvents: this.actionEvents,
 				rng: this.context.rng,
@@ -173,58 +166,61 @@ class Game {
 		this.generateAlliesAndPossibleTargets();
 	}
 
-	static new(players: PlayerInput[], config: GameConfigInput, context: EngineContext) {
+	static new(actorInputs: ActorState[], config: GameConfig, context: EngineContext) {
 		context.logger.info('--- Creating a new Game ---');
-		context.logger.info(`Players: ${JSON.stringify(players)}`);
+		context.logger.info(`Actors: ${JSON.stringify(actorInputs)}`);
 
 		const { roles } = generateRoles(config, context.logger, context.rng);
-		const shuffledPlayers = context.rng.shuffle(players.map((player) => ({ ...player })));
+		const shuffledActors = context.rng.shuffle(
+			actorInputs.map((actorInput) => ({ ...actorInput })),
+		);
 		const shuffledRoles = context.rng.shuffle(roles);
 
-		if (shuffledPlayers.length > shuffledRoles.length) {
+		if (shuffledActors.length > shuffledRoles.length) {
 			shuffledRoles.push(
-				...Array<string>(shuffledPlayers.length - shuffledRoles.length).fill('Citizen'),
+				...Array<RoleName>(shuffledActors.length - shuffledRoles.length).fill(FALLBACK_ROLE),
 			);
 		}
 
 		context.logger.info('--- Allocating roles ---');
-		for (const [index, player] of shuffledPlayers.entries()) {
-			player.number = index + 1;
-			player.role = shuffledRoles[index];
+		for (const [index, actorInput] of shuffledActors.entries()) {
+			actorInput.number = index + 1;
+			const role = shuffledRoles[index] ?? FALLBACK_ROLE;
+			actorInput.role = role;
 			context.logger.info(
-				`  |-> ${player.alias} (${player.name}):`.padEnd(40) + ` ${player.role}`,
+				`  |-> ${actorInput.alias} (${actorInput.name}):`.padEnd(40) + ` ${actorInput.role}`,
 			);
 		}
 
-		return new Game(1, shuffledPlayers, config, context);
+		return new Game(1, shuffledActors, config, context);
 	}
 
 	static load(
-		players: PlayerInput[],
-		config: GameConfigInput,
-		state: GameStateInput,
+		actorInputs: ActorState[],
+		config: GameConfig,
+		state: GameState,
 		context: EngineContext,
 	) {
 		context.logger.info('--- Loading Game ---');
-		context.logger.info(`Players: ${JSON.stringify(players)}`);
-		for (const player of players) {
+		context.logger.info(`Actors: ${JSON.stringify(actorInputs)}`);
+		for (const actorInput of actorInputs) {
 			context.logger.info(
-				`  |-> ${player.alias} (${player.name}):`.padEnd(40) +
-					` ${player.role ?? 'Unknown'} ${player.alive ? '' : '(DEAD)'}`,
+				`  |-> ${actorInput.alias} (${actorInput.name}):`.padEnd(40) +
+				` ${actorInput.role ?? 'Unknown'} ${actorInput.alive ? '' : '(DEAD)'}`,
 			);
 		}
 
-		const game = new Game(state.day, players, config, context);
-		game.graveyard = state.graveyard ?? [];
-		game.applyTargetsFromPlayers();
+		const game = new Game(state.day, actorInputs, config, context);
+		game.graveyard = state.graveyard;
+		game.applyTargetsFromInputs();
 		return game;
 	}
 
-	private applyTargetsFromPlayers() {
+	private applyTargetsFromInputs() {
 		for (const actor of this.actors) {
-			const targets = (actor.player.targets ?? [])
-				.map((targetNumber: number) => this.getActorByNumber(targetNumber))
-				.filter((target: Actor | undefined): target is Actor => Boolean(target));
+			const targets = (actor.input.targets ?? [])
+				.map((targetNumber) => this.getActorByNumber(targetNumber))
+				.filter((target): target is Actor => target !== undefined);
 			actor.setTargets(targets);
 		}
 	}
@@ -239,24 +235,24 @@ class Game {
 	lynch(number: number) {
 		const actor = this.getActorByNumber(number);
 		if (!actor) {
-			throw new InputError('engine.actor_not_found', 'Actor not found', { number });
+			throw new EngineError(EngineErrorCodes.ACTOR_NOT_FOUND, 'Actor not found', { number });
 		}
 		actor.lynched();
 	}
 
 	resolve() {
-		this.context.logger.info('--- Resolving all player actions ---');
+		this.context.logger.info('--- Resolving all actor actions ---');
 		this.day += 1;
 		this.generateAlliesAndPossibleTargets();
-		this.actors.sort(
+		this.actors = [...this.actors].sort(
 			(a, b) =>
-				ROLE_LIST.indexOf(a.constructor as unknown as (typeof ROLE_LIST)[number]) -
-				ROLE_LIST.indexOf(b.constructor as unknown as (typeof ROLE_LIST)[number]),
+				(ROLE_PRIORITY[a.roleName] ?? Number.POSITIVE_INFINITY) -
+				(ROLE_PRIORITY[b.roleName] ?? Number.POSITIVE_INFINITY),
 		);
 
 		for (const actor of this.actors) {
 			if (actor.targets.length === 0) continue;
-			if (actor.targets.length > 0 && actor.possibleTargets.length === 0) {
+			if (actor.possibleTargets.length === 0) {
 				this.context.logger.critical(
 					`${actor.toString()} invalid targets (${actor.targets.map((t) => t.toString()).join(', ')})`,
 				);
@@ -291,13 +287,86 @@ class Game {
 	}
 
 	checkForWin() {
+		// Scenarios:
+		// 1. An actor/s that can trigger game over meets win conditions -> that actor/s wins immediately + all coWinners who have met their win conditions
+		// 2. There are no actors that can trigger a game over, but all coWinners have met their win conditions -> all coWinners win immediately
+		// 3. There are no actors that can trigger a game over, and not all coWinners have met their win conditions -> no winners
+		// 4. There is only one actor left alive -> game is over -> anyone who meets win condition is a winner
+
 		this.context.logger.info('--- Checking for win conditions ---');
-		const winners = this.actors.filter((actor) => actor.checkForWin(this.aliveActors));
-		if (winners.length > 0) {
+
+		const primaryWinCandidates = this.actors.filter((actor) => actor.canTriggerGameOver);
+		const coWinCandidates = this.actors.filter((actor) => !actor.canTriggerGameOver);
+
+		const primaryWinners = primaryWinCandidates.filter((actor) =>
+			actor.checkForWin(this.actors),
+		);
+
+		const coWinners = coWinCandidates.filter((actor) =>
+			actor.checkForWin(this.actors),
+		);
+
+		const winners = [...primaryWinners, ...coWinners];
+
+		// console.log('Primary win candidates', primaryWinCandidates.map((a) => a.toString()));
+		// console.log('Co win candidates', coWinCandidates.map((a) => a.toString()));
+		// console.log('Primary winners', primaryWinners.map((a) => a.toString()));
+		// console.log('Co winners', coWinners.map((a) => a.toString()));
+
+		// Scenario 1:
+		// If any primary actor wins, game over immediately.
+		// Include any co-winners who have also met their win conditions.
+		if (primaryWinners.length > 0) {
 			this.context.logger.info(`Winners: ${winners.map((w) => w.alias).join(', ')}`);
 			return winners;
 		}
+
+		// Scenario 4:
+		// If only one actor is left alive, the game is over.
+		// Return anyone who currently meets their win condition.
+		const livingActors = this.actors.filter((actor) => actor.alive);
+
+		if (livingActors.length === 1) {
+			if (winners.length > 0) {
+				this.context.logger.info(
+					'Only one actor left alive, game over',
+				);
+
+				this.context.logger.info(`Winners: ${winners.map((w) => w.alias).join(', ')}`);
+
+				return winners;
+			}
+
+			this.context.logger.info(
+				'Only one actor left alive, but no actors meet their win conditions',
+			);
+
+			return null;
+		}
+
+		// Scenario 2:
+		// If there are no living primary actors left, all co-winners must have met their win conditions.
+		const livingPrimaryWinCandidates = primaryWinCandidates.filter(
+			(actor) => actor.alive,
+		);
+
+		if (
+			livingPrimaryWinCandidates.length === 0 &&
+			coWinCandidates.length > 0 &&
+			coWinners.length === coWinCandidates.length
+		) {
+			this.context.logger.info(
+				'All actors that cannot trigger game over have won, game over',
+			);
+
+			this.context.logger.info(`Winners: ${coWinners.map((w) => w.alias).join(', ')}`);
+
+			return coWinners;
+		}
+
+		// Scenario 3:
 		this.context.logger.info('No winners found');
+
 		return null;
 	}
 
@@ -306,34 +375,35 @@ class Game {
 	}
 
 	get aliveActors() {
-		return this.actors.filter((actor) => Boolean(actor.alive));
+		return this.actors.filter((actor) => actor.alive);
 	}
 
-	get deadActors() {
+	private get deadActors() {
 		return this.actors.filter((actor) => !actor.alive);
 	}
 
-	get fullGraveyard() {
+	get fullGraveyard(): GameState['graveyard'] {
 		return [
 			...this.graveyard,
 			...this.deadActors.map((actor) => ({
-				number: actor.number ?? 0,
+				number: actor.requireNumber(),
 				alias: actor.alias,
 				cod: actor.cod ?? 'Unknown',
 				dod: this.day,
 				role: actor.roleName,
-				will: 'actor.will',
+				will: actor.input.will ?? '',
+				alignment: actor.alignment ?? DEFAULT_ALIGNMENT,
 			})),
 		];
 	}
 
-	get state(): GameStateInput {
+	get state(): GameState {
 		return {
 			day: this.day,
-			players: this.actors.map((actor) => ({
-				number: actor.number ?? 0,
+			actors: this.actors.map((actor) => ({
+				number: actor.requireNumber(),
 				alias: actor.alias,
-				alive: Boolean(actor.alive),
+				alive: actor.alive,
 			})),
 			graveyard: this.fullGraveyard,
 		};
@@ -355,59 +425,73 @@ const buildResult = (game: Game, winners: WinnerSummary[] | null, logger: Engine
 const summarizeWinners = (winners: ReturnType<Game['checkForWin']>): WinnerSummary[] | null => {
 	if (!winners || winners.length === 0) return null;
 	return winners.map((winner) => ({
-		id: winner.player.id,
-		name: winner.player.name,
+		id: winner.input.id,
+		name: winner.input.name,
 		alias: winner.alias,
-		number: winner.number ?? 0,
+		number: winner.requireNumber(),
 		role: winner.roleName,
-		alignment: (winner.alignment ?? Alignment.Town) as WinnerSummary['alignment'],
+		alignment: winner.alignment ?? DEFAULT_ALIGNMENT,
 	}));
 };
 
-export const newGame = (input: EngineInput): EngineResult => {
-	const parsed = parseInput(input);
-	const logger = new EngineLogger();
-	const options = EngineOptionsSchema.parse(parsed.options ?? {});
-	const rng = createRng(options.seed);
-	const players = parsePlayers(parsed.players);
-	const config = parseConfig(parsed.config);
+type Bootstrap = {
+	parsed: EngineInput;
+	context: EngineContext;
+	logger: EngineLogger;
+	actors: ActorState[];
+	config: GameConfig;
+};
 
-	const game = Game.new(players, config, { logger, rng });
+/**
+ * Validate the engine input once at the boundary and derive all per-call
+ * resources. Subsequent code consumes already-parsed values, so no further
+ * Zod parsing is required.
+ */
+const bootstrap = (input: EngineInput): Bootstrap => {
+	const parsed = parseWith(EngineInputSchema, input);
+	const logger = new EngineLogger();
+	const rng = createRng(parsed.options?.seed);
+	return {
+		parsed,
+		context: { logger, rng },
+		logger,
+		actors: parsed.actors,
+		config: parsed.config,
+	};
+};
+
+const requireState = (input: EngineInput, action: 'load' | 'resolve'): GameState => {
+	if (!input.state) {
+		throw new EngineError(
+			EngineErrorCodes.MISSING_STATE,
+			`State is required to ${action} a game`,
+		);
+	}
+	return input.state;
+};
+
+export const newGame = (input: EngineInput): EngineResult => {
+	const { context, logger, actors, config } = bootstrap(input);
+	const game = Game.new(actors, config, context);
 	const winners = summarizeWinners(game.checkForWin());
 	return buildResult(game, winners, logger);
 };
 
 export const loadGame = (input: EngineInput): EngineResult => {
-	const parsed = parseInput(input);
-	if (!parsed.state) {
-		throw new InputError('engine.missing_state', 'State is required to load a game');
-	}
-	const logger = new EngineLogger();
-	const options = EngineOptionsSchema.parse(parsed.options ?? {});
-	const rng = createRng(options.seed);
-	const players = parsePlayers(parsed.players);
-	const config = parseConfig(parsed.config);
-	const state = parseState(parsed.state);
-
-	const game = Game.load(players, config, state, { logger, rng });
+	const { parsed, context, logger, actors, config } = bootstrap(input);
+	const state = requireState(parsed, 'load');
+	const game = Game.load(actors, config, state, context);
 	const winners = summarizeWinners(game.checkForWin());
 	return buildResult(game, winners, logger);
 };
 
 export const resolveGame = (input: EngineInput): EngineResult => {
-	const parsed = parseInput(input);
-	if (!parsed.state) {
-		throw new InputError('engine.missing_state', 'State is required to resolve a game');
-	}
-	const logger = new EngineLogger();
-	const options = EngineOptionsSchema.parse(parsed.options ?? {});
-	const rng = createRng(options.seed);
-	const players = parsePlayers(parsed.players);
-	const config = parseConfig(parsed.config);
-	const state = parseState(parsed.state);
-
-	const game = Game.load(players, config, state, { logger, rng });
+	const { parsed, context, logger, actors, config } = bootstrap(input);
+	const state = requireState(parsed, 'resolve');
+	const game = Game.load(actors, config, state, context);
 	game.resolve();
 	const winners = summarizeWinners(game.checkForWin());
 	return buildResult(game, winners, logger);
 };
+
+export { Game };

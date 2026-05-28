@@ -30,10 +30,10 @@ export const gameTable = pgTable(
 			.notNull()
 			.defaultNow(),
 
-		// Engine state (serialized GameStateInput from engine)
+		// Engine state (serialized GameState from engine)
 		engineState: jsonb('engine_state').notNull(),
 
-		// Engine config (serialized GameConfigInput from engine)
+		// Engine config (serialized GameConfig from engine)
 		engineConfig: jsonb('engine_config').notNull(),
 
 		// Actor states per player (serialized ActorState[] from engine)

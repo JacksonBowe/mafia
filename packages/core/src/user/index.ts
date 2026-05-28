@@ -2,27 +2,15 @@ import { eq } from 'drizzle-orm';
 import { ulid } from 'ulid';
 import { z } from 'zod';
 import { createTransaction, useTransaction } from '../db/transaction';
-import { EntityBaseSchema } from '../db/types';
 import { InputError, isULID } from '../error';
 import { fn } from '../util/fn';
+import { UserErrors as Errors, UserInfoSchema } from './schema';
 import { userTable } from './user.sql';
+
 export * as User from './';
 export { getPresence } from './presence';
-
-export enum Errors {
-	UserExists = 'user.exists',
-	UserNotFound = 'user.not_found',
-}
-
-export const UserInfoSchema = EntityBaseSchema.extend({
-	discordId: z.string(),
-	name: z.string(),
-	profileImageUrl: z.string().url().optional(),
-	avatar: z.string().optional().nullable(),
-	isAdmin: z.boolean().default(false),
-});
-
-export type UserInfo = z.infer<typeof UserInfoSchema>;
+export { Errors, UserInfoSchema };
+export type { UserInfo } from './schema';
 
 export const createOrUpdateFromDiscordProfile = fn(
 	z.object({

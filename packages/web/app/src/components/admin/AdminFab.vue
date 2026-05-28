@@ -23,8 +23,26 @@
 				/>
 			</q-fab>
 
-			<!-- USERS -->
-			<!-- <q-fab color="orange" label="Users" direction="up" padding="xs">
+		<!-- GAME (only on /game route) -->
+		<q-fab v-if="isGameRoute" color="orange" label="Game" direction="up" padding="xs">
+			<q-fab-action
+				label="Load dummy"
+				hide-icon
+				color="green"
+				padding="none"
+				@click="loadDummyGame"
+			/>
+			<q-fab-action
+				label="Unload dummy"
+				hide-icon
+				color="red"
+				padding="none"
+				@click="unloadDummyGame"
+			/>
+		</q-fab>
+
+		<!-- USERS -->
+		<!-- <q-fab color="orange" label="Users" direction="up" padding="xs">
 				<q-fab-action
 					label="Terminate all"
 					hide-icon
@@ -49,7 +67,10 @@
 </template>
 
 <script setup lang="ts">
+import { useRoute } from 'vue-router';
 import { useTerminateGames, useTerminateLobbies } from 'src/lib/admin/hooks';
+import { useGameStore } from 'src/stores/game';
+import { dummyGameSync } from 'src/lib/admin/dummyGameSync';
 import { computed } from 'vue';
 
 const { mutateAsync: terminateLobbies, isPending: isTerminateLobbiesPending } =
@@ -57,6 +78,22 @@ const { mutateAsync: terminateLobbies, isPending: isTerminateLobbiesPending } =
 const { mutateAsync: terminateGames, isPending: isTerminateGamesPending } = useTerminateGames();
 
 const isLoading = computed(() => isTerminateLobbiesPending.value || isTerminateGamesPending.value);
+
+const route = useRoute();
+const gameStore = useGameStore();
+const isGameRoute = computed(() => route.path.startsWith('/game'));
+
+const loadDummyGame = () => {
+	gameStore.lastSyncTs = 0;
+	gameStore.hydrateFromSync({
+		...dummyGameSync,
+		info: { ...dummyGameSync.info, syncTs: Date.now() },
+	});
+};
+
+const unloadDummyGame = () => {
+	gameStore.clearGame();
+};
 // import { api } from 'src/boot/axios';
 // import { terminateAllLobbies } from 'src/lib/api/admin';
 // import { Message } from 'src/lib/chat';

@@ -1,12 +1,12 @@
-import { loadGame, newGame } from '../src/index';
-import { DEFAULT_SEED, dummyConfig, dummyPlayers, toPlayerInput } from './_helpers';
+import { loadGame, newGame } from '@mafia/engine';
+import { DEFAULT_SEED, dummyConfig, dummyActors, toActorInput } from '@mafia/engine/testing';
 
 const run = () => {
-	const players = dummyPlayers(3);
+	const actors = dummyActors(3);
 	const config = dummyConfig();
-	const created = newGame({ players, config, options: { seed: DEFAULT_SEED } });
+	const created = newGame({ actors, config, options: { seed: DEFAULT_SEED } });
 	const loaded = loadGame({
-		players: created.actors.map(toPlayerInput),
+		actors: created.actors.map(toActorInput),
 		config,
 		state: created.state,
 		options: { seed: DEFAULT_SEED },
