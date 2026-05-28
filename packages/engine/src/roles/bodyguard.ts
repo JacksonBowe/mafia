@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { BROADCAST_TARGET, DeathReasons, EventIds } from '../constants';
-import type { ActorState } from '../types';
 import { Duration, GameEvent, GameEventGroup } from '../events';
-import { Town, type ActorContext, type Actor } from './actor';
+import { Town, type Actor, type ActorContext, type ActorState } from './actor';
+import { RoleTags } from './role';
 
 export const BodyguardSettingsSchema = z.object({}).strict();
 
@@ -10,8 +10,15 @@ export type BodyguardSettings = z.infer<typeof BodyguardSettingsSchema>;
 export type BodyguardSettingsInput = z.input<typeof BodyguardSettingsSchema>;
 
 export class Bodyguard extends Town {
-	static override tags = ['bodyguard', 'any_random', 'town_random', 'town_protective', 'town_killing'];
+	static override tags = [
+		...super.tags,
+		RoleTags.TownProtective,
+		RoleTags.TownKilling,
+	] as const;
+
 	static override roleName = 'Bodyguard' as const;
+	static override roleKey = 'bodyguard' as const;
+
 	static override priority = 2;
 	static settingsSchema = BodyguardSettingsSchema;
 	static description = 'Town protector that intercepts attacks at target home.';

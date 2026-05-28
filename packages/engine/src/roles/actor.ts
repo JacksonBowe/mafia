@@ -1,30 +1,52 @@
+import z from 'zod';
 import {
 	BROADCAST_TARGET,
 	DeathReasons,
 	EngineErrorCodes,
 	EventIds,
+	MAX_ACTORS,
 } from '../constants';
 import type { ActorContext } from '../context';
 import { EngineError } from '../error';
 import { Duration, GameEvent, GameEventGroup } from '../events';
 import type { EngineLogger } from '../logger';
-import type { ActorAlignment, ActorState, Ally } from '../types';
 import type { Rng } from '../utils';
-import type { RoleName } from './catalog';
+import { RoleAlignment, RoleAlignmentSchema, RoleAllySchema, RoleNameSchema, RoleTags, type RoleAlly, type RoleName, type RoleTag } from './role';
 
 export type { ActorContext } from '../context';
 
 type BodyguardActor = Actor & { shootout: (attacker: Actor) => void };
 type DoctorActor = Actor & { reviveTarget: (target: Actor) => void };
 
+export const ActorStateSchema = z.object({
+	id: z.string(),
+	name: z.string(),
+	alias: z.string(),
+	role: RoleNameSchema.optional(),
+	number: z.number().int().min(1).max(MAX_ACTORS).optional(),
+	alive: z.boolean().default(true),
+	possibleTargets: z
+		.array(z.array(z.number().int().min(1).max(MAX_ACTORS)).max(MAX_ACTORS))
+		.max(2)
+		.default([]),
+	targets: z.array(z.number().int().min(1).max(MAX_ACTORS)).max(MAX_ACTORS).default([]),
+	allies: z.array(RoleAllySchema).default([]),
+	roleActions: z.record(z.string(), z.unknown()).default({}),
+	alignment: RoleAlignmentSchema.nullable().default(null),
+	will: z.string().optional(),
+});
+
+export type ActorState = z.infer<typeof ActorStateSchema>;
+
 export class Actor {
-	static tags: string[] = ['any_random'];
+	static tags: readonly RoleTag[] = [RoleTags.AnyRandom];
 	/**
 	 * Subclasses MUST override with their own role name. The static field is
 	 * the source of truth for {@link Actor.roleName} (minify-safe; does not rely
 	 * on `this.constructor.name`).
 	 */
 	static roleName: RoleName = 'Citizen';
+	static roleKey = 'citizen';
 	/**
 	 * Action-resolution priority. Lower runs first. Subclasses override.
 	 * Used to derive the {@link ROLE_PRIORITY} table.
@@ -33,7 +55,7 @@ export class Actor {
 
 	static canTriggerGameOver = true;
 
-	alignment: ActorAlignment | null = null;
+	alignment: RoleAlignment | null = null;
 	input: ActorState;
 	alias: string;
 	number?: number | undefined;
@@ -67,8 +89,8 @@ export class Actor {
 		return (this.constructor as typeof Actor).roleName;
 	}
 
-	get tags(): string[] {
-		return (this.constructor as typeof Actor).tags;
+	get tags(): readonly RoleTag[] {
+		return [...(this.constructor as typeof Actor).tags];
 	}
 
 	get canTriggerGameOver(): boolean {
@@ -105,7 +127,7 @@ export class Actor {
 			alignment: this.alignment,
 			targets: this.targets.map((target) => target.requireNumber()),
 			allies: this.allies.map(
-				(ally): Ally => ({
+				(ally): RoleAlly => ({
 					alias: ally.alias,
 					number: ally.requireNumber(),
 					role: ally.roleName,
@@ -223,6 +245,11 @@ export class Actor {
 }
 
 export class Town extends Actor {
+	static override tags: readonly RoleTag[] = [
+		...super.tags,
+		RoleTags.TownRandom
+	] as const;
+
 	constructor(input: ActorState, context: ActorContext) {
 		super(input, context);
 		this.alignment = 'Town';
@@ -261,6 +288,11 @@ export class Town extends Actor {
 }
 
 export class Mafia extends Actor {
+	static override tags: readonly RoleTag[] = [
+		...super.tags,
+		RoleTags.MafiaRandom,
+	] as const;
+
 	constructor(input: ActorState, context: ActorContext) {
 		super(input, context);
 		this.alignment = 'Mafia';
@@ -332,6 +364,11 @@ export class Mafia extends Actor {
 }
 
 export class Neutral extends Actor {
+	static override tags: readonly RoleTag[] = [
+		...super.tags,
+		RoleTags.NeutralRandom,
+	] as const;
+
 	static override canTriggerGameOver = false;
 	constructor(input: ActorState, context: ActorContext) {
 		super(input, context);
@@ -339,3 +376,4 @@ export class Neutral extends Actor {
 
 	}
 }
+

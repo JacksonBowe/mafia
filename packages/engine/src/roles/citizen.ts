@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { DEFAULT_VESTS } from '../constants';
-import type { ActorState } from '../types';
-import { Town, type Actor, type ActorContext } from './actor';
+import { Town, type Actor, type ActorContext, type ActorState } from './actor';
+import { RoleTags } from './role';
 
 export const CitizenSettingsSchema = z.object({
 	maxVests: z.number().int().min(0).default(DEFAULT_VESTS),
@@ -11,8 +11,14 @@ export type CitizenSettings = z.infer<typeof CitizenSettingsSchema>;
 export type CitizenSettingsInput = z.input<typeof CitizenSettingsSchema>;
 
 export class Citizen extends Town {
-	static override tags = ['any_random', 'town_random', 'town_government'];
+	static override tags = [
+		...super.tags,
+		RoleTags.TownGovernment,
+	] as const;
+
 	static override roleName = 'Citizen' as const;
+	static override roleKey = 'citizen' as const;
+
 	static override priority = 0;
 	static settingsSchema = CitizenSettingsSchema;
 	static description = 'Town role with limited self-protection vests.';

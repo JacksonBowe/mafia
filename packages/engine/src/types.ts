@@ -1,7 +1,9 @@
 import { z } from 'zod';
 import { MAX_ACTORS } from './constants';
 import type { GameEventGroupDump } from './events';
-import { ROLE_NAMES, ROLE_TAGS } from './roles/catalog';
+import { ROLE_NAMES } from './roles/role-registry';
+import { ROLE_TAGS } from './roles/role-tags';
+// import { ROLE_NAMES, ROLE_TAGS } from './roles/types';
 
 // ---------------------------------------------------------------------------
 // Role & Tag schemas
@@ -15,7 +17,7 @@ export const RoleNameSchema = z.enum(ROLE_NAMES);
 
 export const RoleTagSchema = z.enum(ROLE_TAGS);
 
-export type { RoleName, RoleTag } from './roles/catalog';
+// export type { RoleName, RoleTag } from './roles/catalog';
 
 // ---------------------------------------------------------------------------
 // Role settings
@@ -81,25 +83,25 @@ export type Ally = z.infer<typeof AllySchema>;
 // even though Zod's input/output types coincide here.
 // ---------------------------------------------------------------------------
 
-export const ActorStateSchema = z.object({
-	id: z.string(),
-	name: z.string(),
-	alias: z.string(),
-	role: RoleNameSchema.optional(),
-	number: z.number().int().min(1).max(MAX_ACTORS).optional(),
-	alive: z.boolean().default(true),
-	possibleTargets: z
-		.array(z.array(z.number().int().min(1).max(MAX_ACTORS)).max(MAX_ACTORS))
-		.max(2)
-		.default([]),
-	targets: z.array(z.number().int().min(1).max(MAX_ACTORS)).max(MAX_ACTORS).default([]),
-	allies: z.array(AllySchema).default([]),
-	roleActions: z.record(z.string(), z.unknown()).default({}),
-	alignment: ActorAlignmentSchema.nullable().default(null),
-	will: z.string().optional(),
-});
+// export const ActorStateSchema = z.object({
+// 	id: z.string(),
+// 	name: z.string(),
+// 	alias: z.string(),
+// 	role: RoleNameSchema.optional(),
+// 	number: z.number().int().min(1).max(MAX_ACTORS).optional(),
+// 	alive: z.boolean().default(true),
+// 	possibleTargets: z
+// 		.array(z.array(z.number().int().min(1).max(MAX_ACTORS)).max(MAX_ACTORS))
+// 		.max(2)
+// 		.default([]),
+// 	targets: z.array(z.number().int().min(1).max(MAX_ACTORS)).max(MAX_ACTORS).default([]),
+// 	allies: z.array(AllySchema).default([]),
+// 	roleActions: z.record(z.string(), z.unknown()).default({}),
+// 	alignment: ActorAlignmentSchema.nullable().default(null),
+// 	will: z.string().optional(),
+// });
 
-export type ActorState = z.infer<typeof ActorStateSchema>;
+// export type ActorState = z.infer<typeof ActorStateSchema>;
 
 /** @deprecated alias for {@link ActorStateSchema}; kept for SDK consumers. */
 export const ActorStateInputSchema = ActorStateSchema;

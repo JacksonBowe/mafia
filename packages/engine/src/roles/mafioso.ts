@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import type { ActorState } from '../types';
-import { Mafia, type ActorContext, type Actor } from './actor';
+import { Mafia, type Actor, type ActorContext, type ActorState } from './actor';
+import { RoleTags } from './role';
 
 export const MafiosoSettingsSchema = z.object({}).strict();
 
@@ -8,8 +8,13 @@ export type MafiosoSettings = z.infer<typeof MafiosoSettingsSchema>;
 export type MafiosoSettingsInput = z.input<typeof MafiosoSettingsSchema>;
 
 export class Mafioso extends Mafia {
-	static override tags = ['any_random', 'mafia_random', 'mafia_killing'];
+	static override tags = [
+		...super.tags,
+		RoleTags.MafiaKilling,
+	]
 	static override roleName = 'Mafioso' as const;
+	static override roleKey = 'mafioso' as const;
+
 	static override priority = 4;
 	static settingsSchema = MafiosoSettingsSchema;
 	static description = 'Mafia attacker that carries out faction kills.';

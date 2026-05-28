@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { EventIds } from '../constants';
-import type { ActorState } from '../types';
 import { GameEvent, GameEventGroup } from '../events';
-import { Town, type ActorContext, type Actor } from './actor';
+import { Town, type Actor, type ActorContext, type ActorState } from './actor';
+import { RoleTags } from './role';
 
 export const DoctorSettingsSchema = z.object({}).strict();
 
@@ -10,8 +10,14 @@ export type DoctorSettings = z.infer<typeof DoctorSettingsSchema>;
 export type DoctorSettingsInput = z.input<typeof DoctorSettingsSchema>;
 
 export class Doctor extends Town {
-	static override tags = ['any_random', 'town_random', 'town_protective'];
+	static override tags = [
+		...super.tags,
+		RoleTags.TownProtective,
+	] as const;
+
 	static override roleName = 'Doctor' as const;
+	static override roleKey = 'doctor' as const;
+
 	static override priority = 1;
 	static settingsSchema = DoctorSettingsSchema;
 	static description = 'Town protective role that can heal one target each night.';

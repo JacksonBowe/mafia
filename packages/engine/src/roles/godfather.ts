@@ -1,9 +1,9 @@
 import { z } from 'zod';
 import { DEFAULT_NIGHT_IMMUNE, EventIds } from '../constants';
-import type { ActorState } from '../types';
 import { GameEvent, GameEventGroup } from '../events';
-import { Mafia, type ActorContext, type Actor } from './actor';
+import { Mafia, type ActorContext, type Actor, type ActorState } from './actor';
 import { Mafioso } from './mafioso';
+import { RoleTags } from './role';
 
 export const GodfatherSettingsSchema = z.object({
 	nightImmune: z.number().int().min(0).default(DEFAULT_NIGHT_IMMUNE),
@@ -13,8 +13,14 @@ export type GodfatherSettings = z.infer<typeof GodfatherSettingsSchema>;
 export type GodfatherSettingsInput = z.input<typeof GodfatherSettingsSchema>;
 
 export class Godfather extends Mafia {
-	static override tags = ['any_random', 'mafia_random', 'mafia_killing'];
+	static override tags = [
+		...super.tags,
+		RoleTags.MafiaKilling,
+	];
+
 	static override roleName = 'Godfather' as const;
+	static override roleKey = 'godfather' as const;
+
 	static override priority = 3;
 	static settingsSchema = GodfatherSettingsSchema;
 	static description = 'Mafia leader who can delegate kills and starts night-immune.';

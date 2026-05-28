@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { DEFAULT_VESTS } from '../constants';
-import type { ActorState } from '../types';
-import { Actor, Neutral, type ActorContext } from './actor';
+import { Actor, Neutral, type ActorContext, type ActorState } from './actor';
+import { RoleTags } from './role';
 
 export const SurvivorSettingsSchema = z.object({
 	maxVests: z.number().int().min(0).default(DEFAULT_VESTS),
@@ -21,8 +21,14 @@ export type SurvivorSettingsInput = z.input<typeof SurvivorSettingsSchema>;
  * the resolution cycle. Vest count is configurable via `maxVests`.
  */
 export class Survivor extends Neutral {
-	static override tags = ['survivor', 'neutral_random', 'neutral_benign'];
+	static override tags = [
+		...super.tags,
+		RoleTags.NeutralBenign,
+	] as const;
+
 	static override roleName = 'Survivor' as const;
+	static override roleKey = 'survivor' as const;
+
 	static override priority = 0;
 	static settingsSchema = SurvivorSettingsSchema;
 	static description = 'Neutral Benign role that wins by surviving to the end of the game.';
