@@ -123,10 +123,10 @@ lobbyRoutes.post('/:lobbyId/start', zValidator('param', LobbyIdPathParamsSchema)
 	const lobbyData = await Lobby.prepareForStart({ lobbyId, hostId: userId });
 
 	// 2. Build engine input - use default config, sliced to player count
-	const playerCount = lobbyData.members.length;
+	// const playerCount = lobbyData.members.length;
 	const config = {
 		...DEFAULT_CONFIG,
-		tags: DEFAULT_CONFIG.tags.slice(0, playerCount),
+		// tags: DEFAULT_CONFIG.tags.slice(0, playerCount),
 	};
 	const actors: ActorState[] = lobbyData.members.map((member, index) => ({
 		id: member.userId,
@@ -137,6 +137,7 @@ lobbyRoutes.post('/:lobbyId/start', zValidator('param', LobbyIdPathParamsSchema)
 		targets: [],
 		allies: [],
 		roleActions: {},
+		alignment: null,
 	}));
 
 	// 3. Run engine to create initial game state

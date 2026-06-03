@@ -25,6 +25,11 @@ export class Godfather extends Mafia {
 	static settingsSchema = GodfatherSettingsSchema;
 	static override description = 'Mafia leader who can delegate kills and starts night-immune.';
 
+	static override abilities = [
+		'Each night, collude with your mafia family to choose a player to kill.',
+		'You will send one of your Mafioso underlings to carry out the kill on your behalf.',
+	]
+
 	static override attributes(settings: GodfatherSettingsInput = {}): string[] {
 		const parsed = GodfatherSettingsSchema.parse(settings);
 		return nightImmuneAttribute(parsed.nightImmune);

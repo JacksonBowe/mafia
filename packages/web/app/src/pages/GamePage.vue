@@ -71,7 +71,7 @@
 				<!-- Right Half -->
 				<div class="col-12 col-sm-6 column q-col-gutter-y-md no-wrap">
 					<!-- Top Right Quadrant -->
-					<div class="row justify-end items-stretch">
+					<div class="col row justify-end items-stretch">
 						<transition enter-active-class="animated slideInRight">
 							<game-role
 								v-if="gameStore.actor && gameStore.actor.role"
@@ -84,7 +84,7 @@
 					</div>
 
 					<!-- Bottom Right Quadrant -->
-					<div class="col row justify-end items-stretch">
+					<div class="col row items-end justify-end items-stretch">
 						<transition appear enter-active-class="animated slideInRight">
 							<game-actors class="col-12 col-sm-9 col-md-6 col-lg-7 full-height" />
 						</transition>
