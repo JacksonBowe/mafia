@@ -2,6 +2,8 @@
 
 Goal: implement one backend service that advances exactly one phase per invocation.
 
+Important data boundary: read player inputs from `game_player`; keep `game.actors` as last engine snapshot/output. Before engine calls, patch player targets from `game_player.targets` into actor input.
+
 ## Files To Add Or Change
 
 - Add `packages/functions/src/gameloop/advance.ts`: Lambda handler.
@@ -71,6 +73,11 @@ Inside loop service, useful helpers:
 const aliveNumbers = (actors: ActorState[]) =>
 	actors.filter((actor) => actor.alive && actor.number !== undefined).map((actor) => actor.number!);
 
+const buildEngineActors = (actors: ActorState[], players: GamePlayer[]) => {
+	const targetsByUserId = new Map(players.map((player) => [player.userId, player.targets ?? []]));
+	return actors.map((actor) => ({ ...actor, targets: targetsByUserId.get(actor.id) ?? [] }));
+};
+
 const publishPhase = (gameId: string, phase: GamePhase, duration: number) =>
 	realtime.publish(Resource.Realtime, Game.RealtimeEvents.PhaseChange, { gameId, phase, duration });
 
@@ -139,16 +146,18 @@ Old loop jumped from `PREGAME` to `EVENING`; preserve that.
 
 Behavior:
 
-1. Load engine with current `actors`, `engineConfig`, `engineState`.
-2. Resolve night actions using `resolveGame({ actors, config, state })`.
-3. Persist returned `state`, `actors`, and `events`.
-4. Move to `night` for `engineResult.events.duration` seconds.
+1. Build engine actors by patching `game_player.targets` into current `game.actors`.
+2. Load engine with patched actors, `engineConfig`, and `engineState`.
+3. Resolve night actions using `resolveGame({ actors, config, state })`.
+4. Persist returned `state`, returned `actors`, and returned `events`.
+5. Move to `night` for `engineResult.events.duration` seconds.
 
 Code sketch:
 
 ```ts
+const engineActors = buildEngineActors(actors, players);
 const result = resolveGame({
-	actors,
+	actors: engineActors,
 	config: game.engineConfig,
 	state: game.engineState,
 });
@@ -169,7 +178,7 @@ Behavior:
 1. Replay stored `game.events` over realtime.
 2. Publish actor updates for all actors.
 3. Publish public game state.
-4. Clear actor targets.
+4. Clear `game_player.targets`.
 5. Clear stored events.
 6. Move to `morning`.
 
@@ -262,13 +271,14 @@ Use current `Game.tallyVerdicts({ gameId, alivePlayers })`.
 Behavior:
 
 1. Find player row with `onTrial === true`.
-2. Load engine with actors/config/state.
-3. Call `Game.load(...).lynch(playerNumber)` or add engine helper if cleaner.
-4. Persist updated engine state and actors.
-5. Publish `LynchResult` if verdict counts available, then `State`.
-6. Clear votes and verdicts.
-7. If poll count > 2: reset poll count and move `evening`.
-8. Else move `poll`.
+2. Build engine actors by patching `game_player.targets` into current `game.actors`.
+3. Load engine with patched actors/config/state.
+4. Call `Game.load(...).lynch(playerNumber)` or add engine helper if cleaner.
+5. Persist updated engine state and actors.
+6. Publish `LynchResult` if verdict counts available, then `State`.
+7. Clear votes and verdicts.
+8. If poll count > 2: reset poll count and move `evening`.
+9. Else move `poll`.
 
 Engine has `Game.lynch(number)` but top-level `@mafia/engine` does not expose `lynchGame` helper. Options:
 
@@ -297,4 +307,5 @@ Do not end game on `lynch`; old semantics check winners in `morning` only. Prese
 - No Lambda sleeps.
 - Realtime publishes happen after DB commit when paired with DB mutations.
 - `evening` stores events; `night` clears events.
+- Player targets are read from `game_player.targets`, patched into engine input, then cleared from `game_player.targets` in `night`.
 - Winners end state machine only from `morning`.

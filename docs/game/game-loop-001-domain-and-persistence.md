@@ -2,6 +2,8 @@
 
 Goal: add missing persisted data and core operations required by the loop before adding infrastructure.
 
+Important boundary: `game.actors` is engine-owned snapshot data. Player inputs must live on `game_player` rows and be patched into engine actor input only inside backend loop/API code.
+
 ## Existing Files
 
 - `packages/core/src/game/game.sql.ts`: Drizzle schema.
@@ -27,6 +29,14 @@ events: jsonb('events'),
 
 Add to `gameTable` in `packages/core/src/game/game.sql.ts`. Keep nullable; most phases have no pending events.
 
+Also add player night action inputs to `game_player`, not `game.actors`:
+
+```ts
+targets: jsonb('targets').$type<number[]>().notNull().default([]),
+```
+
+This keeps user-submitted action choices separate from engine output. The loop patches `game_player.targets` into actor snapshots immediately before calling `loadGame`, `resolveGame`, or any engine helper.
+
 User will run DB migration/actions manually. Do not run migration or DB commands unless asked.
 
 ## Schema Updates
@@ -36,6 +46,7 @@ In `packages/core/src/game/schema.ts`:
 - Import `GameEventGroupDump` type if needed from `@mafia/engine`.
 - Add schema for stored events. Use `z.unknown().nullable().optional()` if exact recursive schema is too much for this stage.
 - Include `events` on `GameInfoSchema` as nullable/optional.
+- Add `targets: z.array(z.number().int().positive()).default([])` to `GamePlayerSchema`.
 
 Minimal acceptable shape:
 
@@ -85,7 +96,7 @@ export const updateEvents = fn(
 
 ### Set Targets
 
-Actors are stored as JSONB on `game.actors`. Add helper to update one actor's `targets` by player/user identity.
+Targets are player input. Store them on `game_player.targets`, not inside `game.actors`.
 
 Recommended input:
 
@@ -95,12 +106,12 @@ Recommended input:
 
 Implementation outline:
 
-1. Load game by `gameId`.
+1. Load current game by `gameId` to inspect `game.actors` for possible target validation.
 2. Parse `actors` as `ActorState[]` using `ActorStateSchema.array()`.
 3. Find actor where `actor.id === userId`.
 4. Validate each submitted target appears in that actor's current `possibleTargets` slot when possible.
-5. Write updated full `actors` array back to `gameTable.actors`.
-6. Return updated actor.
+5. Update matching `game_player` row with `targets`.
+6. Return `{ gameId, userId, targets }`.
 
 Validation can be strict:
 
@@ -125,9 +136,25 @@ Needed during `night` processing after events replay.
 
 Implementation outline:
 
-- Load `actors`.
-- Map each actor to `{ ...actor, targets: [] }`.
-- Persist `actors`.
+- Update all `game_player` rows for `gameId` to `targets: []`.
+- Do not mutate `game.actors` just to clear submitted targets.
+
+### Build Engine Actors
+
+Add helper used by loop processors before engine calls:
+
+```ts
+function buildEngineActors(actors: ActorState[], players: GamePlayer[]): ActorState[] {
+	const targetsByUserId = new Map(players.map((player) => [player.userId, player.targets ?? []]));
+
+	return actors.map((actor) => ({
+		...actor,
+		targets: targetsByUserId.get(actor.id) ?? [],
+	}));
+}
+```
+
+This helper is the only place persisted player input targets enter engine input. `newGame` should receive sanitized initial actors with `targets: []`; `loadGame`/`resolveGame` should receive patched actors.
 
 ### Complete Game
 
@@ -184,5 +211,6 @@ Later config can move durations into `engineConfig.settings`. Do not block loop 
 - `gameTable` can persist `events`.
 - `GameInfoSchema.parse` accepts rows with `events`.
 - Core can update/clear stored events.
-- Core can set/clear actor targets in `game.actors`.
+- Core can set/clear player target inputs in `game_player.targets`.
+- Backend has helper to patch player targets into engine actor input before engine calls.
 - Lint passes for changed packages.
