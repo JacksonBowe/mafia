@@ -1,5 +1,5 @@
 import { neonConfig, Pool } from '@neondatabase/serverless';
-export type { RelatedEntity } from './types';
+export type { RelatedEntity } from './schema';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import { Resource } from 'sst';
 import ws from 'ws';

@@ -62,17 +62,17 @@ Cases:
 Cases:
 
 - `evening` stores engine events and moves `night`.
-- `night` publishes stored events, clears `game_player.targets`, clears events, moves `morning`.
+- `night` publishes stored events, clears `game_player.targetActorIds`, clears events, moves `morning`.
 
 ### Player Input Boundary
 
 Cases:
 
-- `POST /game/targets` updates only `game_player.targets`.
+- `POST /game/targets` updates only `game_player.targetActorIds`.
 - `POST /game/targets` does not mutate `game.actors`.
-- `evening` patches `game_player.targets` into engine actor input before `resolveGame`.
+- `evening` maps `game_player.targetActorIds` into engine actor target numbers before `resolveGame`.
 - Engine output from `resolveGame` replaces `game.actors` after resolution.
-- `night` clears `game_player.targets` without clearing engine-derived actor fields such as `possibleTargets` or `allies`.
+- `night` clears `game_player.targetActorIds` without clearing engine-derived actor fields such as `possibleTargets` or `allies`.
 
 ## Lambda Contract Tests
 

@@ -92,18 +92,18 @@ Examples:
 ```ts
 'realtime.game.vote': z.object({
 	gameId: ULID,
-	voter: z.number().int(),
-	target: z.number().int(),
+	voterActorId: z.string(),
+	targetActorId: z.string(),
 }),
 
 'realtime.game.votecancel': z.object({
 	gameId: ULID,
-	voter: z.number().int(),
+	voterActorId: z.string(),
 }),
 
 'realtime.game.trial': z.object({
 	gameId: ULID,
-	playerNumber: z.number().int(),
+	actorId: z.string(),
 }),
 
 'realtime.game.trial_over': z.object({

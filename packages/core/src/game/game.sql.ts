@@ -6,6 +6,7 @@ import {
 	pgTable,
 	text,
 	timestamp as pgTimestamp,
+	uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import { id, timestamps } from '../db/types';
 
@@ -39,6 +40,9 @@ export const gameTable = pgTable(
 		// Actor states per player (serialized ActorState[] from engine)
 		actors: jsonb('actors').notNull(),
 
+		// Pending engine event tree produced in evening and replayed during night
+		events: jsonb('events'),
+
 		// Poll count - tracks voting rounds (max 3 before moving to evening)
 		pollCount: integer('poll_count').notNull().default(0),
 	},
@@ -57,23 +61,27 @@ export const gamePlayerTable = pgTable(
 
 		userId: text('user_id').notNull(),
 
+		// Stable in-game actor identity owned by this user for this game
+		actorId: text('actor_id').notNull(),
+
 		// Player number assigned by engine (1-15)
-		number: text('player_number').notNull(),
+		number: integer('player_number').notNull(),
 
-		// Player alias for this game
-		alias: text('alias').notNull(),
-
-		// Player role (assigned by engine)
-		role: text('role'),
-
-		// Current vote target (player number being voted for during POLL phase)
-		vote: integer('vote'),
+		// Current vote target actor during POLL phase
+		voteTargetActorId: text('vote_target_actor_id'),
 
 		// Trial verdict ('guilty' or 'innocent' during TRIAL phase)
 		verdict: text('verdict'),
 
 		// Whether this player is currently on trial
 		onTrial: boolean('on_trial').notNull().default(false),
+
+		// Current night action target inputs; patched into engine actors by the loop
+		targetActorIds: jsonb('target_actor_ids').$type<string[]>().notNull().default([]),
 	},
-	(t) => [index('game_player_game_idx').on(t.gameId), index('game_player_user_idx').on(t.userId)],
+	(t) => [
+		index('game_player_game_idx').on(t.gameId),
+		index('game_player_user_idx').on(t.userId),
+		uniqueIndex('game_player_game_actor_uq').on(t.gameId, t.actorId),
+	],
 );

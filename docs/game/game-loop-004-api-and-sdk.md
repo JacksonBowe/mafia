@@ -113,9 +113,9 @@ Recommended first pass:
 - Allow targets during `day`, `poll`, `defense`, `trial`, `lynch`, and `night`; the engine validates and clears stale/illegal targets during `evening`.
 - Or stricter: allow only `night`; but note `night` in old semantics is playback, so users may have little time to choose.
 
-Use `Game.setTargets({ gameId, userId, targets })` from Stage 1. This updates `game_player.targets`, not `game.actors`.
+Use `Game.setTargets({ gameId, userId, targetActorIds })` from Stage 1. This updates `game_player.targetActorIds`, not `game.actors`.
 
-Do not let player APIs write `game.actors` directly. `game.actors` should only change when backend loop persists engine output after `newGame`, `resolveGame`, or `lynchGame`.
+Do not let player APIs write `game.actors` directly. `game.actors` should only change when backend loop persists engine output after `newGame`, `resolveGame`, or `lynchGame`. API may accept player numbers for UX, but it must resolve them to `actorId` before persisting input.
 
 Return updated actor or `{ success: true }`.
 

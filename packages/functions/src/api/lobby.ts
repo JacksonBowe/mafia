@@ -129,7 +129,7 @@ lobbyRoutes.post('/:lobbyId/start', zValidator('param', LobbyIdPathParamsSchema)
 		// tags: DEFAULT_CONFIG.tags.slice(0, playerCount),
 	};
 	const actors: ActorState[] = lobbyData.members.map((member, index) => ({
-		id: member.userId,
+		id: crypto.randomUUID(),
 		name: member.name,
 		alias: generateAlias(index),
 		alive: true,
@@ -139,6 +139,9 @@ lobbyRoutes.post('/:lobbyId/start', zValidator('param', LobbyIdPathParamsSchema)
 		roleActions: {},
 		alignment: null,
 	}));
+	const userIdByActorId = new Map(
+		actors.map((actor, index) => [actor.id, lobbyData.members[index].userId]),
+	);
 
 	// 3. Run engine to create initial game state
 	const engineResult = newGame({ actors, config });
@@ -151,10 +154,9 @@ lobbyRoutes.post('/:lobbyId/start', zValidator('param', LobbyIdPathParamsSchema)
 			engineConfig: config,
 			actors: engineResult.actors,
 			players: engineResult.actors.map((actor) => ({
-				userId: actor.id,
-				number: String(actor.number ?? 0),
-				alias: actor.alias,
-				role: actor.role ?? null,
+				userId: userIdByActorId.get(actor.id) ?? actor.id,
+				actorId: actor.id,
+				number: actor.number ?? 0,
 			})),
 		});
 

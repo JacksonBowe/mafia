@@ -34,7 +34,7 @@ describe('engine', () => {
 	it('resolves actions without a winner', () => {
 		const actors = [
 			{
-				id: 'user-2',
+				id: 'actor-2',
 				name: 'UserName2',
 				alias: 'UserAlias2',
 				role: 'Mafioso' as const,
@@ -47,7 +47,7 @@ describe('engine', () => {
 				alignment: null,
 			},
 			{
-				id: 'user-3',
+				id: 'actor-3',
 				name: 'UserName3',
 				alias: 'UserAlias3',
 				role: 'Mafioso' as const,
@@ -60,7 +60,7 @@ describe('engine', () => {
 				alignment: null,
 			},
 			{
-				id: 'user-1',
+				id: 'actor-1',
 				name: 'UserName1',
 				alias: 'UserAlias1',
 				role: 'Citizen' as const,
@@ -106,7 +106,7 @@ describe('engine', () => {
 	it('resolves actions with a town win', () => {
 		const actors = [
 			{
-				id: 'user-2',
+				id: 'actor-2',
 				name: 'UserName2',
 				alias: 'UserAlias2',
 				role: 'Bodyguard' as const,
@@ -119,7 +119,7 @@ describe('engine', () => {
 				alignment: null,
 			},
 			{
-				id: 'user-3',
+				id: 'actor-3',
 				name: 'UserName3',
 				alias: 'UserAlias3',
 				role: 'Mafioso' as const,
@@ -132,7 +132,7 @@ describe('engine', () => {
 				alignment: null,
 			},
 			{
-				id: 'user-1',
+				id: 'actor-1',
 				name: 'UserName1',
 				alias: 'UserAlias1',
 				role: 'Citizen' as const,
@@ -183,7 +183,7 @@ describe('engine', () => {
 	it('co-awards survivors when another faction wins', () => {
 		const actors = [
 			{
-				id: 'user-1',
+				id: 'actor-1',
 				name: 'UserName1',
 				alias: 'UserAlias1',
 				role: 'Mafioso' as const,
@@ -196,7 +196,7 @@ describe('engine', () => {
 				alignment: null,
 			},
 			{
-				id: 'user-2',
+				id: 'actor-2',
 				name: 'UserName2',
 				alias: 'UserAlias2',
 				role: 'Citizen' as const,
@@ -209,7 +209,7 @@ describe('engine', () => {
 				alignment: null,
 			},
 			{
-				id: 'user-3',
+				id: 'actor-3',
 				name: 'UserName3',
 				alias: 'UserAlias3',
 				role: 'Survivor' as const,
@@ -254,7 +254,7 @@ describe('engine', () => {
 	it('survivors do not win when killed before the game ends', () => {
 		const actors = [
 			{
-				id: 'user-1',
+				id: 'actor-1',
 				name: 'UserName1',
 				alias: 'UserAlias1',
 				role: 'Mafioso' as const,
@@ -267,7 +267,7 @@ describe('engine', () => {
 				alignment: null,
 			},
 			{
-				id: 'user-2',
+				id: 'actor-2',
 				name: 'UserName2',
 				alias: 'UserAlias2',
 				role: 'Citizen' as const,
@@ -280,7 +280,7 @@ describe('engine', () => {
 				alignment: null,
 			},
 			{
-				id: 'user-3',
+				id: 'actor-3',
 				name: 'UserName3',
 				alias: 'UserAlias3',
 				role: 'Survivor' as const,

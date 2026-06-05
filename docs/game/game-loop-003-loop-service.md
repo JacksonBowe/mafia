@@ -2,7 +2,7 @@
 
 Goal: implement one backend service that advances exactly one phase per invocation.
 
-Important data boundary: read player inputs from `game_player`; keep `game.actors` as last engine snapshot/output. Before engine calls, patch player targets from `game_player.targets` into actor input.
+Important data boundary: read player inputs and user ownership from `game_player`; keep `game.actors` as pure engine snapshot/output. `ActorState.id` is stable `actorId`. Before engine calls, map player `targetActorIds` from `game_player` into actor target numbers.
 
 ## Files To Add Or Change
 
@@ -74,8 +74,16 @@ const aliveNumbers = (actors: ActorState[]) =>
 	actors.filter((actor) => actor.alive && actor.number !== undefined).map((actor) => actor.number!);
 
 const buildEngineActors = (actors: ActorState[], players: GamePlayer[]) => {
-	const targetsByUserId = new Map(players.map((player) => [player.userId, player.targets ?? []]));
-	return actors.map((actor) => ({ ...actor, targets: targetsByUserId.get(actor.id) ?? [] }));
+	const actorsById = new Map(actors.map((actor) => [actor.id, actor]));
+	const targetNumbersByActorId = new Map(
+		players.map((player) => [
+			player.actorId,
+			player.targetActorIds
+				.map((targetActorId) => actorsById.get(targetActorId)?.number)
+				.filter((number): number is number => number !== undefined),
+		]),
+	);
+	return actors.map((actor) => ({ ...actor, targets: targetNumbersByActorId.get(actor.id) ?? [] }));
 };
 
 const publishPhase = (gameId: string, phase: GamePhase, duration: number) =>
@@ -146,7 +154,7 @@ Old loop jumped from `PREGAME` to `EVENING`; preserve that.
 
 Behavior:
 
-1. Build engine actors by patching `game_player.targets` into current `game.actors`.
+1. Build engine actors by mapping `game_player.targetActorIds` into current actor numbers.
 2. Load engine with patched actors, `engineConfig`, and `engineState`.
 3. Resolve night actions using `resolveGame({ actors, config, state })`.
 4. Persist returned `state`, returned `actors`, and returned `events`.
@@ -178,7 +186,7 @@ Behavior:
 1. Replay stored `game.events` over realtime.
 2. Publish actor updates for all actors.
 3. Publish public game state.
-4. Clear `game_player.targets`.
+4. Clear `game_player.targetActorIds`.
 5. Clear stored events.
 6. Move to `morning`.
 
@@ -271,7 +279,7 @@ Use current `Game.tallyVerdicts({ gameId, alivePlayers })`.
 Behavior:
 
 1. Find player row with `onTrial === true`.
-2. Build engine actors by patching `game_player.targets` into current `game.actors`.
+2. Build engine actors by mapping `game_player.targetActorIds` into current actor numbers.
 3. Load engine with patched actors/config/state.
 4. Call `Game.load(...).lynch(playerNumber)` or add engine helper if cleaner.
 5. Persist updated engine state and actors.
@@ -307,5 +315,5 @@ Do not end game on `lynch`; old semantics check winners in `morning` only. Prese
 - No Lambda sleeps.
 - Realtime publishes happen after DB commit when paired with DB mutations.
 - `evening` stores events; `night` clears events.
-- Player targets are read from `game_player.targets`, patched into engine input, then cleared from `game_player.targets` in `night`.
+- Player targets are read from `game_player.targetActorIds`, mapped to actor numbers for engine input, then cleared from `game_player.targetActorIds` in `night`.
 - Winners end state machine only from `morning`.

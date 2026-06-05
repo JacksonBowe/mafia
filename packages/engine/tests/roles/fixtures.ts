@@ -1,8 +1,7 @@
 import { GameEventGroup } from '../../src/events';
 import { EngineLogger } from '../../src/logger';
-import type { ActorContext } from '../../src/roles/actor';
+import type { ActorContext, ActorState } from '../../src/roles/actor';
 import { createRng } from '../../src/utils';
-import type { ActorState } from '../../src/types';
 
 export const createContext = (seed = 1): ActorContext => ({
 	logger: new EngineLogger(),
@@ -11,7 +10,7 @@ export const createContext = (seed = 1): ActorContext => ({
 });
 
 export const makeActor = (overrides: Partial<ActorState>): ActorState => ({
-	id: '1',
+	id: 'actor-1',
 	name: 'UserName',
 	alias: 'UserAlias',
 	alive: true,

@@ -4,7 +4,7 @@ import type { ActorState } from '../src/roles';
 
 const actors: ActorState[] = [
 	{
-		id: 'user-1',
+		id: 'actor-1',
 		name: 'UserName1',
 		alias: 'UserAlias1',
 		role: 'Bodyguard',
@@ -17,7 +17,7 @@ const actors: ActorState[] = [
 		alignment: null,
 	},
 	{
-		id: 'user-2',
+		id: 'actor-2',
 		name: 'UserName2',
 		alias: 'UserAlias2',
 		role: 'Mafioso',
@@ -30,7 +30,7 @@ const actors: ActorState[] = [
 		alignment: null,
 	},
 	{
-		id: 'user-3',
+		id: 'actor-3',
 		name: 'UserName3',
 		alias: 'UserAlias3',
 		role: 'Citizen',

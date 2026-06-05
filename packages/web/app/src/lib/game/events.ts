@@ -17,6 +17,67 @@ export const GameEventSchemas = {
 		gameId: ULID,
 		state: z.unknown(),
 	}),
+	'realtime.game.vote': z.object({
+		gameId: ULID,
+		voterActorId: z.string(),
+		targetActorId: z.string(),
+	}),
+	'realtime.game.votecancel': z.object({
+		gameId: ULID,
+		voterActorId: z.string(),
+	}),
+	'realtime.game.trial': z.object({
+		gameId: ULID,
+		actorId: z.string(),
+	}),
+	'realtime.game.trial_over': z.object({
+		gameId: ULID,
+	}),
+	'realtime.game.verdict': z.object({
+		gameId: ULID,
+		voterActorId: z.string(),
+		verdict: z.enum(['guilty', 'innocent']),
+	}),
+	'realtime.game.lynch_result': z.object({
+		gameId: ULID,
+		actorId: z.string(),
+		guiltyCount: z.number().int(),
+		innocentCount: z.number().int(),
+		isGuilty: z.boolean(),
+	}),
+	'realtime.game.actor': z.object({
+		gameId: ULID,
+		actorId: z.string(),
+		actor: z.unknown(),
+	}),
+	'realtime.game.event': z.object({
+		gameId: ULID,
+		actorId: z.string(),
+		eventId: z.string(),
+		message: z.string(),
+		duration: z.number().int().default(0),
+	}),
+	'realtime.game.role_reveal': z.object({
+		gameId: ULID,
+		actorId: z.string(),
+		role: z.string(),
+		allies: z.array(
+			z.object({
+				playerNumber: z.number().int(),
+				alias: z.string(),
+				role: z.string().optional(),
+			}),
+		),
+	}),
+	'realtime.game.targets': z.object({
+		gameId: ULID,
+		actorId: z.string(),
+		possibleTargets: z.array(z.array(z.number().int())),
+	}),
+	'realtime.game.deaths': z.object({
+		gameId: ULID,
+		deaths: z.array(z.unknown()),
+	}),
 	'realtime.game.over': z.object({
 		gameId: ULID,
 		winners: z.array(z.unknown()),

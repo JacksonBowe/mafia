@@ -13,7 +13,7 @@ export const DEFAULT_SEED = 42;
 
 export const dummyActors = (count: number): ActorState[] =>
 	Array.from({ length: count }, (_, index) => ({
-		id: `user-${index + 1}`,
+		id: `actor-${index + 1}`,
 		name: `UserName${index + 1}`,
 		alias: `UserAlias${index + 1}`,
 		alive: true,

@@ -23,6 +23,7 @@ export enum GameErrors {
 	GameInvalidState = 'game.invalid_state',
 	PlayerNotFound = 'game.player_not_found',
 	InvalidVoteTarget = 'game.invalid_vote_target',
+	InvalidTarget = 'game.invalid_target',
 	CannotVoteSelf = 'game.cannot_vote_self',
 	PlayerNotAlive = 'game.player_not_alive',
 }
@@ -108,12 +109,12 @@ export const GamePlayerSchema = z.object({
 	id: isULID(),
 	gameId: isULID(),
 	userId: z.string(),
-	number: z.string(),
-	alias: z.string(),
-	role: z.string().nullable(),
-	vote: z.number().int().nullable(),
+	actorId: z.string(),
+	number: z.number().int().positive(),
+	voteTargetActorId: z.string().nullable(),
 	verdict: VerdictSchema.nullable(),
 	onTrial: z.boolean(),
+	targetActorIds: z.array(z.string()).default([]),
 });
 
 export type GamePlayer = z.infer<typeof GamePlayerSchema>;
@@ -125,6 +126,7 @@ export const GameInfoSchema = EntityBaseSchema.extend({
 	engineState: GameStateSchema,
 	engineConfig: GameConfigSchema,
 	actors: z.unknown(),
+	events: z.unknown().nullable().optional(),
 	players: z.array(GamePlayerSchema),
 	pollCount: z.number().int(),
 });
