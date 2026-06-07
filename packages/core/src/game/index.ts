@@ -1,11 +1,12 @@
-import { ActorStateSchema, GameConfigSchema, GameStateSchema } from '@mafia/engine';
 import type { ActorState, GameConfig, GameState } from '@mafia/engine';
+import { ActorStateSchema, GameConfigSchema, GameStateSchema } from '@mafia/engine';
 import { and, eq, sql } from 'drizzle-orm';
+import { Resource } from 'sst';
 import { ulid } from 'ulid';
 import { z } from 'zod';
-import { useTransaction } from '../db/transaction';
+import { afterTx, useTransaction } from '../db/transaction';
 import { InputError, isULID } from '../error';
-import { defineRealtimeEvent } from '../realtime';
+import { defineRealtimeEvent, realtime } from '../realtime';
 import { fn } from '../util/fn';
 import { gamePlayerTable, gameTable } from './game.sql';
 import {
@@ -28,20 +29,6 @@ import {
 export * as Game from './';
 
 // Re-export pure contracts for backend convenience.
-export {
-	ClientGameInfoSchema,
-	DeathRecordSchema,
-	Errors,
-	GameEventSchema,
-	GameInfoSchema,
-	GamePhaseSchema,
-	GamePlayerSchema,
-	GameStatusSchema,
-	GameSyncResponseSchema,
-	GameTopics,
-	VerdictSchema,
-	WinnerSummarySchema,
-};
 export type {
 	ActorState,
 	ClientGameInfo,
@@ -55,8 +42,22 @@ export type {
 	GameStatus,
 	GameSyncResponse,
 	Verdict,
-	WinnerSummary,
+	WinnerSummary
 } from './schema';
+export {
+	ClientGameInfoSchema,
+	DeathRecordSchema,
+	Errors,
+	GameEventSchema,
+	GameInfoSchema,
+	GamePhaseSchema,
+	GamePlayerSchema,
+	GameStatusSchema,
+	GameSyncResponseSchema,
+	GameTopics,
+	VerdictSchema,
+	WinnerSummarySchema
+};
 
 // ---------------------
 // Realtime events (server-only — depend on defineRealtimeEvent / IoT)
@@ -993,4 +994,128 @@ export const terminate = fn(
 
 			return { gameId };
 		}),
+);
+
+export const advancePhase = fn(
+	z.object({
+		gameId: isULID(),
+		pollCount: z.number().int().optional(),
+	}),
+	async ({ gameId, pollCount }) => {
+		console.log('Advance phase for game', { gameId, pollCount });
+
+		const game = await get({ gameId });
+
+		if (game.status !== 'active') {
+			return { gameId, continue: false, waitSeconds: 0, phase: game.phase, pollCount };
+		}
+
+		const result = (() => {
+			switch (game.phase) {
+				case 'pregame':
+					return {
+						nextPhase: 'day' as const,
+						waitSeconds: 10,
+						continue: true,
+					};
+
+				case 'day':
+					if (game.engineState.day === 1) {
+						return {
+							nextPhase: 'evening' as const,
+							waitSeconds: 10,
+							continue: true,
+						}
+					}
+					return {
+						nextPhase: 'poll' as const,
+						waitSeconds: 10,
+						continue: true,
+					};
+
+				case 'poll':
+					return {
+						nextPhase: 'defense' as const,
+						waitSeconds: 10,
+						continue: true,
+					};
+
+				case 'defense':
+					return {
+						nextPhase: 'trial' as const,
+						waitSeconds: 10,
+						continue: true,
+					};
+
+				case 'trial':
+					return {
+						nextPhase: 'lynch' as const,
+						waitSeconds: 10,
+						continue: true,
+					};
+
+				case 'lynch':
+					return {
+						nextPhase: 'evening' as const,
+						waitSeconds: 10,
+						continue: true,
+					};
+
+				case 'evening':
+					return {
+						nextPhase: 'night' as const,
+						waitSeconds: 10,
+						continue: true,
+					};
+
+				case 'night':
+					return {
+						nextPhase: 'morning' as const,
+						waitSeconds: 0,
+						continue: false,
+					};
+
+				case 'morning':
+					return {
+						nextPhase: 'morning' as const,
+						waitSeconds: 0,
+						continue: false,
+					};
+
+				default:
+					throw new InputError(Errors.GameInvalidState, 'Invalid game phase');
+			}
+		})();
+
+		if (result.nextPhase !== game.phase) {
+			await useTransaction(async (tx) => {
+				const [updated] = await tx
+					.update(gameTable)
+					.set({ phase: result.nextPhase })
+					.where(eq(gameTable.id, gameId))
+					.returning({ id: gameTable.id });
+
+				if (!updated) {
+					throw new InputError(Errors.GameNotFound, 'Game not found');
+				}
+
+				afterTx(async () => {
+					void realtime.publish(Resource.Realtime, RealtimeEvents.PhaseChange, {
+						gameId,
+						phase: result.nextPhase,
+						duration: result.waitSeconds,
+					});
+
+				})
+			});
+		}
+
+		return {
+			gameId,
+			continue: result.continue,
+			waitSeconds: result.waitSeconds,
+			phase: result.nextPhase,
+			pollCount,
+		};
+	},
 );

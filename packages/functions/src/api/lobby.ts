@@ -1,3 +1,4 @@
+import { SFNClient, StartExecutionCommand } from '@aws-sdk/client-sfn';
 import { assertActor } from '@mafia/core/actor';
 import { afterTx, createTransaction } from '@mafia/core/db';
 import { zValidator } from '@mafia/core/error';
@@ -161,11 +162,22 @@ lobbyRoutes.post('/:lobbyId/start', zValidator('param', LobbyIdPathParamsSchema)
 		});
 
 		// Publish realtime event after commit
-		void afterTx(() => {
+		void afterTx(async () => {
 			void realtime.publish(Resource.Realtime, Lobby.RealtimeEvents.LobbyStarted, {
 				lobbyId,
 				gameId,
 			});
+
+			// Invoke the state machine to start the game loop immediately
+			const sfnClient = new SFNClient({});
+			const response = await sfnClient.send(
+				new StartExecutionCommand({
+					stateMachineArn: Resource.GameLoopMachine.arn,
+					input: JSON.stringify({ gameId, waitSeconds: 15 }),
+				})
+			)
+
+			console.log('Started game loop execution', { response });
 		});
 
 		// Delete the lobby (cascades to members)

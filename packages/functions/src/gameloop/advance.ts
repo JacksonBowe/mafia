@@ -1,11 +1,15 @@
-// Minimal stub. The real phase-advance service is implemented in
-// game-loop-003-loop-service (Game.advanceLoop). This keeps the Step Function
-// wiring deployable: it returns `continue: false` so the loop stops cleanly.
-export const handler = (event: unknown) => {
-	const gameId =
-		typeof event === 'object' && event !== null && 'gameId' in event
-			? (event as { gameId?: string }).gameId
-			: undefined;
+import { Game } from '@mafia/core/game/index';
+import { z } from 'zod';
 
-	return Promise.resolve({ gameId, continue: false, waitSeconds: 0 });
+const GameLoopInputSchema = z.object({
+	gameId: z.string(),
+	continue: z.boolean().optional(),
+	waitSeconds: z.number().int().optional(),
+});
+
+export const handler = async (event: unknown) => {
+	const input = GameLoopInputSchema.parse(event);
+	console.log('Advance game loop', { event, gameId: input.gameId });
+
+	return Game.advancePhase({ gameId: input.gameId });
 };

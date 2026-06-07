@@ -10,7 +10,7 @@
 			track-color="grey-9"
 		>
 			<div class="absolute-full row items-center justify-between q-px-sm">
-				<span class="text-caption text-white text-weight-medium">{{ label }}</span>
+				<span class="text-caption text-white text-weight-medium text-capitalize">{{ label }}</span>
 				<span class="text-caption text-white text-weight-bold">{{ displayTime }}</span>
 			</div>
 		</q-linear-progress>

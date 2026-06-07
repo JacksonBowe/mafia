@@ -32,7 +32,11 @@
 					<q-btn label="Logs" no-caps size="sm" color="info" glossy push />
 					<q-btn label="Help" no-caps size="sm" color="warning" glossy push />
 				</div>
-				<game-timer :duration="200" />
+				<game-timer
+					:label="gameStore.phaseMeta?.phase ?? ''"
+					:duration="gameStore.phaseMeta?.duration ?? 0"
+					:key="gameStore.phaseMeta?.phase! || gameStore.phaseMeta?.duration!"
+				/>
 			</div>
 
 			<!-- Main UI Area -->
