@@ -23,6 +23,10 @@ describe('createClient', () => {
 
 		// Game
 		expect(typeof client.getGame).toBe('function');
+		expect(typeof client.setGameTargets).toBe('function');
+		expect(typeof client.submitGameVote).toBe('function');
+		expect(typeof client.cancelGameVote).toBe('function');
+		expect(typeof client.submitGameVerdict).toBe('function');
 
 		// Admin
 		expect(typeof client.terminateLobbies).toBe('function');

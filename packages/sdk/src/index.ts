@@ -19,11 +19,24 @@ export type {
 
 export type { SendChatMessageJson } from '@mafia/functions/api/schemas/chat.schemas';
 
+export type {
+	GameIdPathParams,
+	SetTargetsJson,
+	SubmitVerdictJson,
+	SubmitVoteJson,
+} from '@mafia/functions/api/schemas/game.schemas';
+
 // ---------------------------------------------------------------------------
 // SDK input types
 // ---------------------------------------------------------------------------
 export type { CreateLobbyInput, LobbyIdInput } from './lobby';
 export type { SendChatMessageInput } from './chat';
+export type {
+	CancelGameVoteInput,
+	SetGameTargetsInput,
+	SubmitGameVerdictInput,
+	SubmitGameVoteInput,
+} from './game';
 
 // ---------------------------------------------------------------------------
 // Domain method types
