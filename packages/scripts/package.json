@@ -1,0 +1,22 @@
+{
+	"name": "scripts",
+	"module": "index.ts",
+	"type": "module",
+	"private": true,
+	"scripts": {
+		"seed": "sst shell -- bun run src/seed/index.ts",
+		"create-bots": "sst shell -- bun run src/createBots.ts"
+	},
+	"dependencies": {
+		"sst": "4.8.0",
+		"@mafia/core": "workspace:*",
+		"@mafia/functions": "workspace:*",
+		"ulid": "^3.0.2"
+	},
+	"devDependencies": {
+		"@types/bun": "latest"
+	},
+	"peerDependencies": {
+		"typescript": "^5"
+	}
+}

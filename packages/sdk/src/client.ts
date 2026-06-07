@@ -12,6 +12,7 @@ import { metaMethods, type MetaMethods } from './meta';
 export type ClientOptions = {
 	baseUrl: string;
 	getAccessToken?: () => Promise<string | undefined> | string | undefined;
+	getApiKey?: () => Promise<string | undefined> | string | undefined;
 };
 
 // ---------------------------------------------------------------------------
@@ -33,13 +34,17 @@ export type ApiClient = {
 
 export const createClient = ({
 	baseUrl,
-	getAccessToken
+	getAccessToken,
+	getApiKey,
 	// refreshSession,
 	// onAuthFailure,
 }: ClientOptions): ApiClient => {
 	const instance = axios.create({ baseURL: baseUrl });
 
 	instance.interceptors.request.use(async (config) => {
+		const apiKey = await getApiKey?.();
+		if (apiKey) config.headers['x-api-key'] = apiKey;
+
 		const token = await getAccessToken?.();
 		if (token) config.headers.Authorization = `Bearer ${token}`;
 		return config;

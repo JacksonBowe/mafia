@@ -50,6 +50,13 @@
       "when": 1780451800890,
       "tag": "0006_slim_storm",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1780806684976,
+      "tag": "0007_chubby_manta",
+      "breakpoints": true
     }
   ]
 }

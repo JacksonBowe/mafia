@@ -30,6 +30,12 @@ class Resource:
     class DiscordClientSecret:
         type: str
         value: str
+    class GameLoopAdvance:
+        name: str
+        type: str
+    class GameLoopMachine:
+        arn: str
+        type: str
     class NeonDatabaseUrl:
         type: str
         value: str
