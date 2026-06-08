@@ -26,6 +26,7 @@ export enum GameErrors {
 	InvalidTarget = 'game.invalid_target',
 	CannotVoteSelf = 'game.cannot_vote_self',
 	PlayerNotAlive = 'game.player_not_alive',
+	NotVotingPhase = 'game.not_voting_phase',
 }
 
 // ---------------------------------------------------------------------------
@@ -154,6 +155,8 @@ export interface GameSyncResponse {
 	state: GameState;
 	config: GameConfig;
 	actor: ActorState;
+	/** Phase-scoped vote tally: voter number -> target number. Empty outside the poll phase. */
+	votes: Record<number, number>;
 }
 
 export const GameSyncResponseSchema = z.object({
@@ -161,6 +164,7 @@ export const GameSyncResponseSchema = z.object({
 	state: GameStateSchema,
 	config: GameConfigSchema,
 	actor: ActorStateSchema,
+	votes: z.record(z.string(), z.number().int()),
 });
 
 // Re-export engine types so consumers don't need to import from @mafia/engine directly.

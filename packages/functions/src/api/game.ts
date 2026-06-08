@@ -14,16 +14,22 @@ type Bindings = Record<string, never>;
 
 const gameRoutes = new Hono<{ Bindings: Bindings }>();
 
-// Resolve the requesting user's actor id within a game.
-async function resolveActorId(gameId: string, userId: string): Promise<string> {
+// Resolve players for a game and build number<->actorId lookups.
+// Clients reference other players only by their public number; actor ids stay
+// server-side.
+async function resolvePlayers(gameId: string, userId: string) {
 	const game = await Game.get({ gameId });
-	const player = game.players.find((p) => p.userId === userId);
+	const players = game.players;
 
-	if (!player) {
+	const self = players.find((p) => p.userId === userId);
+	if (!self) {
 		throw new InputError(GameErrors.PlayerNotFound, 'Player not found in game');
 	}
 
-	return player.actorId;
+	const actorIdByNumber = new Map(players.map((p) => [p.number, p.actorId]));
+	const numberByActorId = new Map(players.map((p) => [p.actorId, p.number]));
+
+	return { self, actorIdByNumber, numberByActorId };
 }
 
 // Fetch the current user's active game (info, state, config, actor)
@@ -47,13 +53,23 @@ gameRoutes.post(
 	zValidator('json', SetTargetsJsonSchema),
 	async (c) => {
 		const { gameId } = c.req.valid('param');
-		const { targetActorIds } = c.req.valid('json');
+		const { targetActorNumbers } = c.req.valid('json');
 		const actor = assertActor('user');
 		const userId = actor.properties.userId;
 
-		const result = await Game.setTargets({ gameId, userId, targetActorIds });
+		const { actorIdByNumber } = await resolvePlayers(gameId, userId);
 
-		return c.json(result);
+		const targetActorIds = targetActorNumbers.map((number) => {
+			const actorId = actorIdByNumber.get(number);
+			if (!actorId) {
+				throw new InputError(GameErrors.InvalidTarget, 'Invalid target');
+			}
+			return actorId;
+		});
+
+		await Game.setTargets({ gameId, userId, targetActorIds });
+
+		return c.json({ gameId, targetActorNumbers });
 	},
 );
 
@@ -64,13 +80,29 @@ gameRoutes.post(
 	zValidator('json', SubmitVoteJsonSchema),
 	async (c) => {
 		const { gameId } = c.req.valid('param');
-		const { targetActorId } = c.req.valid('json');
+		const { targetActorNumber } = c.req.valid('json');
 		const actor = assertActor('user');
-		const voterActorId = await resolveActorId(gameId, actor.properties.userId);
 
-		const result = await Game.submitVote({ gameId, voterActorId, targetActorId });
+		const { self, actorIdByNumber, numberByActorId } = await resolvePlayers(
+			gameId,
+			actor.properties.userId,
+		);
 
-		return c.json(result);
+		const targetActorId = actorIdByNumber.get(targetActorNumber);
+		if (!targetActorId) {
+			throw new InputError(GameErrors.InvalidVoteTarget, 'Invalid vote target');
+		}
+
+		const { voteTargetActorId } = await Game.submitVote({
+			gameId,
+			voterActorId: self.actorId,
+			targetActorId,
+		});
+
+		const voteTargetActorNumber =
+			voteTargetActorId !== null ? (numberByActorId.get(voteTargetActorId) ?? null) : null;
+
+		return c.json({ voteTargetActorNumber });
 	},
 );
 
@@ -81,11 +113,12 @@ gameRoutes.post(
 	async (c) => {
 		const { gameId } = c.req.valid('param');
 		const actor = assertActor('user');
-		const voterActorId = await resolveActorId(gameId, actor.properties.userId);
 
-		const result = await Game.cancelVote({ gameId, voterActorId });
+		const { self } = await resolvePlayers(gameId, actor.properties.userId);
 
-		return c.json(result);
+		await Game.cancelVote({ gameId, voterActorId: self.actorId });
+
+		return c.json({ success: true });
 	},
 );
 
@@ -98,11 +131,12 @@ gameRoutes.post(
 		const { gameId } = c.req.valid('param');
 		const { verdict } = c.req.valid('json');
 		const actor = assertActor('user');
-		const voterActorId = await resolveActorId(gameId, actor.properties.userId);
 
-		const result = await Game.submitVerdict({ gameId, voterActorId, verdict });
+		const { self } = await resolvePlayers(gameId, actor.properties.userId);
 
-		return c.json(result);
+		await Game.submitVerdict({ gameId, voterActorId: self.actorId, verdict });
+
+		return c.json({ verdict });
 	},
 );
 

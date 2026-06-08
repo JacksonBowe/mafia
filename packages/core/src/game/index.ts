@@ -22,6 +22,7 @@ import {
 	GameTopics,
 	VerdictSchema,
 	WinnerSummarySchema,
+	type GamePhase,
 	type GamePlayer,
 	type GameSyncResponse,
 } from './schema';
@@ -89,8 +90,8 @@ export const RealtimeEvents = {
 		'game.vote',
 		z.object({
 			gameId: isULID(),
-			voterActorId: z.string(),
-			targetActorId: z.string(),
+			voterActorNumber: z.number().int(),
+			targetActorNumber: z.number().int(),
 		}),
 		(p) => GameTopics.public(p.gameId),
 	),
@@ -102,7 +103,7 @@ export const RealtimeEvents = {
 		'game.votecancel',
 		z.object({
 			gameId: isULID(),
-			voterActorId: z.string(),
+			voterActorNumber: z.number().int(),
 		}),
 		(p) => GameTopics.public(p.gameId),
 	),
@@ -114,7 +115,7 @@ export const RealtimeEvents = {
 		'game.trial',
 		z.object({
 			gameId: isULID(),
-			actorId: z.string(),
+			actorNumber: z.number().int(),
 		}),
 		(p) => GameTopics.public(p.gameId),
 	),
@@ -187,7 +188,7 @@ export const RealtimeEvents = {
 		'game.verdict',
 		z.object({
 			gameId: isULID(),
-			voterActorId: z.string(),
+			voterActorNumber: z.number().int(),
 			verdict: z.enum(['guilty', 'innocent']),
 		}),
 		(p) => GameTopics.public(p.gameId),
@@ -489,6 +490,30 @@ export const sync = fn(z.object({ userId: z.string() }), async ({ userId }) =>
 
 		const myActor: ActorState = ActorStateSchema.parse(rawActor);
 
+		// Phase-scoped vote tally (voter number -> target number). Votes only
+		// matter during the poll phase, so surface an empty map otherwise to
+		// avoid showing stale votes on reload / late-join.
+		const votes: Record<number, number> = {};
+		if (game.phase === 'poll') {
+			const players = await tx
+				.select({
+					number: gamePlayerTable.number,
+					actorId: gamePlayerTable.actorId,
+					voteTargetActorId: gamePlayerTable.voteTargetActorId,
+				})
+				.from(gamePlayerTable)
+				.where(eq(gamePlayerTable.gameId, gameId));
+
+			const numberByActorId = new Map(players.map((p) => [p.actorId, p.number]));
+			for (const player of players) {
+				if (player.voteTargetActorId === null) continue;
+				const targetNumber = numberByActorId.get(player.voteTargetActorId);
+				if (targetNumber !== undefined) {
+					votes[player.number] = targetNumber;
+				}
+			}
+		}
+
 		const info = ClientGameInfoSchema.parse({
 			id: gameId,
 			status: game.status,
@@ -497,7 +522,7 @@ export const sync = fn(z.object({ userId: z.string() }), async ({ userId }) =>
 			syncTs: game.updatedAt.getTime(),
 		});
 
-		return { info, state, config, actor: myActor } satisfies GameSyncResponse;
+		return { info, state, config, actor: myActor, votes } satisfies GameSyncResponse;
 	}),
 );
 
@@ -517,6 +542,23 @@ export const submitVote = fn(
 	}),
 	async ({ gameId, voterActorId, targetActorId }) =>
 		useTransaction(async (tx) => {
+			// Votes may only be cast/toggled during the poll phase.
+			const [game] = await tx
+				.select({ phase: gameTable.phase })
+				.from(gameTable)
+				.where(eq(gameTable.id, gameId));
+
+			if (!game) {
+				throw new InputError(Errors.GameNotFound, 'Game not found');
+			}
+
+			if (game.phase !== 'poll') {
+				throw new InputError(
+					Errors.NotVotingPhase,
+					'Voting is only allowed during the poll phase',
+				);
+			}
+
 			// Get the voter's current state
 			const [voter] = await tx
 				.select()
@@ -560,6 +602,21 @@ export const submitVote = fn(
 				.set({ voteTargetActorId })
 				.where(eq(gamePlayerTable.id, voter.id));
 
+			void afterTx(() => {
+				if (voteTargetActorId === null) {
+					void realtime.publish(Resource.Realtime, RealtimeEvents.VoteCancel, {
+						gameId,
+						voterActorNumber: voter.number,
+					});
+				} else {
+					void realtime.publish(Resource.Realtime, RealtimeEvents.Vote, {
+						gameId,
+						voterActorNumber: voter.number,
+						targetActorNumber: target.number,
+					});
+				}
+			});
+
 			return { voteTargetActorId };
 		}),
 );
@@ -574,6 +631,23 @@ export const cancelVote = fn(
 	}),
 	async ({ gameId, voterActorId }) =>
 		useTransaction(async (tx) => {
+			// Votes may only be cancelled during the poll phase.
+			const [game] = await tx
+				.select({ phase: gameTable.phase })
+				.from(gameTable)
+				.where(eq(gameTable.id, gameId));
+
+			if (!game) {
+				throw new InputError(Errors.GameNotFound, 'Game not found');
+			}
+
+			if (game.phase !== 'poll') {
+				throw new InputError(
+					Errors.NotVotingPhase,
+					'Voting is only allowed during the poll phase',
+				);
+			}
+
 			const [updated] = await tx
 				.update(gamePlayerTable)
 				.set({ voteTargetActorId: null })
@@ -583,11 +657,18 @@ export const cancelVote = fn(
 						eq(gamePlayerTable.actorId, voterActorId),
 					),
 				)
-				.returning({ id: gamePlayerTable.id });
+				.returning({ id: gamePlayerTable.id, number: gamePlayerTable.number });
 
 			if (!updated) {
 				throw new InputError(Errors.PlayerNotFound, 'Player not found');
 			}
+
+			void afterTx(() => {
+				void realtime.publish(Resource.Realtime, RealtimeEvents.VoteCancel, {
+					gameId,
+					voterActorNumber: updated.number,
+				});
+			});
 
 			return { voterActorId };
 		}),
@@ -690,11 +771,19 @@ export const submitVerdict = fn(
 						eq(gamePlayerTable.actorId, voterActorId),
 					),
 				)
-				.returning({ id: gamePlayerTable.id });
+				.returning({ id: gamePlayerTable.id, number: gamePlayerTable.number });
 
 			if (!updated) {
 				throw new InputError(Errors.PlayerNotFound, 'Player not found');
 			}
+
+			void afterTx(() => {
+				void realtime.publish(Resource.Realtime, RealtimeEvents.Verdict, {
+					gameId,
+					voterActorNumber: updated.number,
+					verdict,
+				});
+			});
 
 			return { voterActorId, verdict };
 		}),
@@ -798,11 +887,18 @@ export const setOnTrial = fn(
 						eq(gamePlayerTable.actorId, actorId),
 					),
 				)
-				.returning({ id: gamePlayerTable.id });
+				.returning({ id: gamePlayerTable.id, number: gamePlayerTable.number });
 
 			if (!updated) {
 				throw new InputError(Errors.PlayerNotFound, 'Player not found');
 			}
+
+			void afterTx(() => {
+				void realtime.publish(Resource.Realtime, RealtimeEvents.Trial, {
+					gameId,
+					actorNumber: updated.number,
+				});
+			});
 
 			return { actorId };
 		}),
@@ -996,6 +1092,18 @@ export const terminate = fn(
 		}),
 );
 
+const PHASE_INFO: Record<GamePhase, { duration: number; next: GamePhase }> = {
+	pregame: { duration: 15, next: 'day' },
+	day: { duration: 60, next: 'evening' },
+	evening: { duration: 60, next: 'night' },
+	night: { duration: 60, next: 'morning' },
+	morning: { duration: 60, next: 'day' }, // Loop back to day after morning
+	poll: { duration: 20, next: 'defense' },
+	defense: { duration: 20, next: 'trial' },
+	trial: { duration: 20, next: 'lynch' },
+	lynch: { duration: 10, next: 'evening' },
+};
+
 export const advancePhase = fn(
 	z.object({
 		gameId: isULID(),
@@ -1013,72 +1121,73 @@ export const advancePhase = fn(
 		const result = (() => {
 			switch (game.phase) {
 				case 'pregame':
+					// Lets try to use PhaseInfo
 					return {
-						nextPhase: 'day' as const,
-						waitSeconds: 10,
+						nextPhase: PHASE_INFO['pregame'].next,
+						waitSeconds: PHASE_INFO['pregame'].duration,
 						continue: true,
 					};
 
 				case 'day':
 					if (game.engineState.day === 1) {
 						return {
-							nextPhase: 'evening' as const,
-							waitSeconds: 10,
+							nextPhase: PHASE_INFO['day'].next,
+							waitSeconds: PHASE_INFO['day'].duration,
 							continue: true,
 						}
 					}
 					return {
-						nextPhase: 'poll' as const,
-						waitSeconds: 10,
+						nextPhase: PHASE_INFO['poll'].next,
+						waitSeconds: PHASE_INFO['poll'].duration,
 						continue: true,
 					};
 
 				case 'poll':
 					return {
-						nextPhase: 'defense' as const,
-						waitSeconds: 10,
+						nextPhase: PHASE_INFO['poll'].next,
+						waitSeconds: PHASE_INFO['poll'].duration,
 						continue: true,
 					};
 
 				case 'defense':
 					return {
-						nextPhase: 'trial' as const,
-						waitSeconds: 10,
+						nextPhase: PHASE_INFO['defense'].next,
+						waitSeconds: PHASE_INFO['defense'].duration,
 						continue: true,
 					};
 
 				case 'trial':
 					return {
-						nextPhase: 'lynch' as const,
-						waitSeconds: 10,
+						nextPhase: PHASE_INFO['trial'].next,
+						waitSeconds: PHASE_INFO['trial'].duration,
 						continue: true,
 					};
 
 				case 'lynch':
 					return {
-						nextPhase: 'evening' as const,
-						waitSeconds: 10,
+						nextPhase: PHASE_INFO['lynch'].next,
+						waitSeconds: PHASE_INFO['lynch'].duration,
 						continue: true,
 					};
 
 				case 'evening':
 					return {
-						nextPhase: 'night' as const,
-						waitSeconds: 10,
+						nextPhase: PHASE_INFO['evening'].next,
+						waitSeconds: PHASE_INFO['evening'].duration,
 						continue: true,
 					};
 
 				case 'night':
 					return {
-						nextPhase: 'morning' as const,
-						waitSeconds: 0,
+						nextPhase: PHASE_INFO['night'].next,
+						waitSeconds: PHASE_INFO['night'].duration,
 						continue: false,
 					};
 
 				case 'morning':
 					return {
-						nextPhase: 'morning' as const,
-						waitSeconds: 0,
+						nextPhase: PHASE_INFO['morning'].next,
+						waitSeconds: PHASE_INFO['morning'].duration,
 						continue: false,
 					};
 
@@ -1099,7 +1208,7 @@ export const advancePhase = fn(
 					throw new InputError(Errors.GameNotFound, 'Game not found');
 				}
 
-				afterTx(async () => {
+				void afterTx(() => {
 					void realtime.publish(Resource.Realtime, RealtimeEvents.PhaseChange, {
 						gameId,
 						phase: result.nextPhase,

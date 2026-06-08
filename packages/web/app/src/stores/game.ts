@@ -5,6 +5,7 @@ import type {
 	GamePhase,
 	GameState,
 	GameSyncResponse,
+	Verdict,
 } from '@mafia/sdk';
 import { defineStore } from 'pinia';
 import { api } from 'src/boot/axios';
@@ -30,6 +31,12 @@ export const useGameStore = defineStore('game', {
 		phaseMeta: null as { phase: GamePhase; duration: number } | null,
 		/** Server-authoritative timestamp (ms) of the last applied sync */
 		lastSyncTs: 0,
+		/** Phase-scoped vote tally: voter number -> target number */
+		votes: {} as Record<number, number>,
+		/** Phase-scoped trial verdicts: voter number -> verdict */
+		verdicts: {} as Record<number, Verdict>,
+		/** Player number currently on trial, if any */
+		onTrialActorNumber: null as number | null,
 	}),
 	getters: {
 		hasActiveGame: (s) => !!s.info,
@@ -146,6 +153,10 @@ export const useGameStore = defineStore('game', {
 			this.status = 'ready';
 			this.error = null;
 
+			// Hydrate the phase-scoped vote tally from the authoritative server
+			// snapshot (empty outside the poll phase).
+			this.votes = sync.votes ?? {};
+
 			// Config is immutable — only set on first hydration
 			if (!this.config) {
 				this.config = sync.config;
@@ -160,6 +171,47 @@ export const useGameStore = defineStore('game', {
 			if (this.info) {
 				this.info = { ...this.info, phase };
 			}
+			// Votes and verdicts are phase-scoped; reset on transition.
+			this.votes = {};
+			this.verdicts = {};
+		},
+
+		/**
+		 * Record a player's vote from a realtime vote event.
+		 */
+		applyVote(voterActorNumber: number, targetActorNumber: number) {
+			this.votes = { ...this.votes, [voterActorNumber]: targetActorNumber };
+		},
+
+		/**
+		 * Remove a player's vote from a realtime vote-cancel event.
+		 */
+		applyVoteCancel(voterActorNumber: number) {
+			const { [voterActorNumber]: _removed, ...rest } = this.votes;
+			this.votes = rest;
+		},
+
+		/**
+		 * Record a player's verdict from a realtime verdict event.
+		 */
+		applyVerdict(voterActorNumber: number, verdict: Verdict) {
+			this.verdicts = { ...this.verdicts, [voterActorNumber]: verdict };
+		},
+
+		/**
+		 * Mark a player as on trial from a realtime trial event.
+		 */
+		setOnTrial(actorNumber: number) {
+			this.onTrialActorNumber = actorNumber;
+			this.verdicts = {};
+		},
+
+		/**
+		 * Clear the on-trial player from a realtime trial-over event.
+		 */
+		clearOnTrial() {
+			this.onTrialActorNumber = null;
+			this.verdicts = {};
 		},
 
 		/**
@@ -199,6 +251,9 @@ export const useGameStore = defineStore('game', {
 			this.phaseMeta = null;
 			this.error = null;
 			this.lastSyncTs = 0;
+			this.votes = {};
+			this.verdicts = {};
+			this.onTrialActorNumber = null;
 		},
 	},
 });

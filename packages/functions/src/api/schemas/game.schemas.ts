@@ -13,15 +13,18 @@ export type GameIdPathParams = z.infer<typeof GameIdPathParamsSchema>;
 
 // ---------------------------------------------------------------------------
 // Request Bodies
+//
+// Clients only know other players by their public number (1-15); actor ids are
+// private. The API resolves numbers -> actor ids server-side.
 // ---------------------------------------------------------------------------
 
 export const SetTargetsJsonSchema = z.object({
-	targetActorIds: z.array(z.string()),
+	targetActorNumbers: z.array(z.number().int().positive()),
 });
 export type SetTargetsJson = z.infer<typeof SetTargetsJsonSchema>;
 
 export const SubmitVoteJsonSchema = z.object({
-	targetActorId: z.string(),
+	targetActorNumber: z.number().int().positive(),
 });
 export type SubmitVoteJson = z.infer<typeof SubmitVoteJsonSchema>;
 

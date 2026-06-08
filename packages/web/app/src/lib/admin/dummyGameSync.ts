@@ -84,4 +84,5 @@ export const dummyGameSync: GameSyncResponse = {
 	state: makeState(),
 	config: makeConfig(),
 	actor: makeActor(),
+	votes: {},
 };

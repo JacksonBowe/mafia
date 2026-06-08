@@ -19,23 +19,23 @@ export const GameEventSchemas = {
 	}),
 	'realtime.game.vote': z.object({
 		gameId: ULID,
-		voterActorId: z.string(),
-		targetActorId: z.string(),
+		voterActorNumber: z.number().int(),
+		targetActorNumber: z.number().int(),
 	}),
 	'realtime.game.votecancel': z.object({
 		gameId: ULID,
-		voterActorId: z.string(),
+		voterActorNumber: z.number().int(),
 	}),
 	'realtime.game.trial': z.object({
 		gameId: ULID,
-		actorId: z.string(),
+		actorNumber: z.number().int(),
 	}),
 	'realtime.game.trial_over': z.object({
 		gameId: ULID,
 	}),
 	'realtime.game.verdict': z.object({
 		gameId: ULID,
-		voterActorId: z.string(),
+		voterActorNumber: z.number().int(),
 		verdict: z.enum(['guilty', 'innocent']),
 	}),
 	'realtime.game.lynch_result': z.object({
@@ -111,6 +111,26 @@ export function useGameEvents() {
 				}
 				// Full re-sync to pick up actor updates, player changes, etc.
 				void gameStore.syncFromServer();
+			}),
+			bus.on('realtime.game.vote', ({ gameId, voterActorNumber, targetActorNumber }) => {
+				if (gameStore.info?.id !== gameId) return;
+				gameStore.applyVote(voterActorNumber, targetActorNumber);
+			}),
+			bus.on('realtime.game.votecancel', ({ gameId, voterActorNumber }) => {
+				if (gameStore.info?.id !== gameId) return;
+				gameStore.applyVoteCancel(voterActorNumber);
+			}),
+			bus.on('realtime.game.verdict', ({ gameId, voterActorNumber, verdict }) => {
+				if (gameStore.info?.id !== gameId) return;
+				gameStore.applyVerdict(voterActorNumber, verdict);
+			}),
+			bus.on('realtime.game.trial', ({ gameId, actorNumber }) => {
+				if (gameStore.info?.id !== gameId) return;
+				gameStore.setOnTrial(actorNumber);
+			}),
+			bus.on('realtime.game.trial_over', ({ gameId }) => {
+				if (gameStore.info?.id !== gameId) return;
+				gameStore.clearOnTrial();
 			}),
 			bus.on('realtime.game.over', ({ gameId }) => {
 				if (gameStore.info?.id !== gameId) return;

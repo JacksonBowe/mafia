@@ -10,6 +10,9 @@ export type RequestFn = <T>(config: AxiosRequestConfig) => Promise<T>;
 
 // ---------------------------------------------------------------------------
 // Input types (re-exported from schemas for SDK consumers)
+//
+// Targets/votes reference other players by their public number (1-15); the API
+// resolves these to private actor ids server-side.
 // ---------------------------------------------------------------------------
 
 export type SetGameTargetsInput = { gameId: string } & SetTargetsJson;
@@ -28,29 +31,26 @@ export const gameMethods = (request: RequestFn) => ({
 	/** Set night action targets for the current user. */
 	setGameTargets: ({
 		gameId,
-		targetActorIds,
-	}: SetGameTargetsInput): Promise<{
-		gameId: string;
-		userId: string;
-		targetActorIds: string[];
-	}> => request({ method: 'POST', url: `/game/${gameId}/targets`, data: { targetActorIds } }),
+		targetActorNumbers,
+	}: SetGameTargetsInput): Promise<{ gameId: string; targetActorNumbers: number[] }> =>
+		request({ method: 'POST', url: `/game/${gameId}/targets`, data: { targetActorNumbers } }),
 
 	/** Submit or toggle a vote during the POLL phase. */
 	submitGameVote: ({
 		gameId,
-		targetActorId,
-	}: SubmitGameVoteInput): Promise<{ voteTargetActorId: string | null }> =>
-		request({ method: 'POST', url: `/game/${gameId}/vote`, data: { targetActorId } }),
+		targetActorNumber,
+	}: SubmitGameVoteInput): Promise<{ voteTargetActorNumber: number | null }> =>
+		request({ method: 'POST', url: `/game/${gameId}/vote`, data: { targetActorNumber } }),
 
 	/** Cancel the current user's vote. */
-	cancelGameVote: ({ gameId }: CancelGameVoteInput): Promise<{ voterActorId: string }> =>
+	cancelGameVote: ({ gameId }: CancelGameVoteInput): Promise<{ success: boolean }> =>
 		request({ method: 'POST', url: `/game/${gameId}/vote/cancel` }),
 
 	/** Submit a guilty/innocent verdict during the TRIAL phase. */
 	submitGameVerdict: ({
 		gameId,
 		verdict,
-	}: SubmitGameVerdictInput): Promise<{ voterActorId: string; verdict: Verdict }> =>
+	}: SubmitGameVerdictInput): Promise<{ verdict: Verdict }> =>
 		request({ method: 'POST', url: `/game/${gameId}/verdict`, data: { verdict } }),
 });
 
