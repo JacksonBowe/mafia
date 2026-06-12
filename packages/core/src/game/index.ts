@@ -87,6 +87,8 @@ export const RealtimeEvents = {
 			gameId: isULID(),
 			phase: z.string(),
 			duration: z.number().int(),
+			label: z.string(),
+			sequence: z.number().int(),
 		}),
 		(p) => GameTopics.public(p.gameId),
 	),
@@ -1242,6 +1244,18 @@ const nextPollOrEvening = (pollCount: number, overrides: Partial<AdvancePhaseRes
 	return enterPhase('evening', { pollCount: 0, ...overrides });
 };
 
+const titleCasePhase = (phase: GamePhase) => phase.charAt(0).toUpperCase() + phase.slice(1);
+
+const getPhaseLabel = (phase: GamePhase, pollCount: number) => {
+	if (phase === 'poll') return `Poll ${pollCount + 1}`;
+	return titleCasePhase(phase);
+};
+
+const getPhaseSequence = (phase: GamePhase, pollCount: number) => {
+	if (phase === 'poll') return pollCount;
+	return 0;
+};
+
 const processEvening = (game: GameInfo): AdvancePhaseResult => {
 	const resolved = resolveGame({
 		state: game.engineState,
@@ -1329,7 +1343,7 @@ export const advancePhase = fn(
 
 			switch (game.phase) {
 				case 'pregame':
-					result = enterPhase('day');
+					result = enterPhase('evening');
 					break;
 
 				case 'day':
@@ -1455,10 +1469,14 @@ export const advancePhase = fn(
 			}
 
 			void afterTx(() => {
+				const nextPollCount = result.pollCount ?? game.pollCount;
+
 				void realtime.publish(Resource.Realtime, RealtimeEvents.PhaseChange, {
 					gameId,
 					phase: result.nextPhase,
 					duration: result.waitSeconds,
+					label: getPhaseLabel(result.nextPhase, nextPollCount),
+					sequence: getPhaseSequence(result.nextPhase, nextPollCount),
 				});
 
 				if (result.trialActorNumber !== undefined) {

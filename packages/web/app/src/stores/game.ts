@@ -19,6 +19,19 @@ import { api } from 'src/boot/axios';
  * - error: sync or hydration failed
  */
 export type GameStoreStatus = 'idle' | 'transitioning' | 'syncing' | 'ready' | 'error';
+type PhaseMeta = { phase: GamePhase; duration: number; label: string; sequence: number };
+
+const titleCasePhase = (phase: GamePhase) => phase.charAt(0).toUpperCase() + phase.slice(1);
+
+const getPhaseLabel = (phase: GamePhase, pollCount: number) => {
+	if (phase === 'poll') return `Poll ${pollCount + 1}`;
+	return titleCasePhase(phase);
+};
+
+const getPhaseSequence = (phase: GamePhase, pollCount: number) => {
+	if (phase === 'poll') return pollCount;
+	return 0;
+};
 
 export const useGameStore = defineStore('game', {
 	state: () => ({
@@ -28,7 +41,7 @@ export const useGameStore = defineStore('game', {
 		config: null as GameConfig | null,
 		actor: null as ActorState | null,
 		error: null as string | null,
-		phaseMeta: null as { phase: GamePhase; duration: number } | null,
+		phaseMeta: null as PhaseMeta | null,
 		/** Server-authoritative timestamp (ms) of the last applied sync */
 		lastSyncTs: 0,
 		/** Phase-scoped vote tally: voter number -> target number */
@@ -149,7 +162,12 @@ export const useGameStore = defineStore('game', {
 			this.state = sync.state;
 			this.actor = sync.actor;
 			this.lastSyncTs = sync.info.syncTs;
-			this.phaseMeta = { phase: sync.info.phase, duration: 0 };
+			this.phaseMeta = {
+				phase: sync.info.phase,
+				duration: 0,
+				label: getPhaseLabel(sync.info.phase, sync.info.pollCount),
+				sequence: getPhaseSequence(sync.info.phase, sync.info.pollCount),
+			};
 			this.status = 'ready';
 			this.error = null;
 
@@ -166,10 +184,14 @@ export const useGameStore = defineStore('game', {
 		/**
 		 * Update phase metadata from a realtime phase change event.
 		 */
-		applyPhaseEvent(phase: GamePhase, duration: number) {
-			this.phaseMeta = { phase, duration };
+		applyPhaseEvent(phase: GamePhase, duration: number, label: string, sequence: number) {
+			this.phaseMeta = { phase, duration, label, sequence };
 			if (this.info) {
-				this.info = { ...this.info, phase };
+				this.info = {
+					...this.info,
+					phase,
+					pollCount: phase === 'poll' ? sequence : this.info.pollCount,
+				};
 			}
 			// Votes and verdicts are phase-scoped; reset on transition.
 			this.votes = {};
@@ -224,7 +246,7 @@ export const useGameStore = defineStore('game', {
 		/**
 		 * Legacy compat: setPhaseMeta
 		 */
-		setPhaseMeta(phaseMeta: { phase: GamePhase; duration: number } | null) {
+		setPhaseMeta(phaseMeta: PhaseMeta | null) {
 			this.phaseMeta = phaseMeta;
 		},
 

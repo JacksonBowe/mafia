@@ -12,6 +12,8 @@ export const GameEventSchemas = {
 		gameId: ULID,
 		phase: GamePhaseSchema,
 		duration: z.number().int(),
+		label: z.string(),
+		sequence: z.number().int(),
 	}),
 	'realtime.game.state': z.object({
 		gameId: ULID,
@@ -99,9 +101,9 @@ export function useGameEvents() {
 
 	onMounted(() => {
 		off.push(
-			bus.on('realtime.game.phase', ({ gameId, phase, duration }) => {
+			bus.on('realtime.game.phase', ({ gameId, phase, duration, label, sequence }) => {
 				if (gameStore.info?.id !== gameId) return;
-				gameStore.applyPhaseEvent(phase, duration);
+				gameStore.applyPhaseEvent(phase, duration, label, sequence);
 			}),
 			bus.on('realtime.game.state', ({ gameId, state }) => {
 				if (gameStore.info?.id !== gameId) return;

@@ -33,9 +33,9 @@
 					<q-btn label="Help" no-caps size="sm" color="warning" glossy push />
 				</div>
 				<game-timer
-					:label="gameStore.phaseMeta?.phase ?? ''"
+					:label="gameStore.phaseMeta?.label ?? ''"
 					:duration="gameStore.phaseMeta?.duration ?? 0"
-					:key="gameStore.phaseMeta?.phase! || gameStore.phaseMeta?.duration!"
+					:reset-key="timerResetKey"
 				/>
 			</div>
 
@@ -150,6 +150,12 @@ onUnmounted(() => {
 
 /** Graveyard entries from engine state — typed via SDK re-export */
 const graveyardEntries = computed<StateGraveyardRecord[]>(() => gameStore.state?.graveyard ?? []);
+
+const timerResetKey = computed(() => {
+	const phaseMeta = gameStore.phaseMeta;
+	if (!phaseMeta) return '';
+	return `${phaseMeta.phase}:${phaseMeta.sequence}`;
+});
 
 /** Find the player currently on trial */
 const playerOnTrial = computed(() => {
