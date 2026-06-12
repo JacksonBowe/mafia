@@ -1,6 +1,6 @@
 import { DEFAULT_SEED, dummyActors, dummyConfig, toActorInput } from '@mafia/engine/testing';
 import { describe, expect, it } from 'vitest';
-import { loadGame, newGame, resolveGame, type GameConfig } from '../src/index';
+import { loadGame, lynchGame, newGame, resolveGame, type GameConfig } from '../src/index';
 
 describe('engine', () => {
 	it('creates a new game with actors and state', () => {
@@ -29,6 +29,83 @@ describe('engine', () => {
 
 		expect(loaded.actors).toHaveLength(created.actors.length);
 		expect(loaded.state.day).toBe(created.state.day);
+	});
+
+	it('does not duplicate persisted graveyard records when lynching', () => {
+		const actors = [
+			{
+				id: 'actor-1',
+				name: 'UserName1',
+				alias: 'UserAlias1',
+				role: 'Citizen' as const,
+				number: 1,
+				alive: false,
+				possibleTargets: [],
+				targets: [],
+				allies: [],
+				roleActions: { remainingVests: 0 },
+				alignment: null,
+			},
+			{
+				id: 'actor-2',
+				name: 'UserName2',
+				alias: 'UserAlias2',
+				role: 'Mafioso' as const,
+				number: 2,
+				alive: true,
+				possibleTargets: [],
+				targets: [],
+				allies: [],
+				roleActions: {},
+				alignment: null,
+			},
+			{
+				id: 'actor-3',
+				name: 'UserName3',
+				alias: 'UserAlias3',
+				role: 'Citizen' as const,
+				number: 3,
+				alive: true,
+				possibleTargets: [],
+				targets: [],
+				allies: [],
+				roleActions: { remainingVests: 0 },
+				alignment: null,
+			},
+		];
+
+		const config: GameConfig = {
+			tags: ['citizen', 'mafioso', 'citizen'],
+			settings: {},
+			roles: {
+				Citizen: { max: 2, weight: 1, settings: { maxVests: 0 } },
+				Mafioso: { max: 1, weight: 1, settings: {} },
+			},
+		};
+
+		const state = {
+			day: 2,
+			actors: [
+				{ number: 1, alias: 'UserAlias1', alive: false },
+				{ number: 2, alias: 'UserAlias2', alive: true },
+				{ number: 3, alias: 'UserAlias3', alive: true },
+			],
+			graveyard: [
+				{
+					number: 1,
+					alias: 'UserAlias1',
+					cod: 'Killed',
+					dod: 1,
+					role: 'Citizen' as const,
+					will: '',
+					alignment: 'Town' as const,
+				},
+			],
+		};
+
+		const lynched = lynchGame({ actors, config, state, actorNumber: 3 });
+
+		expect(lynched.state.graveyard.map((death) => death.number)).toEqual([1, 3]);
 	});
 
 	it('resolves actions without a winner', () => {

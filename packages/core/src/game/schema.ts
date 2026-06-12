@@ -28,6 +28,7 @@ export enum GameErrors {
 	CannotVoteSelf = 'game.cannot_vote_self',
 	PlayerNotAlive = 'game.player_not_alive',
 	NotVotingPhase = 'game.not_voting_phase',
+	NotTrialPhase = 'game.not_trial_phase',
 }
 
 // ---------------------------------------------------------------------------

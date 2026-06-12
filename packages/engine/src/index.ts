@@ -141,6 +141,16 @@ export const loadGame = (input: EngineInput): EngineResult => {
 	return buildResult(game, winners, logger);
 };
 
+// Rebuild from saved state, lynch one actor, then check win conditions.
+export const lynchGame = (input: EngineInput & { actorNumber: number }): EngineResult => {
+	const { parsed, context, logger, actors, config } = bootstrap(input);
+	const state = requireState(parsed, 'load');
+	const game = Game.load(actors, config, state, context);
+	game.lynch(input.actorNumber);
+	const winners = summarizeWinners(game.checkForWin());
+	return buildResult(game, winners, logger);
+};
+
 // Rebuild from saved state, resolve one night cycle, then check win conditions.
 export const resolveGame = (input: EngineInput): EngineResult => {
 	const { parsed, context, logger, actors, config } = bootstrap(input);

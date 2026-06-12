@@ -3,13 +3,17 @@ import {
 	GameConfigSchema,
 	GameEventGroupDumpSchema,
 	GameStateSchema,
+	lynchGame,
 	loadGame,
+	resolveGame,
 	StateGraveyardRecordSchema,
 	WinnerSummarySchema,
 	type ActorState,
 	type GameConfig,
+	type GameEventGroupDump,
 	type GameState,
 	type StateGraveyardRecord,
+	type WinnerSummary,
 } from '@mafia/engine';
 import { and, eq, sql } from 'drizzle-orm';
 import { Resource } from 'sst';
@@ -30,8 +34,10 @@ import {
 	GameSyncResponseSchema,
 	GameTopics,
 	VerdictSchema,
+	type GameInfo,
 	type GamePhase,
 	type GamePlayer,
+	type GameStatus,
 	type GameSyncResponse,
 } from './schema';
 
@@ -48,7 +54,7 @@ export type {
 	GameState,
 	GameStatus,
 	GameSyncResponse,
-	Verdict
+	Verdict,
 } from './schema';
 export {
 	ClientGameInfoSchema,
@@ -59,7 +65,7 @@ export {
 	GameStatusSchema,
 	GameSyncResponseSchema,
 	GameTopics,
-	VerdictSchema
+	VerdictSchema,
 };
 
 // ---------------------
@@ -767,15 +773,61 @@ export const submitVerdict = fn(
 	}),
 	async ({ gameId, voterActorId, verdict }) =>
 		useTransaction(async (tx) => {
-			const [updated] = await tx
-				.update(gamePlayerTable)
-				.set({ verdict })
+			const [game] = await tx
+				.select({ phase: gameTable.phase, actors: gameTable.actors })
+				.from(gameTable)
+				.where(eq(gameTable.id, gameId));
+
+			if (!game) {
+				throw new InputError(Errors.GameNotFound, 'Game not found');
+			}
+
+			if (game.phase !== 'trial') {
+				throw new InputError(
+					Errors.NotTrialPhase,
+					'Verdicts are only allowed during the trial phase',
+				);
+			}
+
+			const actors = ActorStateSchema.array().parse(game.actors);
+			const voterActor = actors.find((actor) => actor.id === voterActorId);
+			if (!voterActor) {
+				throw new InputError(Errors.PlayerNotFound, 'Player not found');
+			}
+
+			if (!voterActor.alive) {
+				throw new InputError(Errors.PlayerNotAlive, 'Player is not alive');
+			}
+
+			const [player] = await tx
+				.select({
+					id: gamePlayerTable.id,
+					number: gamePlayerTable.number,
+					onTrial: gamePlayerTable.onTrial,
+				})
+				.from(gamePlayerTable)
 				.where(
 					and(
 						eq(gamePlayerTable.gameId, gameId),
 						eq(gamePlayerTable.actorId, voterActorId),
 					),
-				)
+				);
+
+			if (!player) {
+				throw new InputError(Errors.PlayerNotFound, 'Player not found');
+			}
+
+			if (player.onTrial) {
+				throw new InputError(
+					Errors.GameInvalidState,
+					'Player on trial cannot submit verdict',
+				);
+			}
+
+			const [updated] = await tx
+				.update(gamePlayerTable)
+				.set({ verdict })
+				.where(eq(gamePlayerTable.id, player.id))
 				.returning({ id: gamePlayerTable.id, number: gamePlayerTable.number });
 
 			if (!updated) {
@@ -1095,198 +1147,366 @@ export const terminate = fn(
 );
 
 type AdvancePhaseResult = {
-	waitSeconds: number; // Duration of the phase in seconds
-	nextPhase: GamePhase; // The next phase to transition to after this one ends
-	continue: boolean; // Whether to automatically continue to the next phase after the duration
+	waitSeconds: number;
+	nextPhase: GamePhase;
+	continue: boolean;
+	status?: GameStatus;
+	pollCount?: number;
+	engineState?: GameState;
+	actors?: ActorState[];
+	events?: GameEventGroupDump | null;
+	deaths?: StateGraveyardRecord[];
+	winners?: WinnerSummary[];
+	lynchResult?: {
+		actorId: string;
+		guiltyCount: number;
+		innocentCount: number;
+		isGuilty: boolean;
+	};
+	trialActorNumber?: number;
+	trialOver?: boolean;
 };
 
-const PHASE_INFO: Record<GamePhase, { duration: number; next: GamePhase }> = {
-	pregame: { duration: 15, next: 'day' },
-	day: { duration: 60, next: 'evening' },
-	evening: { duration: 60, next: 'night' },
-	night: { duration: 60, next: 'morning' },
-	morning: { duration: 60, next: 'day' }, // Loop back to day after morning
-	poll: { duration: 20, next: 'defense' },
-	defense: { duration: 20, next: 'trial' },
-	trial: { duration: 20, next: 'lynch' },
-	lynch: { duration: 10, next: 'evening' },
+const PHASE_INFO: Record<GamePhase, { duration: number }> = {
+	pregame: { duration: 15 },
+	day: { duration: 15 }, // 120 really, but test with shorter time for my sanity
+	evening: { duration: 15 }, // 60 really, but test with shorter time for my sanity
+	night: { duration: 0 },
+	morning: { duration: 0 },
+	poll: { duration: 20 },
+	defense: { duration: 20 },
+	trial: { duration: 20 },
+	lynch: { duration: 10 },
+};
+
+const MAX_POLLS = 3;
+const BASE_MORNING_DURATION = 5;
+const TIME_PER_DEATH = 5;
+
+const enterPhase = (
+	nextPhase: GamePhase,
+	overrides: Partial<AdvancePhaseResult> = {},
+): AdvancePhaseResult => ({
+	nextPhase,
+	waitSeconds: PHASE_INFO[nextPhase].duration,
+	continue: true,
+	...overrides,
+});
+
+const getAliveActorIds = (actors: ActorState[]) =>
+	actors.filter((actor) => actor.alive).map((actor) => actor.id);
+
+const getNightDeaths = (game: GameInfo) =>
+	game.engineState.graveyard.filter((death) => death.dod === game.engineState.day);
+
+const tallyVotesForPlayers = (players: GamePlayer[], aliveActorIds: string[]) => {
+	const aliveActorIdSet = new Set(aliveActorIds);
+	const votes: Record<string, number> = {};
+
+	for (const player of players) {
+		if (!aliveActorIdSet.has(player.actorId) || player.voteTargetActorId === null) continue;
+		votes[player.voteTargetActorId] = (votes[player.voteTargetActorId] ?? 0) + 1;
+	}
+
+	let maxVotes = 0;
+	let winner: string | null = null;
+	for (const [actorId, count] of Object.entries(votes)) {
+		if (count <= maxVotes) continue;
+		maxVotes = count;
+		winner = actorId;
+	}
+
+	return {
+		votes,
+		winner: maxVotes > Math.floor(aliveActorIds.length / 2) ? winner : null,
+	};
+};
+
+const tallyVerdictsForPlayers = (players: GamePlayer[], aliveActorIds: string[]) => {
+	const aliveActorIdSet = new Set(aliveActorIds);
+	let guiltyCount = 0;
+	let innocentCount = 0;
+
+	for (const player of players) {
+		if (player.onTrial || !aliveActorIdSet.has(player.actorId) || player.verdict === null)
+			continue;
+		if (player.verdict === 'guilty') guiltyCount++;
+		else innocentCount++;
+	}
+
+	return { guiltyCount, innocentCount, isGuilty: guiltyCount > innocentCount };
+};
+
+const nextPollOrEvening = (pollCount: number, overrides: Partial<AdvancePhaseResult> = {}) => {
+	if (pollCount < MAX_POLLS) return enterPhase('poll', { pollCount, ...overrides });
+	return enterPhase('evening', { pollCount: 0, ...overrides });
+};
+
+const processEvening = (game: GameInfo): AdvancePhaseResult => {
+	const resolved = resolveGame({
+		state: game.engineState,
+		config: game.engineConfig,
+		actors: buildEngineActors(game.actors, game.players),
+	});
+
+	// TODO: Fan out resolved.events to RealtimeEvents.Event once event target/topic mapping is finalized.
+	return enterPhase('night', {
+		waitSeconds: resolved.events.duration,
+		engineState: resolved.state,
+		actors: resolved.actors,
+		events: resolved.events,
+	});
+};
+
+const processNight = (game: GameInfo): AdvancePhaseResult => {
+	const engineResult = loadGame({
+		state: game.engineState,
+		config: game.engineConfig,
+		actors: buildEngineActors(game.actors, game.players),
+	});
+	const deaths = getNightDeaths(game);
+	const waitSeconds = BASE_MORNING_DURATION + deaths.length * TIME_PER_DEATH;
+
+	if (engineResult.winners && engineResult.winners.length > 0) {
+		return enterPhase('morning', {
+			waitSeconds,
+			continue: false,
+			status: 'completed',
+			deaths,
+			winners: engineResult.winners,
+		});
+	}
+
+	return enterPhase('morning', { waitSeconds, deaths });
 };
 
 export const advancePhase = fn(
 	z.object({
 		gameId: isULID(),
-		pollCount: z.number().int().optional(),
 	}),
-	async ({ gameId, pollCount }) => {
-		console.log('Advance phase for game', { gameId, pollCount });
+	async ({ gameId }) =>
+		useTransaction(async (tx) => {
+			const [gameRow] = await tx.select().from(gameTable).where(eq(gameTable.id, gameId));
 
-		const game = await get({ gameId });
+			if (!gameRow) {
+				throw new InputError(Errors.GameNotFound, 'Game not found');
+			}
 
-		if (game.status !== 'active') {
-			return { gameId, continue: false, waitSeconds: 0, phase: game.phase, pollCount };
-		}
+			const players = await tx
+				.select()
+				.from(gamePlayerTable)
+				.where(eq(gamePlayerTable.gameId, gameId));
+			const game = GameInfoSchema.parse({ ...gameRow, players });
 
-		const result = (() => {
+			if (game.status !== 'active') {
+				return {
+					gameId,
+					continue: false,
+					waitSeconds: 0,
+					phase: game.phase,
+					pollCount: game.pollCount,
+				};
+			}
+
+			const clearVotes = () =>
+				tx
+					.update(gamePlayerTable)
+					.set({ voteTargetActorId: null })
+					.where(eq(gamePlayerTable.gameId, gameId));
+			const clearVerdicts = () =>
+				tx
+					.update(gamePlayerTable)
+					.set({ verdict: null })
+					.where(eq(gamePlayerTable.gameId, gameId));
+			const clearOnTrial = () =>
+				tx
+					.update(gamePlayerTable)
+					.set({ onTrial: false })
+					.where(eq(gamePlayerTable.gameId, gameId));
+
+			const aliveActorIds = getAliveActorIds(game.actors);
+			let result: AdvancePhaseResult;
+
 			switch (game.phase) {
 				case 'pregame':
-					// Lets try to use PhaseInfo
-					return {
-						nextPhase: PHASE_INFO['pregame'].next,
-						waitSeconds: PHASE_INFO['pregame'].duration,
-						continue: true,
-					};
+					result = enterPhase('day');
+					break;
 
 				case 'day':
-					if (game.engineState.day === 1) {
-						return {
-							nextPhase: PHASE_INFO['day'].next,
-							waitSeconds: PHASE_INFO['day'].duration,
-							continue: true,
-						};
-					}
-					return {
-						nextPhase: PHASE_INFO['poll'].next,
-						waitSeconds: PHASE_INFO['poll'].duration,
-						continue: true,
-					};
+					await clearVotes();
+					await clearVerdicts();
+					await clearOnTrial();
+					result = enterPhase('poll', { pollCount: 0 });
+					break;
 
-				case 'poll':
-					return {
-						nextPhase: PHASE_INFO['poll'].next,
-						waitSeconds: PHASE_INFO['poll'].duration,
-						continue: true,
-					};
+				case 'poll': {
+					const nextPollCount = game.pollCount + 1;
+					const voteTally = tallyVotesForPlayers(game.players, aliveActorIds);
+					await clearVotes();
+
+					if (voteTally.winner) {
+						const [trialPlayer] = await tx
+							.update(gamePlayerTable)
+							.set({ onTrial: true })
+							.where(
+								and(
+									eq(gamePlayerTable.gameId, gameId),
+									eq(gamePlayerTable.actorId, voteTally.winner),
+								),
+							)
+							.returning({ number: gamePlayerTable.number });
+
+						if (!trialPlayer) {
+							throw new InputError(Errors.PlayerNotFound, 'Player not found');
+						}
+
+						result = enterPhase('defense', {
+							pollCount: nextPollCount,
+							trialActorNumber: trialPlayer.number,
+						});
+						break;
+					}
+
+					result = nextPollOrEvening(nextPollCount);
+					break;
+				}
 
 				case 'defense':
-					return {
-						nextPhase: PHASE_INFO['defense'].next,
-						waitSeconds: PHASE_INFO['defense'].duration,
-						continue: true,
-					};
+					result = enterPhase('trial');
+					break;
 
-				case 'trial':
-					return {
-						nextPhase: PHASE_INFO['trial'].next,
-						waitSeconds: PHASE_INFO['trial'].duration,
-						continue: true,
-					};
+				case 'trial': {
+					const trialPlayer = game.players.find((player) => player.onTrial);
+					if (!trialPlayer) {
+						throw new InputError(Errors.GameInvalidState, 'No player on trial');
+					}
 
-				case 'lynch':
-					return {
-						nextPhase: PHASE_INFO['lynch'].next,
-						waitSeconds: PHASE_INFO['lynch'].duration,
-						continue: true,
-					};
+					const verdictTally = tallyVerdictsForPlayers(game.players, aliveActorIds);
+					await clearVerdicts();
+					const lynchResult = { actorId: trialPlayer.actorId, ...verdictTally };
+
+					if (verdictTally.isGuilty) {
+						result = enterPhase('lynch', { lynchResult });
+						break;
+					}
+
+					await clearOnTrial();
+					result = nextPollOrEvening(game.pollCount, { lynchResult, trialOver: true });
+					break;
+				}
+
+				case 'lynch': {
+					const trialPlayer = game.players.find((player) => player.onTrial);
+					if (!trialPlayer) {
+						throw new InputError(Errors.GameInvalidState, 'No player on trial');
+					}
+
+					const lynched = lynchGame({
+						state: game.engineState,
+						config: game.engineConfig,
+						actors: buildEngineActors(game.actors, game.players),
+						actorNumber: trialPlayer.number,
+					});
+					await clearOnTrial();
+					await clearVerdicts();
+					result = nextPollOrEvening(game.pollCount, {
+						engineState: lynched.state,
+						actors: lynched.actors,
+						trialOver: true,
+					});
+					break;
+				}
 
 				case 'evening':
-					return {
-						nextPhase: PHASE_INFO['evening'].next,
-						waitSeconds: PHASE_INFO['evening'].duration,
-						continue: true,
-					};
+					result = processEvening(game);
+					await tx
+						.update(gamePlayerTable)
+						.set({ targetActorIds: [] })
+						.where(eq(gamePlayerTable.gameId, gameId));
+					break;
 
 				case 'night':
-					return {
-						nextPhase: PHASE_INFO['night'].next,
-						waitSeconds: PHASE_INFO['night'].duration,
-						continue: false,
-					};
+					result = processNight(game);
+					break;
 
 				case 'morning':
-					return _processMorning({ game });
+					result = enterPhase('day');
+					break;
 
 				default:
 					throw new InputError(Errors.GameInvalidState, 'Invalid game phase');
 			}
-		})();
 
-		if (result.nextPhase !== game.phase) {
-			await useTransaction(async (tx) => {
-				const [updated] = await tx
-					.update(gameTable)
-					.set({ phase: result.nextPhase })
-					.where(eq(gameTable.id, gameId))
-					.returning({ id: gameTable.id });
+			const updates: Record<string, unknown> = { phase: result.nextPhase };
+			if (result.status) updates.status = result.status;
+			if (result.pollCount !== undefined) updates.pollCount = result.pollCount;
+			if (result.engineState) updates.engineState = result.engineState;
+			if (result.actors) updates.actors = result.actors;
+			if (result.events !== undefined) updates.events = result.events;
 
-				if (!updated) {
-					throw new InputError(Errors.GameNotFound, 'Game not found');
+			const [updated] = await tx
+				.update(gameTable)
+				.set(updates)
+				.where(eq(gameTable.id, gameId))
+				.returning({ id: gameTable.id });
+
+			if (!updated) {
+				throw new InputError(Errors.GameNotFound, 'Game not found');
+			}
+
+			void afterTx(() => {
+				void realtime.publish(Resource.Realtime, RealtimeEvents.PhaseChange, {
+					gameId,
+					phase: result.nextPhase,
+					duration: result.waitSeconds,
+				});
+
+				if (result.trialActorNumber !== undefined) {
+					void realtime.publish(Resource.Realtime, RealtimeEvents.Trial, {
+						gameId,
+						actorNumber: result.trialActorNumber,
+					});
 				}
 
-				void afterTx(() => {
-					void realtime.publish(Resource.Realtime, RealtimeEvents.PhaseChange, {
+				if (result.trialOver) {
+					void realtime.publish(Resource.Realtime, RealtimeEvents.TrialOver, { gameId });
+				}
+
+				if (result.lynchResult) {
+					void realtime.publish(Resource.Realtime, RealtimeEvents.LynchResult, {
 						gameId,
-						phase: result.nextPhase,
-						duration: result.waitSeconds,
+						...result.lynchResult,
 					});
-				});
-			});
-		}
+				}
 
-		return {
-			gameId,
-			continue: result.continue,
-			waitSeconds: result.waitSeconds,
-			phase: result.nextPhase,
-			pollCount,
-		};
-	},
-);
+				if (result.engineState) {
+					void realtime.publish(Resource.Realtime, RealtimeEvents.State, {
+						gameId,
+						state: result.engineState,
+					});
+				}
 
-// Phase Processing
+				if (result.deaths && result.deaths.length > 0) {
+					void realtime.publish(Resource.Realtime, RealtimeEvents.Deaths, {
+						gameId,
+						deaths: result.deaths,
+					});
+				}
 
-const BASE_MORNING_DURATION = 5; // Base duration for morning phase in seconds
-const TIME_PER_DEATH = 5; // Add 5 seconds to morning phase for each death that occurred during the night
-const _processMorning = fn(
-	z.object({
-		game: GameInfoSchema,
-	}),
-	({ game }): AdvancePhaseResult => {
-		console.log('Processing morning phase for game', { gameId: game.id });
-
-		// Check for any deaths that occurred during the night and send update events to players
-		const deaths: StateGraveyardRecord[] = [];
-
-		for (const death of game.engineState.graveyard) {
-			if (death.dod === game.engineState.day) {
-				deaths.push(death);
-			}
-		}
-
-		if (deaths.length > 0) {
-			void realtime.publish(Resource.Realtime, RealtimeEvents.Deaths, {
-				gameId: game.id,
-				deaths,
-			});
-		}
-
-		const morningDuration = BASE_MORNING_DURATION + deaths.length * TIME_PER_DEATH;
-
-		// Now load the game and check for winners
-		const engineResult = loadGame({
-			state: game.engineState,
-			config: game.engineConfig,
-			actors: buildEngineActors(game.actors, game.players),
-		});
-
-		const winners = engineResult.winners;
-
-		if (winners && winners.length > 0) {
-			void realtime.publish(Resource.Realtime, RealtimeEvents.GameOver, {
-				gameId: game.id,
-				winners,
+				if (result.winners && result.winners.length > 0) {
+					void realtime.publish(Resource.Realtime, RealtimeEvents.GameOver, {
+						gameId,
+						winners: result.winners,
+					});
+				}
 			});
 
 			return {
-				nextPhase: 'day', // Phase doesn't matter since game is over, but set to day for clarity
-				waitSeconds: 0,
-				continue: false, // Don't continue to next phase since game is over
-			}
-		}
-
-		return {
-			nextPhase: 'day',
-			waitSeconds: morningDuration,
-			continue: true,
-		};
-	},
+				gameId,
+				continue: result.continue,
+				waitSeconds: result.waitSeconds,
+				phase: result.nextPhase,
+				pollCount: result.pollCount ?? game.pollCount,
+			};
+		}),
 );

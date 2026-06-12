@@ -418,17 +418,21 @@ class Game {
 	// Persisted graveyard plus actors that died this cycle, projected into
 	// persistable records (cause/day of death, role reveal, will, alignment).
 	get fullGraveyard(): GameState['graveyard'] {
+		const buriedActorNumbers = new Set(this.graveyard.map((death) => death.number));
+
 		return [
 			...this.graveyard,
-			...this.deadActors.map((actor) => ({
-				number: actor.requireNumber(),
-				alias: actor.alias,
-				cod: actor.cod ?? 'Unknown',
-				dod: this.day,
-				role: actor.roleName,
-				will: actor.input.will ?? '',
-				alignment: actor.alignment ?? DEFAULT_ALIGNMENT,
-			})),
+			...this.deadActors
+				.filter((actor) => !buriedActorNumbers.has(actor.requireNumber()))
+				.map((actor) => ({
+					number: actor.requireNumber(),
+					alias: actor.alias,
+					cod: actor.cod ?? 'Unknown',
+					dod: this.day,
+					role: actor.roleName,
+					will: actor.input.will ?? '',
+					alignment: actor.alignment ?? DEFAULT_ALIGNMENT,
+				})),
 		];
 	}
 
