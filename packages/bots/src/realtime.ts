@@ -24,6 +24,8 @@ export type BotRealtimeOptions = {
 	clientId: string;
 	label: string;
 	onMessage: (msg: RealtimeMessage, topic: string) => void;
+	onStatus?: (message: string) => void;
+	onError?: (err: unknown) => void;
 };
 
 export class BotRealtime {
@@ -36,8 +38,17 @@ export class BotRealtime {
 	}
 
 	private log(msg: string, extra?: unknown): void {
+		if (this.opts.onStatus) {
+			this.opts.onStatus(msg);
+			return;
+		}
 		if (extra !== undefined) console.log(`[${this.opts.label}] ${msg}`, extra);
 		else console.log(`[${this.opts.label}] ${msg}`);
+	}
+
+	private error(err: unknown): void {
+		this.opts.onError?.(err);
+		this.log('connection error', err);
 	}
 
 	/** Prefix a topic with the app/stage namespace unless already prefixed. */
@@ -85,7 +96,7 @@ export class BotRealtime {
 		});
 		client.on('reconnect', () => this.log('reconnecting…'));
 		client.on('close', () => this.log('connection closed'));
-		client.on('error', (e: unknown) => this.log('connection error', e));
+		client.on('error', (e: unknown) => this.error(e));
 
 		client.on('message', (topic: string, payload: Buffer) => {
 			const text = payload.toString('utf-8');

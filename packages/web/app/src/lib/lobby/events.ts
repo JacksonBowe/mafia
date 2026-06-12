@@ -61,12 +61,12 @@ export function useLobbyEvents() {
 			}),
 
 			bus.on('realtime.lobby.member.leave', (p) => {
-				console.log('join', p);
+				console.log('leave', p);
 				void queryClient.invalidateQueries({ queryKey: ['lobbies'] });
 			}),
 
 			bus.on('realtime.lobby.member.promote', (p) => {
-				console.log('join', p);
+				console.log('promote', p);
 				void queryClient.invalidateQueries({ queryKey: ['lobbies'] });
 			}),
 

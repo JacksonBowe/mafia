@@ -1,4 +1,4 @@
-import type { RelatedEntity, LobbyInfo, Presence } from '@mafia/sdk';
+import type { LobbyInfo, Presence, RelatedEntity } from '@mafia/sdk';
 import { useMutation, useQuery, useQueryClient, type UseQueryOptions } from '@tanstack/vue-query';
 import { api } from 'src/boot/axios';
 import { useLobbyStore } from 'src/stores/lobby';
@@ -55,7 +55,7 @@ export const useLobby = (
 	const idRef = computed(() => unref(id));
 
 	return useQuery({
-		queryKey: computed(() => ['lobby', idRef.value ?? ''] as const),
+		queryKey: computed(() => ['lobbies', idRef.value ?? ''] as const),
 		queryFn: () => api.getLobby({ lobbyId: idRef.value! }),
 		enabled: computed(() => !!idRef.value),
 		...options,
