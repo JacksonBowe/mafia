@@ -1,5 +1,16 @@
-import type { ActorState, GameConfig, GameState } from '@mafia/engine';
-import { ActorStateSchema, GameConfigSchema, GameStateSchema } from '@mafia/engine';
+import {
+	ActorStateSchema,
+	GameConfigSchema,
+	GameEventGroupDumpSchema,
+	GameStateSchema,
+	loadGame,
+	StateGraveyardRecordSchema,
+	WinnerSummarySchema,
+	type ActorState,
+	type GameConfig,
+	type GameState,
+	type StateGraveyardRecord,
+} from '@mafia/engine';
 import { and, eq, sql } from 'drizzle-orm';
 import { Resource } from 'sst';
 import { ulid } from 'ulid';
@@ -11,9 +22,7 @@ import { fn } from '../util/fn';
 import { gamePlayerTable, gameTable } from './game.sql';
 import {
 	ClientGameInfoSchema,
-	DeathRecordSchema,
 	GameErrors as Errors,
-	GameEventSchema,
 	GameInfoSchema,
 	GamePhaseSchema,
 	GamePlayerSchema,
@@ -21,7 +30,6 @@ import {
 	GameSyncResponseSchema,
 	GameTopics,
 	VerdictSchema,
-	WinnerSummarySchema,
 	type GamePhase,
 	type GamePlayer,
 	type GameSyncResponse,
@@ -33,31 +41,25 @@ export * as Game from './';
 export type {
 	ActorState,
 	ClientGameInfo,
-	DeathRecord,
 	GameConfig,
-	GameEvent,
 	GameInfo,
 	GamePhase,
 	GamePlayer,
 	GameState,
 	GameStatus,
 	GameSyncResponse,
-	Verdict,
-	WinnerSummary
+	Verdict
 } from './schema';
 export {
 	ClientGameInfoSchema,
-	DeathRecordSchema,
 	Errors,
-	GameEventSchema,
 	GameInfoSchema,
 	GamePhaseSchema,
 	GamePlayerSchema,
 	GameStatusSchema,
 	GameSyncResponseSchema,
 	GameTopics,
-	VerdictSchema,
-	WinnerSummarySchema
+	VerdictSchema
 };
 
 // ---------------------
@@ -151,7 +153,7 @@ export const RealtimeEvents = {
 		'game.deaths',
 		z.object({
 			gameId: isULID(),
-			deaths: z.array(DeathRecordSchema),
+			deaths: z.array(StateGraveyardRecordSchema),
 		}),
 		(p) => GameTopics.public(p.gameId),
 	),
@@ -281,51 +283,53 @@ export const RealtimeEvents = {
 // Core functions
 // ---------------------
 
-export const create = fn(z.object({
-	engineState: z.unknown(),
-	engineConfig: z.unknown(),
-	actors: z.unknown(),
-	players: z.array(
-		z.object({
-			userId: z.string(),
-			actorId: z.string(),
-			number: z.number().int().positive(),
-		}),
-	),
-}), async (input) =>
-	useTransaction(async (tx) => {
-		const gameId = ulid();
-
-		// Insert game record
-		await tx.insert(gameTable).values({
-			id: gameId,
-			status: 'active',
-			phase: 'pregame',
-			pollCount: 0,
-			engineState: input.engineState,
-			engineConfig: input.engineConfig,
-			actors: input.actors,
-		});
-
-		// Insert game players
-		if (input.players.length > 0) {
-			await tx.insert(gamePlayerTable).values(
-				input.players.map((p) => ({
-					id: ulid(),
-					gameId,
-					userId: p.userId,
-					actorId: p.actorId,
-					number: p.number,
-					voteTargetActorId: null,
-					verdict: null,
-					onTrial: false,
-					targetActorIds: [],
-				})),
-			);
-		}
-
-		return { gameId };
+export const create = fn(
+	z.object({
+		engineState: z.unknown(),
+		engineConfig: z.unknown(),
+		actors: z.unknown(),
+		players: z.array(
+			z.object({
+				userId: z.string(),
+				actorId: z.string(),
+				number: z.number().int().positive(),
+			}),
+		),
 	}),
+	async (input) =>
+		useTransaction(async (tx) => {
+			const gameId = ulid();
+
+			// Insert game record
+			await tx.insert(gameTable).values({
+				id: gameId,
+				status: 'active',
+				phase: 'pregame',
+				pollCount: 0,
+				engineState: input.engineState,
+				engineConfig: input.engineConfig,
+				actors: input.actors,
+			});
+
+			// Insert game players
+			if (input.players.length > 0) {
+				await tx.insert(gamePlayerTable).values(
+					input.players.map((p) => ({
+						id: ulid(),
+						gameId,
+						userId: p.userId,
+						actorId: p.actorId,
+						number: p.number,
+						voteTargetActorId: null,
+						verdict: null,
+						onTrial: false,
+						targetActorIds: [],
+					})),
+				);
+			}
+
+			return { gameId };
+		}),
 );
 
 const ActorIdTargetsSchema = z.array(z.string());
@@ -352,7 +356,7 @@ export function buildEngineActors(actors: unknown, players: GamePlayer[]): Actor
 export const updateEvents = fn(
 	z.object({
 		gameId: isULID(),
-		events: z.unknown().nullable(),
+		events: GameEventGroupDumpSchema.nullable(),
 	}),
 	async ({ gameId, events }) =>
 		useTransaction(async (tx) => {
@@ -595,7 +599,8 @@ export const submitVote = fn(
 			}
 
 			// If already voting for this target, remove the vote (toggle)
-			const voteTargetActorId = voter.voteTargetActorId === targetActorId ? null : targetActorId;
+			const voteTargetActorId =
+				voter.voteTargetActorId === targetActorId ? null : targetActorId;
 
 			await tx
 				.update(gamePlayerTable)
@@ -882,10 +887,7 @@ export const setOnTrial = fn(
 				.update(gamePlayerTable)
 				.set({ onTrial: true })
 				.where(
-					and(
-						eq(gamePlayerTable.gameId, gameId),
-						eq(gamePlayerTable.actorId, actorId),
-					),
+					and(eq(gamePlayerTable.gameId, gameId), eq(gamePlayerTable.actorId, actorId)),
 				)
 				.returning({ id: gamePlayerTable.id, number: gamePlayerTable.number });
 
@@ -1092,6 +1094,12 @@ export const terminate = fn(
 		}),
 );
 
+type AdvancePhaseResult = {
+	waitSeconds: number; // Duration of the phase in seconds
+	nextPhase: GamePhase; // The next phase to transition to after this one ends
+	continue: boolean; // Whether to automatically continue to the next phase after the duration
+};
+
 const PHASE_INFO: Record<GamePhase, { duration: number; next: GamePhase }> = {
 	pregame: { duration: 15, next: 'day' },
 	day: { duration: 60, next: 'evening' },
@@ -1134,7 +1142,7 @@ export const advancePhase = fn(
 							nextPhase: PHASE_INFO['day'].next,
 							waitSeconds: PHASE_INFO['day'].duration,
 							continue: true,
-						}
+						};
 					}
 					return {
 						nextPhase: PHASE_INFO['poll'].next,
@@ -1185,11 +1193,7 @@ export const advancePhase = fn(
 					};
 
 				case 'morning':
-					return {
-						nextPhase: PHASE_INFO['morning'].next,
-						waitSeconds: PHASE_INFO['morning'].duration,
-						continue: false,
-					};
+					return _processMorning({ game });
 
 				default:
 					throw new InputError(Errors.GameInvalidState, 'Invalid game phase');
@@ -1214,8 +1218,7 @@ export const advancePhase = fn(
 						phase: result.nextPhase,
 						duration: result.waitSeconds,
 					});
-
-				})
+				});
 			});
 		}
 
@@ -1225,6 +1228,65 @@ export const advancePhase = fn(
 			waitSeconds: result.waitSeconds,
 			phase: result.nextPhase,
 			pollCount,
+		};
+	},
+);
+
+// Phase Processing
+
+const BASE_MORNING_DURATION = 5; // Base duration for morning phase in seconds
+const TIME_PER_DEATH = 5; // Add 5 seconds to morning phase for each death that occurred during the night
+const _processMorning = fn(
+	z.object({
+		game: GameInfoSchema,
+	}),
+	({ game }): AdvancePhaseResult => {
+		console.log('Processing morning phase for game', { gameId: game.id });
+
+		// Check for any deaths that occurred during the night and send update events to players
+		const deaths: StateGraveyardRecord[] = [];
+
+		for (const death of game.engineState.graveyard) {
+			if (death.dod === game.engineState.day) {
+				deaths.push(death);
+			}
+		}
+
+		if (deaths.length > 0) {
+			void realtime.publish(Resource.Realtime, RealtimeEvents.Deaths, {
+				gameId: game.id,
+				deaths,
+			});
+		}
+
+		const morningDuration = BASE_MORNING_DURATION + deaths.length * TIME_PER_DEATH;
+
+		// Now load the game and check for winners
+		const engineResult = loadGame({
+			state: game.engineState,
+			config: game.engineConfig,
+			actors: buildEngineActors(game.actors, game.players),
+		});
+
+		const winners = engineResult.winners;
+
+		if (winners && winners.length > 0) {
+			void realtime.publish(Resource.Realtime, RealtimeEvents.GameOver, {
+				gameId: game.id,
+				winners,
+			});
+
+			return {
+				nextPhase: 'day', // Phase doesn't matter since game is over, but set to day for clarity
+				waitSeconds: 0,
+				continue: false, // Don't continue to next phase since game is over
+			}
+		}
+
+		return {
+			nextPhase: 'day',
+			waitSeconds: morningDuration,
+			continue: true,
 		};
 	},
 );

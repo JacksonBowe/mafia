@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { EventIds } from './constants';
 
 /**
@@ -12,17 +13,27 @@ export const Duration = {
 
 export type GameEventTargets = string[];
 
-export type GameEventDump = {
-	eventId: string;
-	targets: GameEventTargets;
-	message: string;
-};
+export const GameEventDumpSchema = z.object({
+	eventId: z.string(),
+	targets: z.array(z.string()),
+	message: z.string(),
+});
+
+export type GameEventDump = z.infer<typeof GameEventDumpSchema>;
 
 export type GameEventGroupDump = {
 	groupId: string | null;
 	duration: number;
 	events: Array<GameEventDump | GameEventGroupDump>;
 };
+
+export const GameEventGroupDumpSchema: z.ZodType<GameEventGroupDump> = z.lazy(() =>
+	z.object({
+		groupId: z.string().nullable(),
+		duration: z.number(),
+		events: z.array(z.union([GameEventDumpSchema, GameEventGroupDumpSchema])),
+	}),
+);
 
 export class GameEvent {
 	constructor(

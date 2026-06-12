@@ -4,6 +4,7 @@
 // ---------------------------------------------------------------------------
 import {
 	ActorStateSchema,
+	GameEventGroupDumpSchema,
 	GameConfigSchema,
 	GameStateSchema,
 	type ActorState,
@@ -43,41 +44,6 @@ export const GameTopics = {
 	/** Faction-specific chat channel */
 	chatFaction: (gameId: string, faction: string) => `game/${gameId}/chat/${faction}`,
 };
-
-// ---------------------------------------------------------------------------
-// Realtime payload schemas
-// ---------------------------------------------------------------------------
-
-/** Death record for morning announcements */
-export const DeathRecordSchema = z.object({
-	playerNumber: z.number().int(),
-	alias: z.string(),
-	role: z.string(),
-	deathCause: z.string(),
-	deathDay: z.number().int(),
-});
-export type DeathRecord = z.infer<typeof DeathRecordSchema>;
-
-/** Winner summary for game over */
-export const WinnerSummarySchema = z.object({
-	faction: z.string(),
-	players: z.array(
-		z.object({
-			playerNumber: z.number().int(),
-			alias: z.string(),
-			role: z.string(),
-		}),
-	),
-});
-export type WinnerSummary = z.infer<typeof WinnerSummarySchema>;
-
-/** Game event for night action results */
-export const GameEventSchema = z.object({
-	eventId: z.string(),
-	message: z.string(),
-	duration: z.number().int().default(0),
-});
-export type GameEvent = z.infer<typeof GameEventSchema>;
 
 // ---------------------------------------------------------------------------
 // Status / phase / verdict
@@ -126,8 +92,8 @@ export const GameInfoSchema = EntityBaseSchema.extend({
 	startedAt: z.date(),
 	engineState: GameStateSchema,
 	engineConfig: GameConfigSchema,
-	actors: z.unknown(),
-	events: z.unknown().nullable().optional(),
+	actors: z.array(ActorStateSchema),
+	events: GameEventGroupDumpSchema.nullable().optional(),
 	players: z.array(GamePlayerSchema),
 	pollCount: z.number().int(),
 });
@@ -168,4 +134,4 @@ export const GameSyncResponseSchema = z.object({
 });
 
 // Re-export engine types so consumers don't need to import from @mafia/engine directly.
-export type { ActorState, GameConfig, GameState } from '@mafia/engine';
+export type { ActorState, GameEventGroupDump, GameConfig, GameState } from '@mafia/engine';

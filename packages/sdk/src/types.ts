@@ -18,44 +18,69 @@ export type { PublicErrorPayload, ULID } from '@mafia/core/error/schema';
 // --- Game schemas & types ---
 export {
 	ClientGameInfoSchema,
-	DeathRecordSchema, GameErrors, GameEventSchema,
+	GameErrors,
 	GameInfoSchema,
 	GamePhaseSchema,
 	GamePlayerSchema,
 	GameStatusSchema,
 	GameSyncResponseSchema,
-	GameTopics, VerdictSchema,
-	WinnerSummarySchema
+	GameTopics,
+	VerdictSchema,
 } from '@mafia/core/game/schema';
 export type {
 	ClientGameInfo,
-	DeathRecord,
-	GameConfig,
-	GameEvent,
 	GameInfo,
 	GamePhase,
 	GamePlayer,
-	GameState,
 	GameStatus,
 	GameSyncResponse,
 	Verdict,
-	WinnerSummary
 } from '@mafia/core/game/schema';
 
 // --- Engine types & values (canonical role/tag/alignment surface) ---
 export {
 	ActorStateSchema,
-	FALLBACK_ROLE, GameConfigSchema,
-	GameStateSchema, getRoleAttributes, ROLE_INFO, ROLE_KEYS, ROLE_NAME_BY_KEY, RoleTags, RoleAlignmentSchema, RoleTagSchema
+	FALLBACK_ROLE,
+	GameConfigSchema,
+	GameEventDumpSchema,
+	GameEventGroupDumpSchema,
+	GameStateSchema,
+	getRoleAttributes,
+	ROLE_INFO,
+	ROLE_KEYS,
+	ROLE_NAME_BY_KEY,
+	RoleAlignmentSchema,
+	RoleTagSchema,
+	RoleTags,
+	StateActorSchema,
+	StateGraveyardRecordSchema,
+	WinnerSummarySchema,
 } from '@mafia/engine';
 export type {
-	ActorState, RoleAlignment, RoleKey, RoleName, RoleSettings, RoleTag, StateActor, TagLike,
-	StateGraveyardRecord
+	ActorState,
+	GameConfig,
+	GameEventDump,
+	GameEventGroupDump,
+	GameState,
+	RoleAlignment,
+	RoleKey,
+	RoleName,
+	RoleSettings,
+	RoleTag,
+	StateActor,
+	StateGraveyardRecord,
+	TagLike,
+	WinnerSummary,
 } from '@mafia/engine';
 
 // --- Lobby schemas & types ---
 export {
-	LobbyErrors, LobbyInfoSchema, LobbyMemberErrors, LobbyMemberInfoSchema, MAX_PLAYERS, MIN_PLAYERS
+	LobbyErrors,
+	LobbyInfoSchema,
+	LobbyMemberErrors,
+	LobbyMemberInfoSchema,
+	MAX_PLAYERS,
+	MIN_PLAYERS,
 } from '@mafia/core/lobby/schema';
 export type { LobbyInfo, LobbyMemberInfo } from '@mafia/core/lobby/schema';
 
@@ -68,7 +93,7 @@ export {
 	MessageListSchema,
 	MessageSchema,
 	MessageScopeSchema,
-	MessageSenderSchema
+	MessageSenderSchema,
 } from '@mafia/core/message';
 export type {
 	AppChannel,
@@ -79,7 +104,7 @@ export type {
 	MessageKind,
 	MessageList,
 	MessageScope,
-	MessageSender
+	MessageSender,
 } from '@mafia/core/message';
 
 // --- User schemas & types ---
