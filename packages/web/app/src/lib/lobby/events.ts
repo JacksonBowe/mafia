@@ -1,4 +1,4 @@
-import type { Presence } from '@mafia/sdk';
+import type { LobbyInfo, Presence } from '@mafia/sdk';
 import { useQueryClient } from '@tanstack/vue-query';
 import { Loading, QSpinnerGears } from 'quasar';
 import type { AppBus } from 'src/boot/bus';
@@ -53,16 +53,32 @@ export function useLobbyEvents() {
 
 	const off: Array<() => void> = [];
 
+	const patchLobby = (lobbyId: string, update: (lobby: LobbyInfo) => LobbyInfo) => {
+		queryClient.setQueryData(['lobbies'], (old: LobbyInfo[] | undefined) =>
+			old?.map((lobby) => (lobby.id === lobbyId ? update(lobby) : lobby)),
+		);
+		queryClient.setQueryData(['lobbies', lobbyId], (old: LobbyInfo | undefined) =>
+			old ? update(old) : old,
+		);
+	};
+
 	onMounted(() => {
 		off.push(
 			bus.on('realtime.lobby.member.join', (p) => {
 				console.log('join', p.user.name);
-				void queryClient.invalidateQueries({ queryKey: ['lobbies'] });
+				patchLobby(p.lobbyId, (lobby) =>
+					lobby.members.some((member) => member.id === p.user.id)
+						? lobby
+						: { ...lobby, members: [...lobby.members, p.user] },
+				);
 			}),
 
 			bus.on('realtime.lobby.member.leave', (p) => {
 				console.log('leave', p);
-				void queryClient.invalidateQueries({ queryKey: ['lobbies'] });
+				patchLobby(p.lobbyId, (lobby) => ({
+					...lobby,
+					members: lobby.members.filter((member) => member.id !== p.userId),
+				}));
 			}),
 
 			bus.on('realtime.lobby.member.promote', (p) => {
