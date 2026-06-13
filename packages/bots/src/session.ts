@@ -1,5 +1,13 @@
 import { GameTopics } from '@mafia/core/game/schema';
-import { createClient, type ApiClient, type GameSyncResponse, type LobbyInfo } from '@mafia/sdk';
+import {
+	createClient,
+	type ActorState,
+	type ApiClient,
+	type GamePhase,
+	type GameSyncResponse,
+	type LobbyInfo,
+	type Verdict,
+} from '@mafia/sdk';
 import { z } from 'zod';
 import { BotRealtime, type RealtimeMessage } from './realtime';
 import type { BotLogEntry, BotSessionConfig, BotSnapshot, BotStatus } from './types';
@@ -8,6 +16,21 @@ const LobbyStartedSchema = z.object({
 	lobbyId: z.string(),
 	gameId: z.string(),
 });
+
+const GamePhaseSchema = z.object({
+	gameId: z.string(),
+	phase: z.string(),
+	sequence: z.number().int().optional(),
+});
+
+const GameActorSchema = z.object({
+	gameId: z.string(),
+	actor: z.object({ alive: z.boolean() }).passthrough(),
+});
+
+const ACTION_PHASES = new Set<GamePhase>(['poll', 'trial', 'evening']);
+const MIN_ACTION_DELAY_MS = 2_000;
+const MAX_ACTION_DELAY_MS = 5_000;
 
 export class BotSession {
 	private readonly cfg: BotSessionConfig;
@@ -19,6 +42,10 @@ export class BotSession {
 	private game: GameSyncResponse | null = null;
 	private lastError: string | null = null;
 	private lobbyId: string | null;
+	private isDead = false;
+	private actionTimer: ReturnType<typeof setTimeout> | null = null;
+	private pendingActionKey: string | null = null;
+	private readonly completedActionKeys = new Set<string>();
 	private readonly logs: BotLogEntry[] = [];
 	private readonly subscribedGames = new Set<string>();
 
@@ -109,6 +136,8 @@ export class BotSession {
 			? await this.client.getLobby({ lobbyId: this.lobbyId }).catch(() => null)
 			: null;
 		this.game = await this.client.getGame();
+		if (!this.game) this.isDead = false;
+		else this.updateDeadState(!this.game.actor.alive);
 		if (this.game) this.subscribeGame(this.game.info.id, this.game.actor.id);
 		this.setStatus(
 			this.game ? 'in_game' : this.lobby ? 'in_lobby' : this.realtime ? 'connected' : 'idle',
@@ -116,6 +145,7 @@ export class BotSession {
 	}
 
 	disconnect(): void {
+		this.clearActionTimer();
 		this.realtime?.disconnect();
 		this.realtime = null;
 		this.subscribedGames.clear();
@@ -125,6 +155,22 @@ export class BotSession {
 
 	private async handleMessage(msg: RealtimeMessage): Promise<void> {
 		this.log(`event ${msg.type}`, msg.properties);
+		if (msg.type === 'game.actor') {
+			this.handleActorUpdate(msg.properties);
+			return;
+		}
+
+		if (msg.type === 'game.over' || msg.type === 'game.terminated') {
+			this.clearActionTimer();
+			this.pendingActionKey = null;
+			return;
+		}
+
+		if (msg.type === 'game.phase') {
+			this.handlePhaseChange(msg.properties);
+			return;
+		}
+
 		if (msg.type !== 'lobby.started') return;
 
 		const { gameId } = LobbyStartedSchema.parse(msg.properties);
@@ -140,6 +186,149 @@ export class BotSession {
 		this.subscribeGame(game.info.id, game.actor.id);
 		this.setStatus('in_game');
 		this.log(`joined game ${game.info.id} as actor ${game.actor.id} (#${game.actor.number})`);
+		this.scheduleAutoAction(game.info.id, game.info.phase, String(game.info.syncTs));
+	}
+
+	private handlePhaseChange(properties: Record<string, unknown>): void {
+		if (this.isDead) return;
+		const parsed = GamePhaseSchema.safeParse(properties);
+		if (!parsed.success) return;
+		const phase = parsed.data.phase as GamePhase;
+		this.scheduleAutoAction(
+			parsed.data.gameId,
+			phase,
+			String(parsed.data.sequence ?? Date.now()),
+		);
+	}
+
+	private handleActorUpdate(properties: Record<string, unknown>): void {
+		const parsed = GameActorSchema.safeParse(properties);
+		if (!parsed.success) return;
+		this.updateDeadState(!parsed.data.actor.alive);
+	}
+
+	private updateDeadState(isDead: boolean): void {
+		if (!isDead) {
+			this.isDead = false;
+			return;
+		}
+
+		if (this.isDead) return;
+		this.isDead = true;
+		this.clearActionTimer();
+		this.pendingActionKey = null;
+		this.log('bot dead, auto-actions disabled');
+	}
+
+	private scheduleAutoAction(gameId: string, phase: GamePhase, sequence: string): void {
+		if (this.isDead) return;
+		if (!ACTION_PHASES.has(phase)) return;
+
+		const key = `${gameId}:${phase}:${sequence}`;
+		if (this.pendingActionKey === key) return;
+
+		this.clearActionTimer();
+		this.pendingActionKey = key;
+
+		const delay = randomInt(MIN_ACTION_DELAY_MS, MAX_ACTION_DELAY_MS);
+		this.log(`auto action scheduled for ${phase} in ${Math.round(delay / 1000)}s`);
+		this.actionTimer = setTimeout(() => {
+			this.runAutoAction(key).catch((err: unknown) => this.setError(err));
+		}, delay);
+	}
+
+	private clearActionTimer(): void {
+		if (!this.actionTimer) return;
+		clearTimeout(this.actionTimer);
+		this.actionTimer = null;
+	}
+
+	private async runAutoAction(key: string): Promise<void> {
+		this.actionTimer = null;
+		if (this.isDead) return;
+
+		try {
+			await this.refresh();
+			if (this.isDead) return;
+			const didAct = await this.takeRandomAction();
+			this.completedActionKeys.add(this.currentActionKey());
+			this.trimActionKeys();
+			if (!didAct) this.log('auto action skipped');
+		} catch (err) {
+			this.log('auto action failed', err, 'error');
+		} finally {
+			if (this.pendingActionKey === key) this.pendingActionKey = null;
+		}
+	}
+
+	private async takeRandomAction(): Promise<boolean> {
+		const game = this.game;
+		if (!game || game.info.status !== 'active' || !game.actor.alive) return false;
+
+		const currentKey = this.currentActionKey();
+		if (this.completedActionKeys.has(currentKey)) return false;
+
+		if (game.info.phase === 'poll') return this.submitRandomVote(game);
+		if (game.info.phase === 'trial') return this.submitRandomVerdict(game);
+		if (game.info.phase === 'evening') return this.submitRandomTargets(game);
+
+		return false;
+	}
+
+	private async submitRandomVote(game: GameSyncResponse): Promise<boolean> {
+		const choices = game.state.actors.filter(
+			(actor): actor is ActorState & { number: number } =>
+				actor.alive && actor.number !== undefined && actor.number !== game.actor.number,
+		);
+		const target = randomChoice(choices);
+		if (!target) return false;
+
+		await this.client.submitGameVote({
+			gameId: game.info.id,
+			targetActorNumber: target.number,
+		});
+		this.log(`auto voted #${target.number} ${target.alias}`);
+		await this.refresh();
+		return true;
+	}
+
+	private async submitRandomVerdict(game: GameSyncResponse): Promise<boolean> {
+		const verdict: Verdict = randomChoice(['guilty', 'innocent'] as const) ?? 'innocent';
+		await this.client.submitGameVerdict({ gameId: game.info.id, verdict });
+		this.log(`auto verdict ${verdict}`);
+		await this.refresh();
+		return true;
+	}
+
+	private async submitRandomTargets(game: GameSyncResponse): Promise<boolean> {
+		const targetActorNumbers: number[] = [];
+
+		for (let slot = 0; slot < game.actor.possibleTargets.length; slot += 1) {
+			if (slot > 0 && targetActorNumbers[slot - 1] === undefined) break;
+			const target = randomChoice(game.actor.possibleTargets[slot] ?? []);
+			if (target === undefined) break;
+			targetActorNumbers[slot] = target;
+		}
+
+		if (targetActorNumbers.length === 0) return false;
+
+		await this.client.setGameTargets({ gameId: game.info.id, targetActorNumbers });
+		this.log(`auto targets ${targetActorNumbers.join(', ')}`);
+		await this.refresh();
+		return true;
+	}
+
+	private currentActionKey(): string {
+		if (!this.game) return 'none';
+		return `${this.game.info.id}:${this.game.info.phase}:${this.game.info.syncTs}`;
+	}
+
+	private trimActionKeys(): void {
+		while (this.completedActionKeys.size > 50) {
+			const first = this.completedActionKeys.values().next().value;
+			if (!first) return;
+			this.completedActionKeys.delete(first);
+		}
 	}
 
 	private subscribeGame(gameId: string, actorId: string): void {
@@ -167,4 +356,13 @@ export class BotSession {
 		this.cfg.onLog?.(entry);
 		this.cfg.onChange?.();
 	}
+}
+
+function randomInt(min: number, max: number): number {
+	return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function randomChoice<T>(items: readonly T[]): T | undefined {
+	if (items.length === 0) return undefined;
+	return items[randomInt(0, items.length - 1)];
 }

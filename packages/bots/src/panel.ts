@@ -374,6 +374,8 @@ function botDetailText(bot: BotSnapshot): string {
 		`user: ${bot.user ? `${bot.user.name} (${bot.user.id})` : '-'}`,
 		`lobby: ${bot.lobby ? `${bot.lobby.name} (${bot.lobby.members.length} members)` : '-'}`,
 		`game: ${bot.game ? `${bot.game.info.id} ${bot.game.info.phase}/${bot.game.info.status}` : '-'}`,
+		`role: ${actor?.role ?? '-'}`,
+		`alignment: ${actor?.alignment ?? '-'}`,
 		`actor: ${actor ? `#${actor.number} ${actor.name} (${actor.id})` : '-'}`,
 		`error: ${bot.lastError ?? '-'}`,
 	].join('\n');
