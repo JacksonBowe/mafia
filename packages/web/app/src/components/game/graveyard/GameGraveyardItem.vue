@@ -1,14 +1,19 @@
 <template>
-	<q-item clickable class="graveyard-item no-select">
+	<q-item clickable class="graveyard-item relative-position no-select q-my-xs">
 		<q-item-section avatar class="graveyard-item__avatar">
 			<q-icon name="fa-solid fa-skull" size="16px" />
 		</q-item-section>
 
 		<q-item-section class="graveyard-item__main">
 			<q-item-label class="row items-center no-wrap q-gutter-x-xs">
-				<span class="graveyard-item__alias ellipsis">{{ entry.alias }}</span>
+				<span class="graveyard-item__alias ellipsis text-weight-semibold">
+					{{ entry.alias }}
+				</span>
 				<span class="text-grey-6">as</span>
-				<span class="graveyard-item__role ellipsis" :style="{ color: colorForRole(entry.role) }">
+				<span
+					class="graveyard-item__role ellipsis text-weight-semibold"
+					:style="{ color: colorForRole(entry.role) }"
+				>
 					{{ entry.role }}
 				</span>
 			</q-item-label>
@@ -17,7 +22,7 @@
 			</q-item-label>
 		</q-item-section>
 
-		<q-item-section side class="graveyard-item__number text-caption text-grey-6">
+		<q-item-section side class="text-caption text-grey-6 q-pl-sm">
 			#{{ entry.number }}
 		</q-item-section>
 	</q-item>
@@ -34,10 +39,8 @@ defineProps<{
 
 <style scoped lang="scss">
 .graveyard-item {
-	position: relative;
 	border-radius: 10px;
 	padding: 7px 9px;
-	margin: 4px 0;
 	background: rgba(255, 255, 255, 0.035);
 	border: 1px solid rgba(255, 255, 255, 0.06);
 	transition:
@@ -63,20 +66,14 @@ defineProps<{
 
 .graveyard-item__alias {
 	max-width: 42%;
-	font-weight: 600;
 	color: rgba(255, 255, 255, 0.9);
 }
 
 .graveyard-item__role {
 	max-width: 42%;
-	font-weight: 600;
 }
 
 .graveyard-item__cause {
 	color: rgba(255, 255, 255, 0.48);
-}
-
-.graveyard-item__number {
-	padding-left: 8px;
 }
 </style>

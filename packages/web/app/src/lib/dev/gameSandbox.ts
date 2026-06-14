@@ -63,7 +63,7 @@ const makeState = (): GameSyncResponse['state'] => ({
 			alignment: 'Town',
 		},
 		{
-			number: 15,
+			number: 14,
 			alias: 'Wraith',
 			cod: 'Killed by Serial Killer',
 			dod: 1,
@@ -72,7 +72,7 @@ const makeState = (): GameSyncResponse['state'] => ({
 			alignment: 'Town',
 		},
 		{
-			number: 15,
+			number: 13,
 			alias: 'Ember',
 			cod: 'Lynched',
 			dod: 2,
@@ -81,7 +81,7 @@ const makeState = (): GameSyncResponse['state'] => ({
 			alignment: 'Town',
 		},
 		{
-			number: 15,
+			number: 12,
 			alias: 'Phantom',
 			cod: 'Died in a shootout',
 			dod: 5,
@@ -90,7 +90,7 @@ const makeState = (): GameSyncResponse['state'] => ({
 			alignment: 'Town',
 		},
 		{
-			number: 15,
+			number: 11,
 			alias: 'Dagger',
 			cod: 'Died in a shootout',
 			dod: 5,
@@ -99,11 +99,11 @@ const makeState = (): GameSyncResponse['state'] => ({
 			alignment: 'Town',
 		},
 		{
-			number: 15,
+			number: 10,
 			alias: 'Wolf',
-			cod: 'Killed by Serial Killer Killed by Serial Killer Killed by Serial Killer Killed by Serial Killer',
+			cod: 'They were found riddled with bullets. The corpse also shows signs of stabbing post-mortem',
 			dod: 8,
-			role: 'Mafioso',
+			role: 'Survivor',
 			will: 'N1: watched #3',
 			alignment: 'Town',
 		},
