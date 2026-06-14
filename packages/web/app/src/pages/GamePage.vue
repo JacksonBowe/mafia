@@ -32,11 +32,15 @@
 					<q-btn label="Logs" no-caps size="sm" color="info" glossy push />
 					<q-btn label="Help" no-caps size="sm" color="warning" glossy push />
 				</div>
-				<game-timer
-					:label="gameStore.phaseMeta?.label ?? ''"
-					:duration="gameStore.phaseMeta?.duration ?? 0"
-					:reset-key="timerResetKey"
-				/>
+				<div class="row items-center q-gutter-sm">
+					<dev-sandbox-select />
+
+					<game-timer
+						:label="gameStore.phaseMeta?.label ?? ''"
+						:duration="gameStore.phaseMeta?.duration ?? 0"
+						:reset-key="timerResetKey"
+					/>
+				</div>
 			</div>
 
 			<!-- Main UI Area -->
@@ -44,23 +48,23 @@
 				<!-- Left Half -->
 				<div class="col-12 col-sm-6 column q-col-gutter-y-md no-wrap">
 					<!-- Top Left Quadrant -->
-					<div class="col row items-start">
+					<div class="col row">
 						<transition-group
 							tag="div"
 							enter-active-class="animated slideInLeft"
 							class="row col q-gutter-md"
 						>
-							<game-graveyard
-								key="graveyard"
-								class="col-12 col-sm-6 col-md-4"
-								:entries="graveyardEntries"
-							/>
-							<game-roles
-								v-if="gameStore.config?.tags"
-								:tags="gameStore.config.tags"
-								key="roles"
-								class="col-12 col-sm-5 col-md-3"
-							/>
+							<div class="col-12 col-sm-6 col-md-4" key="graveyard">
+								<game-graveyard key="graveyard" :entries="graveyardEntries" class="fit" />
+							</div>
+
+							<div class="col-12 col-sm-5 col-md-3" key="roles">
+								<game-roles
+									v-if="gameStore.config?.tags"
+									:tags="gameStore.config.tags"
+									key="roles"
+								/>
+							</div>
 						</transition-group>
 					</div>
 
@@ -114,6 +118,7 @@
 
 <script setup lang="ts">
 import type { StateGraveyardRecord } from '@mafia/sdk';
+import DevSandboxSelect from 'src/components/dev/DevSandboxSelect.vue';
 import GameTimer from 'src/components/game/GameTimer.vue';
 import GameActors from 'src/components/game/actors/GameActors.vue';
 import GameChat from 'src/components/game/chat/GameChat.vue';
