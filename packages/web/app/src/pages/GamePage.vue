@@ -96,18 +96,15 @@
 				</div>
 			</div>
 
-			<div v-if="false" class="row justify-center q-mt-md">
+			<div class="row justify-center q-mt-md jury-container">
 				<transition
 					enter-active-class="animated bounceInDown"
 					leave-active-class="animated bounceOutUp"
 				>
 					<game-jury
-						v-if="
-							playerOnTrial &&
-							gameStore.actor &&
-							['defense', 'trial'].includes(gameStore.phase ?? '')
-						"
+						v-if="playerOnTrial && gameStore.actor && ['trial'].includes(gameStore.phase ?? '')"
 						:player-label="trialPlayerLabel"
+						class="fit"
 					/>
 				</transition>
 			</div>
@@ -159,13 +156,27 @@ const timerResetKey = computed(() => {
 
 /** Find the player currently on trial */
 const playerOnTrial = computed(() => {
-	return null; // vote/verdict/onTrial are now delivered via realtime events only
+	const actorNumber = gameStore.onTrialActorNumber;
+	if (!actorNumber) return null;
+	return gameStore.state?.actors.find((actor) => actor.number === actorNumber) ?? null;
 });
 
 /** Label for the jury card */
 const trialPlayerLabel = computed(() => {
 	const p = playerOnTrial.value;
 	if (!p) return 'Unknown';
-	return 'Unknown';
+	return `${p.alias}`;
 });
 </script>
+
+<style scoped lang="scss">
+.jury-container {
+	top: 25%;
+	left: 50%;
+	position: absolute;
+	display: flex;
+	justify-content: center;
+	width: 30%;
+	transform: translate(-50%, 0);
+}
+</style>

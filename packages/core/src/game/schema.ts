@@ -66,7 +66,7 @@ export const GamePhaseSchema = z.enum([
 ]);
 export type GamePhase = z.infer<typeof GamePhaseSchema>;
 
-export const VerdictSchema = z.enum(['guilty', 'innocent']);
+export const VerdictSchema = z.enum(['guilty', 'innocent', 'abstain']);
 export type Verdict = z.infer<typeof VerdictSchema>;
 
 // ---------------------------------------------------------------------------

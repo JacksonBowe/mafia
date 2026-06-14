@@ -105,7 +105,9 @@ const { mutateAsync: submitVote } = useSubmitGameVote();
 
 const voteTarget = (actor: GameActor) => {
 	if (!gameStore.info) return;
-	void submitVote({ gameId: gameStore.info.id, targetActorNumber: actor.number });
+	const targetActorNumber = actor.number;
+	if (!targetActorNumber) return;
+	void submitVote({ gameId: gameStore.info.id, targetActorNumber });
 };
 
 /** Targeting */

@@ -293,7 +293,7 @@ export class BotSession {
 	}
 
 	private async submitRandomVerdict(game: GameSyncResponse): Promise<boolean> {
-		const verdict: Verdict = randomChoice(['guilty', 'innocent'] as const) ?? 'innocent';
+		const verdict: Verdict = randomChoice(['guilty', 'innocent', 'abstain'] as const) ?? 'abstain';
 		await this.client.submitGameVerdict({ gameId: game.info.id, verdict });
 		this.log(`auto verdict ${verdict}`);
 		await this.refresh();

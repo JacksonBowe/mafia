@@ -4,6 +4,7 @@ import { LocalStorage } from 'quasar';
 import { boot } from 'quasar/wrappers';
 import { client } from 'src/lib/auth';
 import { api } from 'src/boot/axios';
+import { isGameSandboxVariant, loadGameSandbox } from 'src/lib/dev/gameSandbox';
 import { getLogger } from 'src/lib/log';
 import { useAuthStore } from 'src/stores/auth';
 import { useGameStore } from 'src/stores/game';
@@ -171,10 +172,11 @@ async function tryRefresh(
 }
 
 export default boot(({ router }) => {
-	router.beforeEach(async (to) => {
+		router.beforeEach(async (to) => {
 		const auth = useAuthStore();
 		const gameStore = useGameStore();
 		const { isProtected, isGuestOnly, isPublic, requiresGame } = getFlags(to);
+		const devGame = isString(to.query?.devGame) ? to.query.devGame : null;
 
 		log.debug('route', { to: to.fullPath, isProtected, isGuestOnly, isPublic, requiresGame });
 
@@ -269,6 +271,11 @@ export default boot(({ router }) => {
 
 		// 5) game route protection - must have active game or be in transition
 		if (requiresGame) {
+			if (import.meta.env.DEV && devGame && isGameSandboxVariant(devGame)) {
+				loadGameSandbox(gameStore, devGame);
+				return true;
+			}
+
 			if (!gameStore.info?.id && gameStore.status !== 'transitioning') {
 				try {
 					const syncData = await api.getGame();

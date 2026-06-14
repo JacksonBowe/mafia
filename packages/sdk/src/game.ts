@@ -46,7 +46,7 @@ export const gameMethods = (request: RequestFn) => ({
 	cancelGameVote: ({ gameId }: CancelGameVoteInput): Promise<{ success: boolean }> =>
 		request({ method: 'POST', url: `/game/${gameId}/vote/cancel` }),
 
-	/** Submit a guilty/innocent verdict during the TRIAL phase. */
+	/** Submit a guilty/innocent/abstain verdict during the TRIAL phase. */
 	submitGameVerdict: ({
 		gameId,
 		verdict,

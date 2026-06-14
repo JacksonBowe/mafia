@@ -50,6 +50,8 @@ export const useGameStore = defineStore('game', {
 		verdicts: {} as Record<number, Verdict>,
 		/** Player number currently on trial, if any */
 		onTrialActorNumber: null as number | null,
+		/** Dev-only sandbox game loaded from URL/admin controls. */
+		isSandbox: false,
 	}),
 	getters: {
 		hasActiveGame: (s) => !!s.info,
@@ -105,6 +107,8 @@ export const useGameStore = defineStore('game', {
 		 * flash a loading state.
 		 */
 		async syncFromServer() {
+			if (this.isSandbox) return;
+
 			const isBackground = this.status === 'ready';
 
 			if (!isBackground) {
@@ -170,6 +174,7 @@ export const useGameStore = defineStore('game', {
 			};
 			this.status = 'ready';
 			this.error = null;
+			this.isSandbox = false;
 
 			// Hydrate the phase-scoped vote tally from the authoritative server
 			// snapshot (empty outside the poll phase).
@@ -179,6 +184,31 @@ export const useGameStore = defineStore('game', {
 			if (!this.config) {
 				this.config = sync.config;
 			}
+		},
+
+		/** Hydrate local-only dev sandbox state. */
+		hydrateSandboxGame(
+			sync: GameSyncResponse,
+			onTrialActorNumber: number | null,
+			verdicts: Record<number, Verdict>,
+		) {
+			this.info = sync.info;
+			this.state = sync.state;
+			this.actor = sync.actor;
+			this.config = sync.config;
+			this.lastSyncTs = sync.info.syncTs;
+			this.phaseMeta = {
+				phase: sync.info.phase,
+				duration: 0,
+				label: getPhaseLabel(sync.info.phase, sync.info.pollCount),
+				sequence: getPhaseSequence(sync.info.phase, sync.info.pollCount),
+			};
+			this.status = 'ready';
+			this.error = null;
+			this.votes = sync.votes ?? {};
+			this.verdicts = verdicts;
+			this.onTrialActorNumber = onTrialActorNumber;
+			this.isSandbox = true;
 		},
 
 		/**
@@ -276,6 +306,7 @@ export const useGameStore = defineStore('game', {
 			this.votes = {};
 			this.verdicts = {};
 			this.onTrialActorNumber = null;
+			this.isSandbox = false;
 		},
 	},
 });

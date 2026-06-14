@@ -1,4 +1,4 @@
-import { GamePhaseSchema, type GameState } from '@mafia/sdk';
+import { GamePhaseSchema, VerdictSchema, type GameState } from '@mafia/sdk';
 import { useQueryClient } from '@tanstack/vue-query';
 import type { AppBus } from 'src/boot/bus';
 import { useGameStore } from 'src/stores/game';
@@ -38,12 +38,13 @@ export const GameEventSchemas = {
 	'realtime.game.verdict': z.object({
 		gameId: ULID,
 		voterActorNumber: z.number().int(),
-		verdict: z.enum(['guilty', 'innocent']),
+		verdict: VerdictSchema,
 	}),
 	'realtime.game.lynch_result': z.object({
 		gameId: ULID,
 		actorId: z.string(),
 		guiltyCount: z.number().int(),
+		abstainCount: z.number().int(),
 		innocentCount: z.number().int(),
 		isGuilty: z.boolean(),
 	}),

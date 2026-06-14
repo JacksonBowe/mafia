@@ -70,7 +70,7 @@
 import { useRoute } from 'vue-router';
 import { useTerminateGames, useTerminateLobbies } from 'src/lib/admin/hooks';
 import { useGameStore } from 'src/stores/game';
-import { dummyGameSync } from 'src/lib/admin/dummyGameSync';
+import { loadGameSandbox } from 'src/lib/dev/gameSandbox';
 import { computed } from 'vue';
 
 const { mutateAsync: terminateLobbies, isPending: isTerminateLobbiesPending } =
@@ -84,11 +84,7 @@ const gameStore = useGameStore();
 const isGameRoute = computed(() => route.path.startsWith('/game'));
 
 const loadDummyGame = () => {
-	gameStore.lastSyncTs = 0;
-	gameStore.hydrateFromSync({
-		...dummyGameSync,
-		info: { ...dummyGameSync.info, syncTs: Date.now() },
-	});
+	loadGameSandbox(gameStore);
 };
 
 const unloadDummyGame = () => {

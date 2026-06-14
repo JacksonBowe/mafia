@@ -199,7 +199,7 @@ export const RealtimeEvents = {
 		z.object({
 			gameId: isULID(),
 			voterActorNumber: z.number().int(),
-			verdict: z.enum(['guilty', 'innocent']),
+			verdict: VerdictSchema,
 		}),
 		(p) => GameTopics.public(p.gameId),
 	),
@@ -213,6 +213,7 @@ export const RealtimeEvents = {
 			gameId: isULID(),
 			actorId: z.string(),
 			guiltyCount: z.number().int(),
+			abstainCount: z.number().int(),
 			innocentCount: z.number().int(),
 			isGuilty: z.boolean(),
 		}),
@@ -765,7 +766,7 @@ export const tallyVotes = fn(
 // ---------------------
 
 /**
- * Submit a player's trial verdict (guilty/innocent).
+ * Submit a player's trial verdict (guilty/innocent/abstain).
  */
 export const submitVerdict = fn(
 	z.object({
@@ -886,21 +887,25 @@ export const tallyVerdicts = fn(
 				.from(gamePlayerTable)
 				.where(eq(gamePlayerTable.gameId, gameId));
 
-			// Count verdicts only from alive players who are not on trial
+			// Count only guilty/innocent verdicts from alive players who are not on trial.
+			// Null (no submission) defaults to abstain.
 			const aliveActorIdSet = new Set(aliveActorIds);
 			let guiltyCount = 0;
+			let abstainCount = 0;
 			let innocentCount = 0;
 
 			for (const player of players) {
 				// Skip players on trial (they can't vote)
 				if (player.onTrial) continue;
 
-				if (aliveActorIdSet.has(player.actorId) && player.verdict !== null) {
-					if (player.verdict === 'guilty') {
-						guiltyCount++;
-					} else {
-						innocentCount++;
-					}
+				if (!aliveActorIdSet.has(player.actorId)) continue;
+
+				if (player.verdict === 'guilty') {
+					guiltyCount++;
+				} else if (player.verdict === 'innocent') {
+					innocentCount++;
+				} else {
+					abstainCount++;
 				}
 			}
 
@@ -909,6 +914,7 @@ export const tallyVerdicts = fn(
 
 			return {
 				guiltyCount,
+				abstainCount,
 				innocentCount,
 				isGuilty,
 				outcome: isGuilty ? ('guilty' as const) : ('innocent' as const),
@@ -1162,6 +1168,7 @@ type AdvancePhaseResult = {
 	lynchResult?: {
 		actorId: string;
 		guiltyCount: number;
+		abstainCount: number;
 		innocentCount: number;
 		isGuilty: boolean;
 	};
@@ -1227,16 +1234,17 @@ const tallyVotesForPlayers = (players: GamePlayer[], aliveActorIds: string[]) =>
 const tallyVerdictsForPlayers = (players: GamePlayer[], aliveActorIds: string[]) => {
 	const aliveActorIdSet = new Set(aliveActorIds);
 	let guiltyCount = 0;
+	let abstainCount = 0;
 	let innocentCount = 0;
 
 	for (const player of players) {
-		if (player.onTrial || !aliveActorIdSet.has(player.actorId) || player.verdict === null)
-			continue;
+		if (player.onTrial || !aliveActorIdSet.has(player.actorId)) continue;
 		if (player.verdict === 'guilty') guiltyCount++;
-		else innocentCount++;
+		else if (player.verdict === 'innocent') innocentCount++;
+		else abstainCount++;
 	}
 
-	return { guiltyCount, innocentCount, isGuilty: guiltyCount > innocentCount };
+	return { guiltyCount, abstainCount, innocentCount, isGuilty: guiltyCount > innocentCount };
 };
 
 const nextPollOrEvening = (pollCount: number, overrides: Partial<AdvancePhaseResult> = {}) => {
