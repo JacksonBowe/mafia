@@ -43,6 +43,9 @@ export const gameTable = pgTable(
 		// Pending engine event tree produced in evening and replayed during night
 		events: jsonb('events'),
 
+		// Step Functions execution ARN for the active game loop
+		gameLoopExecutionArn: text('game_loop_execution_arn'),
+
 		// Poll count - tracks voting rounds (max 3 before moving to evening)
 		pollCount: integer('poll_count').notNull().default(0),
 	},

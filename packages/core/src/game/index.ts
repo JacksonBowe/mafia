@@ -1,3 +1,4 @@
+import { SFNClient, StopExecutionCommand } from '@aws-sdk/client-sfn';
 import {
 	ActorStateSchema,
 	GameConfigSchema,
@@ -1090,6 +1091,27 @@ export const updateState = fn(
 		}),
 );
 
+export const setGameLoopExecutionArn = fn(
+	z.object({
+		gameId: isULID(),
+		executionArn: z.string().min(1),
+	}),
+	async ({ gameId, executionArn }) =>
+		useTransaction(async (tx) => {
+			const [updated] = await tx
+				.update(gameTable)
+				.set({ gameLoopExecutionArn: executionArn })
+				.where(eq(gameTable.id, gameId))
+				.returning({ id: gameTable.id });
+
+			if (!updated) {
+				throw new InputError(Errors.GameNotFound, 'Game not found');
+			}
+
+			return { gameId };
+		}),
+);
+
 export const list = () =>
 	useTransaction(async (tx) =>
 		tx
@@ -1132,7 +1154,10 @@ export const terminate = fn(
 	async ({ gameId }) =>
 		useTransaction(async (tx) => {
 			const [game] = await tx
-				.select({ id: gameTable.id })
+				.select({
+					id: gameTable.id,
+					gameLoopExecutionArn: gameTable.gameLoopExecutionArn,
+				})
 				.from(gameTable)
 				.where(eq(gameTable.id, gameId))
 				.limit(1);
@@ -1148,6 +1173,22 @@ export const terminate = fn(
 
 			if (deleted.length === 0) {
 				throw new InputError(Errors.GameNotFound, 'Game not found');
+			}
+
+			if (game.gameLoopExecutionArn) {
+				void afterTx(async () => {
+					const sfnClient = new SFNClient({});
+
+					try {
+						await sfnClient.send(
+							new StopExecutionCommand({
+								executionArn: game.gameLoopExecutionArn,
+							}),
+						);
+					} catch (error) {
+						console.error('Failed to stop game loop execution', { gameId, error });
+					}
+				});
 			}
 
 			return { gameId };

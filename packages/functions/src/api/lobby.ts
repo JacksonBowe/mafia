@@ -174,8 +174,12 @@ lobbyRoutes.post('/:lobbyId/start', zValidator('param', LobbyIdPathParamsSchema)
 				new StartExecutionCommand({
 					stateMachineArn: Resource.GameLoopMachine.arn,
 					input: JSON.stringify({ gameId, waitSeconds: 15 }),
-				})
-			)
+				}),
+			);
+
+			if (response.executionArn) {
+				await Game.setGameLoopExecutionArn({ gameId, executionArn: response.executionArn });
+			}
 
 			console.log('Started game loop execution', { response });
 		});

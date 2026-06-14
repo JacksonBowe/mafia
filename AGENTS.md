@@ -9,7 +9,7 @@ Directory-local `.agent_context.md` files are brief routing aids for agents. The
 
 When modifying a directory, update the relevant `.agent_context.md` file if the directory map is no longer accurate or is missing important new entries.
 
-The user will perform all DB actions themselves.
+The user will perform all DB actions themselves (migration generation and application).
 
 ## Repository structure
 

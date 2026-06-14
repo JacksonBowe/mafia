@@ -57,6 +57,13 @@
       "when": 1780806684976,
       "tag": "0007_chubby_manta",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1781399940126,
+      "tag": "0008_eminent_blackheart",
+      "breakpoints": true
     }
   ]
 }
