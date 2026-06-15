@@ -48,6 +48,7 @@ async function main(): Promise<void> {
 	let botOffset = 0;
 	let statusLine = 'ready';
 	let lobbies: LobbyInfo[] = [];
+	let shuttingDown = false;
 
 	const apiUrl = Resource.Api.url;
 	const client = createClient({ baseUrl: apiUrl, getApiKey: () => keys[0]?.key });
@@ -176,8 +177,6 @@ async function main(): Promise<void> {
 	root.add(footer);
 	logs.add(logText);
 	renderer.root.add(root);
-	await refreshAllData();
-	redraw();
 
 	renderer.keyInput.on('keypress', (key) => {
 		if (key.ctrl && key.name === 'c') {
@@ -187,6 +186,10 @@ async function main(): Promise<void> {
 
 		void handleKey(key.name, key.sequence, key.shift);
 	});
+
+	redraw();
+	await refreshAllData();
+	redraw();
 
 	async function handleKey(name: string, sequence: string, shift: boolean): Promise<void> {
 		const keyName = name.toLowerCase();
@@ -221,6 +224,7 @@ async function main(): Promise<void> {
 					return manager.startLobbyFromSelected(lobby.id);
 				});
 		} catch (err) {
+			if (shuttingDown) return;
 			statusLine = err instanceof Error ? err.message : String(err);
 			redraw();
 		}
@@ -271,9 +275,11 @@ async function main(): Promise<void> {
 	}
 
 	async function refreshAllData(): Promise<void> {
+		if (shuttingDown) return;
 		statusLine = 'refreshing all data...';
 		redraw();
 		const [lobbyOk] = await Promise.all([refreshLobbies(), manager.refreshAll()]);
+		if (shuttingDown) return;
 		if (lobbyOk) statusLine = `refreshed all data at ${new Date().toLocaleTimeString()}`;
 		redraw();
 	}
@@ -297,15 +303,18 @@ async function main(): Promise<void> {
 	}
 
 	function queueRedraw(): void {
+		if (shuttingDown) return;
 		if (redrawQueued) return;
 		redrawQueued = true;
 		queueMicrotask(() => {
 			redrawQueued = false;
+			if (shuttingDown) return;
 			redraw();
 		});
 	}
 
 	function redraw(): void {
+		if (shuttingDown) return;
 		const snapshots = manager.snapshots();
 		selectedBotIndex = clamp(selectedBotIndex, 0, Math.max(0, snapshots.length - 1));
 		manager.select(selectedBotIndex);
@@ -343,8 +352,12 @@ async function main(): Promise<void> {
 	}
 
 	function shutdown(): void {
+		if (shuttingDown) return;
+		shuttingDown = true;
+		redrawQueued = false;
 		manager.disconnectAll();
 		renderer.destroy();
+		process.exit(0);
 	}
 }
 

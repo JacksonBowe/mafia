@@ -31,6 +31,7 @@ const GameActorSchema = z.object({
 const ACTION_PHASES = new Set<GamePhase>(['poll', 'trial', 'evening']);
 const MIN_ACTION_DELAY_MS = 2_000;
 const MAX_ACTION_DELAY_MS = 5_000;
+const API_TIMEOUT_MS = 15_000;
 
 export class BotSession {
 	private readonly cfg: BotSessionConfig;
@@ -57,6 +58,7 @@ export class BotSession {
 			baseUrl: cfg.apiUrl,
 			getApiKey: () => cfg.apiKey,
 		});
+		this.client.axios.defaults.timeout = API_TIMEOUT_MS;
 	}
 
 	snapshot(): BotSnapshot {
@@ -75,7 +77,13 @@ export class BotSession {
 		if (this.realtime) return;
 
 		this.setStatus('authenticating');
-		this.user = await this.client.getMe();
+		this.log(`authenticating via ${this.cfg.apiUrl}`);
+		try {
+			this.user = await this.client.getMe();
+		} catch (err) {
+			this.setError(err);
+			throw err;
+		}
 		this.log(`authenticated as ${this.user.name} (${this.user.id})`);
 
 		this.realtime = new BotRealtime({
@@ -371,7 +379,7 @@ export class BotSession {
 	}
 
 	private setError(err: unknown): void {
-		this.lastError = err instanceof Error ? err.message : String(err);
+		this.lastError = formatError(err);
 		this.setStatus('error');
 		this.log(this.lastError, err, 'error');
 	}
@@ -392,4 +400,36 @@ function randomInt(min: number, max: number): number {
 function randomChoice<T>(items: readonly T[]): T | undefined {
 	if (items.length === 0) return undefined;
 	return items[randomInt(0, items.length - 1)];
+}
+
+function formatError(err: unknown): string {
+	if (!isHttpClientError(err)) return err instanceof Error ? err.message : String(err);
+
+	const parts = [typeof err.message === 'string' ? err.message : 'HTTP client error'];
+	const method = typeof err.config?.method === 'string' ? err.config.method.toUpperCase() : undefined;
+	const url = typeof err.config?.url === 'string' ? err.config.url : undefined;
+	if (method || url) {
+		parts.push(`request=${[method, url].filter(Boolean).join(' ')}`);
+	}
+	if (typeof err.response?.status === 'number') parts.push(`status=${err.response.status}`);
+	if (err.response?.data !== undefined) parts.push(`body=${formatErrorBody(err.response.data)}`);
+	return parts.join(' | ');
+}
+
+function isHttpClientError(err: unknown): err is {
+	message?: unknown;
+	config?: { method?: unknown; url?: unknown };
+	response?: { status?: unknown; data?: unknown };
+} {
+	if (!err || typeof err !== 'object') return false;
+	return 'config' in err || 'response' in err;
+}
+
+function formatErrorBody(data: unknown): string {
+	if (typeof data === 'string') return data;
+	try {
+		return JSON.stringify(data);
+	} catch {
+		return String(data);
+	}
 }
