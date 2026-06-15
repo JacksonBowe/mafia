@@ -57,6 +57,7 @@ export const handler = realtime.authorizer(async (token) => {
 		subscribe.add(`${prefix}/chat/menu/global`);
 		subscribe.add(`${prefix}/chat/menu/lobby/*`);
 		subscribe.add(`${prefix}/chat/menu/private/${userId}`);
+		subscribe.add(`${prefix}/chat/game/*`);
 		subscribe.add(`${prefix}/lobby/*`);
 		subscribe.add(`${prefix}/game/*`);
 

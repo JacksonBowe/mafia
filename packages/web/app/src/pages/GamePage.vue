@@ -127,11 +127,14 @@ import GameJury from 'src/components/game/jury/GameJury.vue';
 import GameRole from 'src/components/game/role/GameRole.vue';
 import GameRoles from 'src/components/game/roles/GameRoles.vue';
 import { useGameStore } from 'src/stores/game';
+import { useMessageStore } from 'src/stores/message';
 import { computed, onUnmounted } from 'vue';
 
 const gameStore = useGameStore();
+const messageStore = useMessageStore();
 
 onUnmounted(() => {
+	messageStore.clearByScope('game');
 	gameStore.clearGame();
 });
 

@@ -4,9 +4,11 @@ import type {
 	SubmitGameVerdictInput,
 	SubmitGameVoteInput,
 } from '@mafia/sdk';
+import { resolveGameChatSendPolicy } from '@mafia/sdk';
 import { useMutation } from '@tanstack/vue-query';
 import { api } from 'src/boot/axios';
 import { useGameStore } from 'src/stores/game';
+import { useMessageStore } from 'src/stores/message';
 
 // Game actions are fire-and-forget: the server broadcasts a realtime event
 // (vote / votecancel / verdict / trial) that updates the store for everyone,
@@ -85,6 +87,48 @@ export const useSubmitGameVerdict = () => {
 		},
 		onError: (e) => {
 			console.error('Submit Verdict Error', e);
+		},
+	});
+};
+
+export const useSendGameMessage = () => {
+	const gameStore = useGameStore();
+	const messageStore = useMessageStore();
+
+	return useMutation({
+		mutationFn: (text: string) => {
+			const gameId = gameStore.info?.id;
+			const actor = gameStore.actor;
+			if (!gameId || !actor) {
+				return Promise.resolve({ success: false });
+			}
+
+			const policy = resolveGameChatSendPolicy({ phase: gameStore.phase ?? 'pregame', actor });
+			if (!policy.canSend) {
+				return Promise.resolve({ success: false });
+			}
+
+			if (gameStore.isSandbox) {
+				messageStore.user(
+					text,
+					{
+						scope: 'game',
+						channel: policy.channel,
+						gameId,
+						...(policy.teamId ? { teamId: policy.teamId } : {}),
+					},
+					{
+						userId: actor.id,
+						displayName: actor.alias,
+					},
+				);
+				return Promise.resolve({ success: true });
+			}
+
+			return api.sendMessage({ text, scope: 'game' });
+		},
+		onError: (e) => {
+			console.error('Send Game Message Error', e);
 		},
 	});
 };

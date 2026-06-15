@@ -2,6 +2,7 @@ import { GamePhaseSchema, VerdictSchema, type GameState } from '@mafia/sdk';
 import { useQueryClient } from '@tanstack/vue-query';
 import type { AppBus } from 'src/boot/bus';
 import { useGameStore } from 'src/stores/game';
+import { useMessageStore } from 'src/stores/message';
 import { inject, onMounted, onUnmounted } from 'vue';
 import { z } from 'zod';
 
@@ -98,13 +99,19 @@ export function useGameEvents() {
 
 	const queryClient = useQueryClient();
 	const gameStore = useGameStore();
+	const messageStore = useMessageStore();
 	const off: Array<() => void> = [];
+
+	const system = (gameId: string, text: string) => {
+		messageStore.system(text, { scope: 'game', channel: 'GLOBAL', gameId });
+	};
 
 	onMounted(() => {
 		off.push(
 			bus.on('realtime.game.phase', ({ gameId, phase, duration, label, sequence }) => {
 				if (gameStore.info?.id !== gameId) return;
 				gameStore.applyPhaseEvent(phase, duration, label, sequence);
+				system(gameId, `${label} has begun.`);
 			}),
 			bus.on('realtime.game.state', ({ gameId, state }) => {
 				if (gameStore.info?.id !== gameId) return;
@@ -118,30 +125,59 @@ export function useGameEvents() {
 			bus.on('realtime.game.vote', ({ gameId, voterActorNumber, targetActorNumber }) => {
 				if (gameStore.info?.id !== gameId) return;
 				gameStore.applyVote(voterActorNumber, targetActorNumber);
+				system(gameId, `Player ${voterActorNumber} voted Player ${targetActorNumber}.`);
 			}),
 			bus.on('realtime.game.votecancel', ({ gameId, voterActorNumber }) => {
 				if (gameStore.info?.id !== gameId) return;
 				gameStore.applyVoteCancel(voterActorNumber);
+				system(gameId, `Player ${voterActorNumber} cancelled their vote.`);
 			}),
 			bus.on('realtime.game.verdict', ({ gameId, voterActorNumber, verdict }) => {
 				if (gameStore.info?.id !== gameId) return;
 				gameStore.applyVerdict(voterActorNumber, verdict);
+				system(gameId, `Player ${voterActorNumber} voted ${verdict}.`);
 			}),
 			bus.on('realtime.game.trial', ({ gameId, actorNumber }) => {
 				if (gameStore.info?.id !== gameId) return;
 				gameStore.setOnTrial(actorNumber);
+				system(gameId, `Player ${actorNumber} is on trial.`);
 			}),
 			bus.on('realtime.game.trial_over', ({ gameId }) => {
 				if (gameStore.info?.id !== gameId) return;
 				gameStore.clearOnTrial();
+				system(gameId, 'Trial has ended.');
+			}),
+			bus.on(
+				'realtime.game.lynch_result',
+				({ gameId, guiltyCount, innocentCount, abstainCount, isGuilty }) => {
+					if (gameStore.info?.id !== gameId) return;
+					system(
+						gameId,
+						`${isGuilty ? 'Guilty' : 'Not guilty'}: ${guiltyCount} guilty, ${innocentCount} innocent, ${abstainCount} abstain.`,
+					);
+				},
+			),
+			bus.on('realtime.game.event', ({ gameId, message }) => {
+				if (gameStore.info?.id !== gameId) return;
+				system(gameId, message);
+			}),
+			bus.on('realtime.game.deaths', ({ gameId, deaths }) => {
+				if (gameStore.info?.id !== gameId) return;
+				if (deaths.length === 0) {
+					system(gameId, 'No one died.');
+					return;
+				}
+				system(gameId, `${deaths.length} player${deaths.length === 1 ? '' : 's'} died.`);
 			}),
 			bus.on('realtime.game.over', ({ gameId }) => {
 				if (gameStore.info?.id !== gameId) return;
+				system(gameId, 'Game over.');
 				// Re-sync to get final state
 				void gameStore.syncFromServer();
 			}),
-			bus.on('realtime.game.terminated', ({ gameId }) => {
+			bus.on('realtime.game.terminated', ({ gameId, message, error }) => {
 				if (gameStore.info?.id === gameId) {
+					system(gameId, message ?? error ?? 'Game terminated.');
 					gameStore.clearGame();
 				}
 				void queryClient.invalidateQueries({ queryKey: ['actor', 'presence'] });
