@@ -4,6 +4,7 @@
 // ---------------------------------------------------------------------------
 import {
 	ActorStateSchema,
+	GameEventGroupDumpSchema,
 	GameConfigSchema,
 	GameStateSchema,
 	type ActorState,
@@ -23,8 +24,11 @@ export enum GameErrors {
 	GameInvalidState = 'game.invalid_state',
 	PlayerNotFound = 'game.player_not_found',
 	InvalidVoteTarget = 'game.invalid_vote_target',
+	InvalidTarget = 'game.invalid_target',
 	CannotVoteSelf = 'game.cannot_vote_self',
 	PlayerNotAlive = 'game.player_not_alive',
+	NotVotingPhase = 'game.not_voting_phase',
+	NotTrialPhase = 'game.not_trial_phase',
 }
 
 // ---------------------------------------------------------------------------
@@ -33,7 +37,7 @@ export enum GameErrors {
 
 export const GameTopics = {
 	/** Public game channel - all players receive these events */
-	public: (gameId: string) => `game/${gameId}`,
+	public: (gameId: string) => `game/${gameId}/events`,
 	/** Private actor channel - only the specific player receives these events */
 	actor: (gameId: string, actorId: string) => `game/${gameId}/actor/${actorId}`,
 	/** Public chat channel */
@@ -41,41 +45,6 @@ export const GameTopics = {
 	/** Faction-specific chat channel */
 	chatFaction: (gameId: string, faction: string) => `game/${gameId}/chat/${faction}`,
 };
-
-// ---------------------------------------------------------------------------
-// Realtime payload schemas
-// ---------------------------------------------------------------------------
-
-/** Death record for morning announcements */
-export const DeathRecordSchema = z.object({
-	playerNumber: z.number().int(),
-	alias: z.string(),
-	role: z.string(),
-	deathCause: z.string(),
-	deathDay: z.number().int(),
-});
-export type DeathRecord = z.infer<typeof DeathRecordSchema>;
-
-/** Winner summary for game over */
-export const WinnerSummarySchema = z.object({
-	faction: z.string(),
-	players: z.array(
-		z.object({
-			playerNumber: z.number().int(),
-			alias: z.string(),
-			role: z.string(),
-		}),
-	),
-});
-export type WinnerSummary = z.infer<typeof WinnerSummarySchema>;
-
-/** Game event for night action results */
-export const GameEventSchema = z.object({
-	eventId: z.string(),
-	message: z.string(),
-	duration: z.number().int().default(0),
-});
-export type GameEvent = z.infer<typeof GameEventSchema>;
 
 // ---------------------------------------------------------------------------
 // Status / phase / verdict
@@ -97,7 +66,7 @@ export const GamePhaseSchema = z.enum([
 ]);
 export type GamePhase = z.infer<typeof GamePhaseSchema>;
 
-export const VerdictSchema = z.enum(['guilty', 'innocent']);
+export const VerdictSchema = z.enum(['guilty', 'innocent', 'abstain']);
 export type Verdict = z.infer<typeof VerdictSchema>;
 
 // ---------------------------------------------------------------------------
@@ -108,12 +77,12 @@ export const GamePlayerSchema = z.object({
 	id: isULID(),
 	gameId: isULID(),
 	userId: z.string(),
-	number: z.string(),
-	alias: z.string(),
-	role: z.string().nullable(),
-	vote: z.number().int().nullable(),
+	actorId: z.string(),
+	number: z.number().int().positive(),
+	voteTargetActorId: z.string().nullable(),
 	verdict: VerdictSchema.nullable(),
 	onTrial: z.boolean(),
+	targetActorIds: z.array(z.string()).default([]),
 });
 
 export type GamePlayer = z.infer<typeof GamePlayerSchema>;
@@ -124,7 +93,8 @@ export const GameInfoSchema = EntityBaseSchema.extend({
 	startedAt: z.date(),
 	engineState: GameStateSchema,
 	engineConfig: GameConfigSchema,
-	actors: z.unknown(),
+	actors: z.array(ActorStateSchema),
+	events: GameEventGroupDumpSchema.nullable().optional(),
 	players: z.array(GamePlayerSchema),
 	pollCount: z.number().int(),
 });
@@ -152,6 +122,8 @@ export interface GameSyncResponse {
 	state: GameState;
 	config: GameConfig;
 	actor: ActorState;
+	/** Phase-scoped vote tally: voter number -> target number. Empty outside the poll phase. */
+	votes: Record<number, number>;
 }
 
 export const GameSyncResponseSchema = z.object({
@@ -159,7 +131,8 @@ export const GameSyncResponseSchema = z.object({
 	state: GameStateSchema,
 	config: GameConfigSchema,
 	actor: ActorStateSchema,
+	votes: z.record(z.string(), z.number().int()),
 });
 
 // Re-export engine types so consumers don't need to import from @mafia/engine directly.
-export type { ActorState, GameConfig, GameState } from '@mafia/engine';
+export type { ActorState, GameEventGroupDump, GameConfig, GameState } from '@mafia/engine';

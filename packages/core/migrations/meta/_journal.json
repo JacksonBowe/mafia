@@ -43,6 +43,27 @@
       "when": 1776226184954,
       "tag": "0005_superb_miracleman",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1780451800890,
+      "tag": "0006_slim_storm",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1780806684976,
+      "tag": "0007_chubby_manta",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1781399940126,
+      "tag": "0008_eminent_blackheart",
+      "breakpoints": true
     }
   ]
 }

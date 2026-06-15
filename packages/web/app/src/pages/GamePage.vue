@@ -32,7 +32,15 @@
 					<q-btn label="Logs" no-caps size="sm" color="info" glossy push />
 					<q-btn label="Help" no-caps size="sm" color="warning" glossy push />
 				</div>
-				<game-timer :duration="200" />
+				<div class="row items-center q-gutter-sm">
+					<dev-sandbox-select />
+
+					<game-timer
+						:label="gameStore.phaseMeta?.label ?? ''"
+						:duration="gameStore.phaseMeta?.duration ?? 0"
+						:reset-key="timerResetKey"
+					/>
+				</div>
 			</div>
 
 			<!-- Main UI Area -->
@@ -40,23 +48,23 @@
 				<!-- Left Half -->
 				<div class="col-12 col-sm-6 column q-col-gutter-y-md no-wrap">
 					<!-- Top Left Quadrant -->
-					<div class="col row items-start">
+					<div class="col row">
 						<transition-group
 							tag="div"
 							enter-active-class="animated slideInLeft"
 							class="row col q-gutter-md"
 						>
-							<game-graveyard
-								key="graveyard"
-								class="col-12 col-sm-6 col-md-4"
-								:entries="graveyardEntries"
-							/>
-							<game-roles
-								v-if="gameStore.config?.tags"
-								:tags="gameStore.config.tags"
-								key="roles"
-								class="col-12 col-sm-5 col-md-3"
-							/>
+							<div class="col-12 col-sm-6 col-md-4" key="graveyard">
+								<game-graveyard key="graveyard" :entries="graveyardEntries" class="fit" />
+							</div>
+
+							<div class="col-12 col-sm-5 col-md-3" key="roles">
+								<game-roles
+									v-if="gameStore.config?.tags"
+									:tags="gameStore.config.tags"
+									key="roles"
+								/>
+							</div>
 						</transition-group>
 					</div>
 
@@ -71,7 +79,7 @@
 				<!-- Right Half -->
 				<div class="col-12 col-sm-6 column q-col-gutter-y-md no-wrap">
 					<!-- Top Right Quadrant -->
-					<div class="row justify-end items-stretch">
+					<div class="col row justify-end items-stretch">
 						<transition enter-active-class="animated slideInRight">
 							<game-role
 								v-if="gameStore.actor && gameStore.actor.role"
@@ -84,7 +92,7 @@
 					</div>
 
 					<!-- Bottom Right Quadrant -->
-					<div class="col row justify-end items-stretch">
+					<div class="col row items-end justify-end items-stretch">
 						<transition appear enter-active-class="animated slideInRight">
 							<game-actors class="col-12 col-sm-9 col-md-6 col-lg-7 full-height" />
 						</transition>
@@ -92,18 +100,15 @@
 				</div>
 			</div>
 
-			<div v-if="false" class="row justify-center q-mt-md">
+			<div class="row justify-center q-mt-md jury-container">
 				<transition
 					enter-active-class="animated bounceInDown"
 					leave-active-class="animated bounceOutUp"
 				>
 					<game-jury
-						v-if="
-							playerOnTrial &&
-							gameStore.actor &&
-							['defense', 'trial'].includes(gameStore.phase ?? '')
-						"
+						v-if="playerOnTrial && gameStore.actor && ['trial'].includes(gameStore.phase ?? '')"
 						:player-label="trialPlayerLabel"
+						class="fit"
 					/>
 				</transition>
 			</div>
@@ -113,6 +118,7 @@
 
 <script setup lang="ts">
 import type { StateGraveyardRecord } from '@mafia/sdk';
+import DevSandboxSelect from 'src/components/dev/DevSandboxSelect.vue';
 import GameTimer from 'src/components/game/GameTimer.vue';
 import GameActors from 'src/components/game/actors/GameActors.vue';
 import GameChat from 'src/components/game/chat/GameChat.vue';
@@ -121,11 +127,14 @@ import GameJury from 'src/components/game/jury/GameJury.vue';
 import GameRole from 'src/components/game/role/GameRole.vue';
 import GameRoles from 'src/components/game/roles/GameRoles.vue';
 import { useGameStore } from 'src/stores/game';
+import { useMessageStore } from 'src/stores/message';
 import { computed, onUnmounted } from 'vue';
 
 const gameStore = useGameStore();
+const messageStore = useMessageStore();
 
 onUnmounted(() => {
+	messageStore.clearByScope('game');
 	gameStore.clearGame();
 });
 
@@ -147,15 +156,35 @@ onUnmounted(() => {
 /** Graveyard entries from engine state — typed via SDK re-export */
 const graveyardEntries = computed<StateGraveyardRecord[]>(() => gameStore.state?.graveyard ?? []);
 
+const timerResetKey = computed(() => {
+	const phaseMeta = gameStore.phaseMeta;
+	if (!phaseMeta) return '';
+	return `${phaseMeta.phase}:${phaseMeta.sequence}`;
+});
+
 /** Find the player currently on trial */
 const playerOnTrial = computed(() => {
-	return null; // vote/verdict/onTrial are now delivered via realtime events only
+	const actorNumber = gameStore.onTrialActorNumber;
+	if (!actorNumber) return null;
+	return gameStore.state?.actors.find((actor) => actor.number === actorNumber) ?? null;
 });
 
 /** Label for the jury card */
 const trialPlayerLabel = computed(() => {
 	const p = playerOnTrial.value;
 	if (!p) return 'Unknown';
-	return 'Unknown';
+	return `${p.alias}`;
 });
 </script>
+
+<style scoped lang="scss">
+.jury-container {
+	top: 25%;
+	left: 50%;
+	position: absolute;
+	display: flex;
+	justify-content: center;
+	width: 30%;
+	transform: translate(-50%, 0);
+}
+</style>

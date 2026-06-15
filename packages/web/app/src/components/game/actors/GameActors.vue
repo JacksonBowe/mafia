@@ -14,6 +14,7 @@
 					:actor="actorForNumber(i)"
 					:isPlayer="gameStore.actor?.number === i"
 					:isAlly="gameStore.actor?.allies.map((a) => a.number).includes(i)"
+					:phase="gameStore.phase"
 				/>
 			</q-list>
 		</MCardContent>

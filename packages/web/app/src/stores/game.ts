@@ -5,6 +5,7 @@ import type {
 	GamePhase,
 	GameState,
 	GameSyncResponse,
+	Verdict,
 } from '@mafia/sdk';
 import { defineStore } from 'pinia';
 import { api } from 'src/boot/axios';
@@ -18,6 +19,19 @@ import { api } from 'src/boot/axios';
  * - error: sync or hydration failed
  */
 export type GameStoreStatus = 'idle' | 'transitioning' | 'syncing' | 'ready' | 'error';
+type PhaseMeta = { phase: GamePhase; duration: number; label: string; sequence: number };
+
+const titleCasePhase = (phase: GamePhase) => phase.charAt(0).toUpperCase() + phase.slice(1);
+
+const getPhaseLabel = (phase: GamePhase, pollCount: number) => {
+	if (phase === 'poll') return `Poll ${pollCount + 1}`;
+	return titleCasePhase(phase);
+};
+
+const getPhaseSequence = (phase: GamePhase, pollCount: number) => {
+	if (phase === 'poll') return pollCount;
+	return 0;
+};
 
 export const useGameStore = defineStore('game', {
 	state: () => ({
@@ -27,9 +41,17 @@ export const useGameStore = defineStore('game', {
 		config: null as GameConfig | null,
 		actor: null as ActorState | null,
 		error: null as string | null,
-		phaseMeta: null as { phase: GamePhase; duration: number } | null,
+		phaseMeta: null as PhaseMeta | null,
 		/** Server-authoritative timestamp (ms) of the last applied sync */
 		lastSyncTs: 0,
+		/** Phase-scoped vote tally: voter number -> target number */
+		votes: {} as Record<number, number>,
+		/** Phase-scoped trial verdicts: voter number -> verdict */
+		verdicts: {} as Record<number, Verdict>,
+		/** Player number currently on trial, if any */
+		onTrialActorNumber: null as number | null,
+		/** Dev-only sandbox game loaded from URL/admin controls. */
+		isSandbox: false,
 	}),
 	getters: {
 		hasActiveGame: (s) => !!s.info,
@@ -85,6 +107,8 @@ export const useGameStore = defineStore('game', {
 		 * flash a loading state.
 		 */
 		async syncFromServer() {
+			if (this.isSandbox) return;
+
 			const isBackground = this.status === 'ready';
 
 			if (!isBackground) {
@@ -142,9 +166,19 @@ export const useGameStore = defineStore('game', {
 			this.state = sync.state;
 			this.actor = sync.actor;
 			this.lastSyncTs = sync.info.syncTs;
-			this.phaseMeta = { phase: sync.info.phase, duration: 0 };
+			this.phaseMeta = {
+				phase: sync.info.phase,
+				duration: 0,
+				label: getPhaseLabel(sync.info.phase, sync.info.pollCount),
+				sequence: getPhaseSequence(sync.info.phase, sync.info.pollCount),
+			};
 			this.status = 'ready';
 			this.error = null;
+			this.isSandbox = false;
+
+			// Hydrate the phase-scoped vote tally from the authoritative server
+			// snapshot (empty outside the poll phase).
+			this.votes = sync.votes ?? {};
 
 			// Config is immutable — only set on first hydration
 			if (!this.config) {
@@ -152,14 +186,84 @@ export const useGameStore = defineStore('game', {
 			}
 		},
 
+		/** Hydrate local-only dev sandbox state. */
+		hydrateSandboxGame(
+			sync: GameSyncResponse,
+			onTrialActorNumber: number | null,
+			verdicts: Record<number, Verdict>,
+		) {
+			this.info = sync.info;
+			this.state = sync.state;
+			this.actor = sync.actor;
+			this.config = sync.config;
+			this.lastSyncTs = sync.info.syncTs;
+			this.phaseMeta = {
+				phase: sync.info.phase,
+				duration: 0,
+				label: getPhaseLabel(sync.info.phase, sync.info.pollCount),
+				sequence: getPhaseSequence(sync.info.phase, sync.info.pollCount),
+			};
+			this.status = 'ready';
+			this.error = null;
+			this.votes = sync.votes ?? {};
+			this.verdicts = verdicts;
+			this.onTrialActorNumber = onTrialActorNumber;
+			this.isSandbox = true;
+		},
+
 		/**
 		 * Update phase metadata from a realtime phase change event.
 		 */
-		applyPhaseEvent(phase: GamePhase, duration: number) {
-			this.phaseMeta = { phase, duration };
+		applyPhaseEvent(phase: GamePhase, duration: number, label: string, sequence: number) {
+			this.phaseMeta = { phase, duration, label, sequence };
 			if (this.info) {
-				this.info = { ...this.info, phase };
+				this.info = {
+					...this.info,
+					phase,
+					pollCount: phase === 'poll' ? sequence : this.info.pollCount,
+				};
 			}
+			// Votes and verdicts are phase-scoped; reset on transition.
+			this.votes = {};
+			this.verdicts = {};
+		},
+
+		/**
+		 * Record a player's vote from a realtime vote event.
+		 */
+		applyVote(voterActorNumber: number, targetActorNumber: number) {
+			this.votes = { ...this.votes, [voterActorNumber]: targetActorNumber };
+		},
+
+		/**
+		 * Remove a player's vote from a realtime vote-cancel event.
+		 */
+		applyVoteCancel(voterActorNumber: number) {
+			const { [voterActorNumber]: _removed, ...rest } = this.votes;
+			this.votes = rest;
+		},
+
+		/**
+		 * Record a player's verdict from a realtime verdict event.
+		 */
+		applyVerdict(voterActorNumber: number, verdict: Verdict) {
+			this.verdicts = { ...this.verdicts, [voterActorNumber]: verdict };
+		},
+
+		/**
+		 * Mark a player as on trial from a realtime trial event.
+		 */
+		setOnTrial(actorNumber: number) {
+			this.onTrialActorNumber = actorNumber;
+			this.verdicts = {};
+		},
+
+		/**
+		 * Clear the on-trial player from a realtime trial-over event.
+		 */
+		clearOnTrial() {
+			this.onTrialActorNumber = null;
+			this.verdicts = {};
 		},
 
 		/**
@@ -172,7 +276,7 @@ export const useGameStore = defineStore('game', {
 		/**
 		 * Legacy compat: setPhaseMeta
 		 */
-		setPhaseMeta(phaseMeta: { phase: GamePhase; duration: number } | null) {
+		setPhaseMeta(phaseMeta: PhaseMeta | null) {
 			this.phaseMeta = phaseMeta;
 		},
 
@@ -199,6 +303,10 @@ export const useGameStore = defineStore('game', {
 			this.phaseMeta = null;
 			this.error = null;
 			this.lastSyncTs = 0;
+			this.votes = {};
+			this.verdicts = {};
+			this.onTrialActorNumber = null;
+			this.isSandbox = false;
 		},
 	},
 });

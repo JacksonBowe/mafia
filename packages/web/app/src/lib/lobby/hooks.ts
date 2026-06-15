@@ -1,4 +1,4 @@
-import type { RelatedEntity, LobbyInfo, Presence } from '@mafia/sdk';
+import type { LobbyInfo, Presence, RelatedEntity } from '@mafia/sdk';
 import { useMutation, useQuery, useQueryClient, type UseQueryOptions } from '@tanstack/vue-query';
 import { api } from 'src/boot/axios';
 import { useLobbyStore } from 'src/stores/lobby';
@@ -28,7 +28,7 @@ export const useHostLobby = () => {
 			console.log(data);
 			// cStore.newInfoMessage('You have created a Lobby');
 			mStore.system('You have created a Lobby', { scope: 'app', channel: 'FEEDBACK' }); // TODO
-			rt.subscribe(`lobby/${data.id}`);
+			rt.subscribe('menu', `menu/lobby/${data.id}`);
 		},
 		onError: (e) => {
 			console.error('Host error', e);
@@ -55,7 +55,7 @@ export const useLobby = (
 	const idRef = computed(() => unref(id));
 
 	return useQuery({
-		queryKey: computed(() => ['lobby', idRef.value ?? ''] as const),
+		queryKey: computed(() => ['lobbies', idRef.value ?? ''] as const),
 		queryFn: () => api.getLobby({ lobbyId: idRef.value! }),
 		enabled: computed(() => !!idRef.value),
 		...options,
@@ -89,7 +89,7 @@ export const useJoinLobby = () => {
 			await queryClient.invalidateQueries({ queryKey: ['presence'] });
 			await queryClient.invalidateQueries({ queryKey: ['actor'] });
 
-			rt.subscribe(`lobby/${lobbyId}`);
+			rt.subscribe('menu', `menu/lobby/${lobbyId}`);
 		},
 		onError: (e) => {
 			console.error('Join Error', e);
@@ -152,7 +152,7 @@ export const useLeaveLobby = () => {
 			await queryClient.invalidateQueries({ queryKey: ['presence'] });
 			await queryClient.invalidateQueries({ queryKey: ['lobbies'] });
 
-			rt.unsubscribe(lStore.selectedLobbyId);
+			rt.unsubscribe('menu', `menu/lobby/${lStore.selectedLobbyId}`);
 			lStore.clearSelectedLobbyId();
 		},
 

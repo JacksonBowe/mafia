@@ -1,3 +1,4 @@
+import { SFNClient, StartExecutionCommand } from '@aws-sdk/client-sfn';
 import { assertActor } from '@mafia/core/actor';
 import { afterTx, createTransaction } from '@mafia/core/db';
 import { zValidator } from '@mafia/core/error';
@@ -123,13 +124,13 @@ lobbyRoutes.post('/:lobbyId/start', zValidator('param', LobbyIdPathParamsSchema)
 	const lobbyData = await Lobby.prepareForStart({ lobbyId, hostId: userId });
 
 	// 2. Build engine input - use default config, sliced to player count
-	const playerCount = lobbyData.members.length;
+	// const playerCount = lobbyData.members.length;
 	const config = {
 		...DEFAULT_CONFIG,
-		tags: DEFAULT_CONFIG.tags.slice(0, playerCount),
+		// tags: DEFAULT_CONFIG.tags.slice(0, playerCount),
 	};
 	const actors: ActorState[] = lobbyData.members.map((member, index) => ({
-		id: member.userId,
+		id: crypto.randomUUID(),
 		name: member.name,
 		alias: generateAlias(index),
 		alive: true,
@@ -137,7 +138,11 @@ lobbyRoutes.post('/:lobbyId/start', zValidator('param', LobbyIdPathParamsSchema)
 		targets: [],
 		allies: [],
 		roleActions: {},
+		alignment: null,
 	}));
+	const userIdByActorId = new Map(
+		actors.map((actor, index) => [actor.id, lobbyData.members[index].userId]),
+	);
 
 	// 3. Run engine to create initial game state
 	const engineResult = newGame({ actors, config });
@@ -150,19 +155,33 @@ lobbyRoutes.post('/:lobbyId/start', zValidator('param', LobbyIdPathParamsSchema)
 			engineConfig: config,
 			actors: engineResult.actors,
 			players: engineResult.actors.map((actor) => ({
-				userId: actor.id,
-				number: String(actor.number ?? 0),
-				alias: actor.alias,
-				role: actor.role ?? null,
+				userId: userIdByActorId.get(actor.id) ?? actor.id,
+				actorId: actor.id,
+				number: actor.number ?? 0,
 			})),
 		});
 
 		// Publish realtime event after commit
-		void afterTx(() => {
+		void afterTx(async () => {
 			void realtime.publish(Resource.Realtime, Lobby.RealtimeEvents.LobbyStarted, {
 				lobbyId,
 				gameId,
 			});
+
+			// Invoke the state machine to start the game loop immediately
+			const sfnClient = new SFNClient({});
+			const response = await sfnClient.send(
+				new StartExecutionCommand({
+					stateMachineArn: Resource.GameLoopMachine.arn,
+					input: JSON.stringify({ gameId, waitSeconds: 15 }),
+				}),
+			);
+
+			if (response.executionArn) {
+				await Game.setGameLoopExecutionArn({ gameId, executionArn: response.executionArn });
+			}
+
+			console.log('Started game loop execution', { response });
 		});
 
 		// Delete the lobby (cascades to members)

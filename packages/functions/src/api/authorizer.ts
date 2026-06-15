@@ -1,5 +1,6 @@
 import { withActor } from '@mafia/core/actor';
 import { AuthError } from '@mafia/core/error';
+import { User } from '@mafia/core/user/index';
 import { createClient } from '@openauthjs/openauth/client';
 import { InvalidAccessTokenError } from '@openauthjs/openauth/error';
 import type { MiddlewareHandler } from 'hono';
@@ -13,6 +14,23 @@ export const client = createClient({
 });
 
 export const authorize: MiddlewareHandler = async (c, next) => {
+	// API key path: an alternate credential that maps to a user row.
+	// Downstream handlers see an identical 'user' actor.
+	const apiKey = c.req.header('x-api-key');
+	if (apiKey) {
+		const user = await User.ApiKey.getUserForKey({ apiKey });
+		return withActor(
+			{
+				type: 'user',
+				properties: {
+					userId: user.id,
+					isAdmin: user.isAdmin || false,
+				},
+			},
+			() => next(),
+		);
+	}
+
 	try {
 		const authHeader = c.req.header('Authorization');
 		if (!authHeader || !authHeader.startsWith('Bearer ')) {

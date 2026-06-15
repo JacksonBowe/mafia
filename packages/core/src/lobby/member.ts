@@ -41,7 +41,7 @@ export const RealtimeEvents = {
 				name: z.string(),
 			}),
 		}),
-		(p) => `lobby/${p.lobbyId}`,
+		(p) => `menu/lobby/${p.lobbyId}`,
 	),
 	MemberLeave: defineRealtimeEvent(
 		'lobby.member.leave',
@@ -49,7 +49,7 @@ export const RealtimeEvents = {
 			lobbyId: isULID(),
 			userId: isULID(),
 		}),
-		(p) => `lobby/${p.lobbyId}`,
+		(p) => `menu/lobby/${p.lobbyId}`,
 	),
 	MemberPromote: defineRealtimeEvent(
 		'lobby.member.promote',
@@ -57,7 +57,7 @@ export const RealtimeEvents = {
 			lobbyId: isULID(),
 			userId: isULID(),
 		}),
-		(p) => `lobby/${p.lobbyId}`,
+		(p) => `menu/lobby/${p.lobbyId}`,
 	),
 };
 

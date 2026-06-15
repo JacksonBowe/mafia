@@ -24,6 +24,7 @@
 	},
 	"dependencies": {
 		"@aws-sdk/client-iot-data-plane": "^3.953.0",
+		"@aws-sdk/client-sfn": "^3.1062.0",
 		"@hono/zod-validator": "^0.7.5",
 		"@mafia/engine": "workspace:",
 		"@neondatabase/serverless": "^1.0.1",

@@ -34,15 +34,6 @@
 					</div>
 				</div>
 
-				<div v-if="hasSettings" class="q-gutter-y-xs">
-					<div class="text-caption text-uppercase text-grey-5">Settings</div>
-					<div v-for="(value, key) in settings" :key="key" class="text-body2">
-						<span class="text-grey-4">{{ key }}:</span> {{ value }}
-					</div>
-				</div>
-
-				<q-space />
-
 				<div v-if="meta.tags.length" class="col-grow column justify-end">
 					<q-separator v-if="meta.tags.length" dark class="q-my-sm" />
 					<div class="row q-gutter-xs q-mt-sm">
@@ -83,5 +74,4 @@ const props = withDefaults(
 
 const meta = computed(() => ROLE_INFO[props.roleName]);
 const attributes = computed(() => getRoleAttributes(props.roleName, props.settings ?? {}));
-const hasSettings = computed(() => Object.keys(props.settings ?? {}).length > 0);
 </script>

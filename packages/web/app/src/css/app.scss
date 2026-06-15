@@ -122,3 +122,8 @@
 .no-select {
 	user-select: none;
 }
+
+.reserve-space-hidden {
+	visibility: hidden;
+	pointer-events: none;
+}

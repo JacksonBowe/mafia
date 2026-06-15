@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Actor, Neutral, type ActorContext, type ActorState } from './actor';
+import { Neutral, type Actor, type ActorContext, type ActorState } from './actor';
 import { vestAttributes } from './attributes';
 import { RoleTags } from './role';
 

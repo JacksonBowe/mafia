@@ -36,6 +36,14 @@ declare module "sst" {
       "type": "sst.sst.Secret"
       "value": string
     }
+    "GameLoopAdvance": {
+      "name": string
+      "type": "sst.aws.Function"
+    }
+    "GameLoopMachine": {
+      "arn": string
+      "type": "sst.sst.Linkable"
+    }
     "NeonDatabaseUrl": {
       "type": "sst.sst.Linkable"
       "value": string

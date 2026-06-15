@@ -13,6 +13,7 @@ import type { GameConfig } from './types';
 export const DEFAULT_CONFIG: GameConfig = {
 	tags: [
 		// 8 Town slots
+		'town_government', // Guaranteed non-killing town (Mayor/Citizen)
 		'town_protective', // Guaranteed protective (Doctor/Bodyguard)
 		'town_killing', // Town killing role (Bodyguard)
 		'town_random',
@@ -20,17 +21,16 @@ export const DEFAULT_CONFIG: GameConfig = {
 		'town_random',
 		'town_random',
 		'town_random',
-		'town_random',
 
 		// 3 Mafia slots
-		'mafia_killing', // Guaranteed killing mafia (Godfather/Mafioso)
-		'mafia_random',
+		'godfather', // Guaranteed killing mafia (Godfather/Mafioso)
+		'mafia_killing',
 		'mafia_random',
 
 		// 3 Neutral slots
 		'neutral_benign', // Guaranteed Survivor-eligible slot
 		'neutral_random',
-		'neutral_random',
+		'survivor',
 
 		// 1 Any slot
 		'any_random',

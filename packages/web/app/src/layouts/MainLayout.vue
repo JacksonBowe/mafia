@@ -29,13 +29,13 @@ const { data: presence } = usePresence();
 useChatEvents();
 useLobbyEvents();
 
-rt.subscribe('chat/menu/global');
+rt.subscribe('menu', 'menu/chat/global');
 
 watch(
 	() => auth.userId,
 	(next, prev) => {
-		if (prev) rt.unsubscribe(`chat/menu/private/${prev}`);
-		if (next) rt.subscribe(`chat/menu/private/${next}`);
+		if (prev) rt.unsubscribe('menu', `menu/chat/private/${prev}`);
+		if (next) rt.subscribe('menu', `menu/chat/private/${next}`);
 	},
 	{ immediate: true },
 );
@@ -43,8 +43,8 @@ watch(
 watch(
 	() => presence.value?.lobby?.id ?? null,
 	(next, prev) => {
-		if (prev) rt.unsubscribe(`chat/menu/lobby/${prev}`);
-		if (next) rt.subscribe(`chat/menu/lobby/${next}`);
+		if (prev) rt.unsubscribe('menu', `menu/chat/lobby/${prev}`);
+		if (next) rt.subscribe('menu', `menu/chat/lobby/${next}`);
 
 		// TODO: Grace-period reconnect strategy
 		// docs/realtime/reconnect-grace-period.md

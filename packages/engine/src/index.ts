@@ -22,12 +22,14 @@ import { createRng } from './utils';
 // Errors & constants
 // ---------------------------------------------------------------------------
 export {
-	BROADCAST_TARGET, DeathReasons, DEFAULT_ALIGNMENT,
+	BROADCAST_TARGET,
+	DeathReasons,
+	DEFAULT_ALIGNMENT,
 	EngineErrorCodes,
 	EventGroupIds,
 	EventIds,
 	MAX_ACTORS,
-	MIN_ACTORS
+	MIN_ACTORS,
 } from './constants';
 export type { DeathReason, EngineErrorCode, EventId } from './constants';
 export { EngineError } from './error';
@@ -139,6 +141,16 @@ export const loadGame = (input: EngineInput): EngineResult => {
 	return buildResult(game, winners, logger);
 };
 
+// Rebuild from saved state, lynch one actor, then check win conditions.
+export const lynchGame = (input: EngineInput & { actorNumber: number }): EngineResult => {
+	const { parsed, context, logger, actors, config } = bootstrap(input);
+	const state = requireState(parsed, 'load');
+	const game = Game.load(actors, config, state, context);
+	game.lynch(input.actorNumber);
+	const winners = summarizeWinners(game.checkForWin());
+	return buildResult(game, winners, logger);
+};
+
 // Rebuild from saved state, resolve one night cycle, then check win conditions.
 export const resolveGame = (input: EngineInput): EngineResult => {
 	const { parsed, context, logger, actors, config } = bootstrap(input);
@@ -152,23 +164,34 @@ export const resolveGame = (input: EngineInput): EngineResult => {
 // ---------------------------------------------------------------------------
 // Events & logging
 // ---------------------------------------------------------------------------
-export { CommonEvents, Duration, GameEvent, GameEventGroup } from './events';
-export type {
-	GameEventDump,
-	GameEventEntry,
-	GameEventGroupDump,
-	GameEventTargets
+export {
+	CommonEvents,
+	Duration,
+	GameEvent,
+	GameEventDumpSchema,
+	GameEventGroup,
+	GameEventGroupDumpSchema,
 } from './events';
+export type { GameEventDump, GameEventEntry, GameEventGroupDump, GameEventTargets } from './events';
 export { EngineLogger } from './logger';
 
 // ---------------------------------------------------------------------------
 // Roles
 // ---------------------------------------------------------------------------
 export {
-	FALLBACK_ROLE, getRoleAttributes, instantiateRole, ROLE_INFO, ROLE_KEYS, ROLE_NAME_BY_KEY, RoleAlignmentSchema, RoleKeySchema, RoleNamesAndPriorityOrder, RoleTags, RoleTagSchema
+	FALLBACK_ROLE,
+	getRoleAttributes,
+	instantiateRole,
+	ROLE_INFO,
+	ROLE_KEYS,
+	ROLE_NAME_BY_KEY,
+	RoleAlignmentSchema,
+	RoleKeySchema,
+	RoleNamesAndPriorityOrder,
+	RoleTags,
+	RoleTagSchema,
 } from './roles';
 export type { RoleAlignment, RoleKey, RoleName, RoleSettings, RoleTag, TagLike } from './roles';
-
 
 export { Actor, Mafia, Town } from './roles/actor';
 export { Bodyguard, BodyguardSettingsSchema } from './roles/bodyguard';
@@ -202,9 +225,10 @@ export {
 	EngineInputSchema,
 	EngineOptionsSchema,
 	GameConfigSchema,
-	GameStateSchema, StateActorSchema,
+	GameStateSchema,
+	StateActorSchema,
 	StateGraveyardRecordSchema,
-	WinnerSummarySchema
+	WinnerSummarySchema,
 } from './types';
 export type {
 	EngineInput,
@@ -214,10 +238,8 @@ export type {
 	GameState,
 	StateActor,
 	StateGraveyardRecord,
-	WinnerSummary
+	WinnerSummary,
 } from './types';
 
 export { ActorStateSchema } from './roles/actor';
 export type { ActorState } from './roles/actor';
-
-

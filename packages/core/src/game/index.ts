@@ -1,18 +1,33 @@
-import { ActorStateSchema, GameConfigSchema, GameStateSchema } from '@mafia/engine';
-import type { ActorState, GameConfig, GameState } from '@mafia/engine';
+import { SFNClient, StopExecutionCommand } from '@aws-sdk/client-sfn';
+import {
+	ActorStateSchema,
+	GameConfigSchema,
+	GameEventGroupDumpSchema,
+	GameStateSchema,
+	lynchGame,
+	loadGame,
+	resolveGame,
+	StateGraveyardRecordSchema,
+	WinnerSummarySchema,
+	type ActorState,
+	type GameConfig,
+	type GameEventGroupDump,
+	type GameState,
+	type StateGraveyardRecord,
+	type WinnerSummary,
+} from '@mafia/engine';
 import { and, eq, sql } from 'drizzle-orm';
+import { Resource } from 'sst';
 import { ulid } from 'ulid';
 import { z } from 'zod';
-import { useTransaction } from '../db/transaction';
+import { afterTx, useTransaction } from '../db/transaction';
 import { InputError, isULID } from '../error';
-import { defineRealtimeEvent } from '../realtime';
+import { defineRealtimeEvent, realtime } from '../realtime';
 import { fn } from '../util/fn';
 import { gamePlayerTable, gameTable } from './game.sql';
 import {
 	ClientGameInfoSchema,
-	DeathRecordSchema,
 	GameErrors as Errors,
-	GameEventSchema,
 	GameInfoSchema,
 	GamePhaseSchema,
 	GamePlayerSchema,
@@ -20,33 +35,20 @@ import {
 	GameSyncResponseSchema,
 	GameTopics,
 	VerdictSchema,
-	WinnerSummarySchema,
+	type GameInfo,
+	type GamePhase,
+	type GamePlayer,
+	type GameStatus,
 	type GameSyncResponse,
 } from './schema';
 
 export * as Game from './';
 
 // Re-export pure contracts for backend convenience.
-export {
-	ClientGameInfoSchema,
-	DeathRecordSchema,
-	Errors,
-	GameEventSchema,
-	GameInfoSchema,
-	GamePhaseSchema,
-	GamePlayerSchema,
-	GameStatusSchema,
-	GameSyncResponseSchema,
-	GameTopics,
-	VerdictSchema,
-	WinnerSummarySchema,
-};
 export type {
 	ActorState,
 	ClientGameInfo,
-	DeathRecord,
 	GameConfig,
-	GameEvent,
 	GameInfo,
 	GamePhase,
 	GamePlayer,
@@ -54,8 +56,18 @@ export type {
 	GameStatus,
 	GameSyncResponse,
 	Verdict,
-	WinnerSummary,
 } from './schema';
+export {
+	ClientGameInfoSchema,
+	Errors,
+	GameInfoSchema,
+	GamePhaseSchema,
+	GamePlayerSchema,
+	GameStatusSchema,
+	GameSyncResponseSchema,
+	GameTopics,
+	VerdictSchema,
+};
 
 // ---------------------
 // Realtime events (server-only — depend on defineRealtimeEvent / IoT)
@@ -76,6 +88,8 @@ export const RealtimeEvents = {
 			gameId: isULID(),
 			phase: z.string(),
 			duration: z.number().int(),
+			label: z.string(),
+			sequence: z.number().int(),
 		}),
 		(p) => GameTopics.public(p.gameId),
 	),
@@ -87,8 +101,8 @@ export const RealtimeEvents = {
 		'game.vote',
 		z.object({
 			gameId: isULID(),
-			voter: z.number().int(),
-			target: z.number().int(),
+			voterActorNumber: z.number().int(),
+			targetActorNumber: z.number().int(),
 		}),
 		(p) => GameTopics.public(p.gameId),
 	),
@@ -100,7 +114,7 @@ export const RealtimeEvents = {
 		'game.votecancel',
 		z.object({
 			gameId: isULID(),
-			voter: z.number().int(),
+			voterActorNumber: z.number().int(),
 		}),
 		(p) => GameTopics.public(p.gameId),
 	),
@@ -112,7 +126,7 @@ export const RealtimeEvents = {
 		'game.trial',
 		z.object({
 			gameId: isULID(),
-			playerNumber: z.number().int(),
+			actorNumber: z.number().int(),
 		}),
 		(p) => GameTopics.public(p.gameId),
 	),
@@ -148,7 +162,7 @@ export const RealtimeEvents = {
 		'game.deaths',
 		z.object({
 			gameId: isULID(),
-			deaths: z.array(DeathRecordSchema),
+			deaths: z.array(StateGraveyardRecordSchema),
 		}),
 		(p) => GameTopics.public(p.gameId),
 	),
@@ -185,8 +199,8 @@ export const RealtimeEvents = {
 		'game.verdict',
 		z.object({
 			gameId: isULID(),
-			voter: z.number().int(),
-			verdict: z.enum(['guilty', 'innocent']),
+			voterActorNumber: z.number().int(),
+			verdict: VerdictSchema,
 		}),
 		(p) => GameTopics.public(p.gameId),
 	),
@@ -198,8 +212,9 @@ export const RealtimeEvents = {
 		'game.lynch_result',
 		z.object({
 			gameId: isULID(),
-			playerNumber: z.number().int(),
+			actorId: z.string(),
 			guiltyCount: z.number().int(),
+			abstainCount: z.number().int(),
 			innocentCount: z.number().int(),
 			isGuilty: z.boolean(),
 		}),
@@ -278,52 +293,169 @@ export const RealtimeEvents = {
 // Core functions
 // ---------------------
 
-export const create = fn(z.object({
-	engineState: z.unknown(),
-	engineConfig: z.unknown(),
-	actors: z.unknown(),
-	players: z.array(
-		z.object({
-			userId: z.string(),
-			number: z.string(),
-			alias: z.string(),
-			role: z.string().nullable(),
-		}),
-	),
-}), async (input) =>
-	useTransaction(async (tx) => {
-		const gameId = ulid();
-
-		// Insert game record
-		await tx.insert(gameTable).values({
-			id: gameId,
-			status: 'active',
-			phase: 'pregame',
-			pollCount: 0,
-			engineState: input.engineState,
-			engineConfig: input.engineConfig,
-			actors: input.actors,
-		});
-
-		// Insert game players
-		if (input.players.length > 0) {
-			await tx.insert(gamePlayerTable).values(
-				input.players.map((p) => ({
-					id: ulid(),
-					gameId,
-					userId: p.userId,
-					number: p.number,
-					alias: p.alias,
-					role: p.role,
-					vote: null,
-					verdict: null,
-					onTrial: false,
-				})),
-			);
-		}
-
-		return { gameId };
+export const create = fn(
+	z.object({
+		engineState: z.unknown(),
+		engineConfig: z.unknown(),
+		actors: z.unknown(),
+		players: z.array(
+			z.object({
+				userId: z.string(),
+				actorId: z.string(),
+				number: z.number().int().positive(),
+			}),
+		),
 	}),
+	async (input) =>
+		useTransaction(async (tx) => {
+			const gameId = ulid();
+
+			// Insert game record
+			await tx.insert(gameTable).values({
+				id: gameId,
+				status: 'active',
+				phase: 'pregame',
+				pollCount: 0,
+				engineState: input.engineState,
+				engineConfig: input.engineConfig,
+				actors: input.actors,
+			});
+
+			// Insert game players
+			if (input.players.length > 0) {
+				await tx.insert(gamePlayerTable).values(
+					input.players.map((p) => ({
+						id: ulid(),
+						gameId,
+						userId: p.userId,
+						actorId: p.actorId,
+						number: p.number,
+						voteTargetActorId: null,
+						verdict: null,
+						onTrial: false,
+						targetActorIds: [],
+					})),
+				);
+			}
+
+			return { gameId };
+		}),
+);
+
+const ActorIdTargetsSchema = z.array(z.string());
+
+export function buildEngineActors(actors: unknown, players: GamePlayer[]): ActorState[] {
+	const parsedActors = ActorStateSchema.array().parse(actors);
+	const parsedPlayers = GamePlayerSchema.array().parse(players);
+	const actorsById = new Map(parsedActors.map((actor) => [actor.id, actor]));
+	const targetNumbersByActorId = new Map(
+		parsedPlayers.map((player) => [
+			player.actorId,
+			player.targetActorIds
+				.map((targetActorId) => actorsById.get(targetActorId)?.number)
+				.filter((number): number is number => number !== undefined),
+		]),
+	);
+
+	return parsedActors.map((actor) => ({
+		...actor,
+		targets: targetNumbersByActorId.get(actor.id) ?? [],
+	}));
+}
+
+export const updateEvents = fn(
+	z.object({
+		gameId: isULID(),
+		events: GameEventGroupDumpSchema.nullable(),
+	}),
+	async ({ gameId, events }) =>
+		useTransaction(async (tx) => {
+			const [updated] = await tx
+				.update(gameTable)
+				.set({ events })
+				.where(eq(gameTable.id, gameId))
+				.returning({ id: gameTable.id });
+
+			if (!updated) {
+				throw new InputError(Errors.GameNotFound, 'Game not found');
+			}
+
+			return { gameId };
+		}),
+);
+
+export const setTargets = fn(
+	z.object({
+		gameId: isULID(),
+		userId: z.string(),
+		targetActorIds: ActorIdTargetsSchema,
+	}),
+	async ({ gameId, userId, targetActorIds }) =>
+		useTransaction(async (tx) => {
+			const [row] = await tx
+				.select({ actors: gameTable.actors })
+				.from(gameTable)
+				.where(eq(gameTable.id, gameId))
+				.limit(1);
+
+			if (!row) {
+				throw new InputError(Errors.GameNotFound, 'Game not found');
+			}
+
+			const [player] = await tx
+				.select({ actorId: gamePlayerTable.actorId })
+				.from(gamePlayerTable)
+				.where(and(eq(gamePlayerTable.gameId, gameId), eq(gamePlayerTable.userId, userId)))
+				.limit(1);
+
+			if (!player) {
+				throw new InputError(Errors.PlayerNotFound, 'Player not found');
+			}
+
+			const actors = ActorStateSchema.array().parse(row.actors);
+			const actor = actors.find((item) => item.id === player.actorId);
+
+			if (!actor) {
+				throw new InputError(Errors.PlayerNotFound, 'Player not found');
+			}
+
+			const numbersByActorId = new Map(actors.map((item) => [item.id, item.number]));
+
+			for (const [index, targetActorId] of targetActorIds.entries()) {
+				const targetNumber = numbersByActorId.get(targetActorId);
+				const allowed = actor.possibleTargets[index] ?? [];
+				if (targetNumber === undefined || !allowed.includes(targetNumber)) {
+					throw new InputError(Errors.InvalidTarget, 'Invalid target');
+				}
+			}
+
+			const [updated] = await tx
+				.update(gamePlayerTable)
+				.set({ targetActorIds })
+				.where(and(eq(gamePlayerTable.gameId, gameId), eq(gamePlayerTable.userId, userId)))
+				.returning({ id: gamePlayerTable.id });
+
+			if (!updated) {
+				throw new InputError(Errors.PlayerNotFound, 'Player not found');
+			}
+
+			return { gameId, userId, targetActorIds };
+		}),
+);
+
+export const clearTargets = fn(
+	z.object({
+		gameId: isULID(),
+	}),
+	async ({ gameId }) =>
+		useTransaction(async (tx) => {
+			await tx
+				.update(gamePlayerTable)
+				.set({ targetActorIds: [] })
+				.where(eq(gamePlayerTable.gameId, gameId));
+
+			return { gameId };
+		}),
 );
 
 /**
@@ -336,7 +468,7 @@ export const sync = fn(z.object({ userId: z.string() }), async ({ userId }) =>
 		const [playerRow] = await tx
 			.select({
 				gameId: gamePlayerTable.gameId,
-				number: gamePlayerTable.number,
+				actorId: gamePlayerTable.actorId,
 			})
 			.from(gamePlayerTable)
 			.innerJoin(gameTable, eq(gameTable.id, gamePlayerTable.gameId))
@@ -364,14 +496,37 @@ export const sync = fn(z.object({ userId: z.string() }), async ({ userId }) =>
 		// Extract the requesting user's actor from the actors array
 		const actors = (game.actors ?? []) as ActorState[];
 
-		const playerNumber = Number(playerRow.number);
-		const rawActor = actors.find((a) => a.number === playerNumber);
+		const rawActor = actors.find((a) => a.id === playerRow.actorId);
 
 		if (!rawActor) {
 			throw new InputError(Errors.PlayerNotFound, 'Actor not found for player');
 		}
 
 		const myActor: ActorState = ActorStateSchema.parse(rawActor);
+
+		// Phase-scoped vote tally (voter number -> target number). Votes only
+		// matter during the poll phase, so surface an empty map otherwise to
+		// avoid showing stale votes on reload / late-join.
+		const votes: Record<number, number> = {};
+		if (game.phase === 'poll') {
+			const players = await tx
+				.select({
+					number: gamePlayerTable.number,
+					actorId: gamePlayerTable.actorId,
+					voteTargetActorId: gamePlayerTable.voteTargetActorId,
+				})
+				.from(gamePlayerTable)
+				.where(eq(gamePlayerTable.gameId, gameId));
+
+			const numberByActorId = new Map(players.map((p) => [p.actorId, p.number]));
+			for (const player of players) {
+				if (player.voteTargetActorId === null) continue;
+				const targetNumber = numberByActorId.get(player.voteTargetActorId);
+				if (targetNumber !== undefined) {
+					votes[player.number] = targetNumber;
+				}
+			}
+		}
 
 		const info = ClientGameInfoSchema.parse({
 			id: gameId,
@@ -381,7 +536,7 @@ export const sync = fn(z.object({ userId: z.string() }), async ({ userId }) =>
 			syncTs: game.updatedAt.getTime(),
 		});
 
-		return { info, state, config, actor: myActor } satisfies GameSyncResponse;
+		return { info, state, config, actor: myActor, votes } satisfies GameSyncResponse;
 	}),
 );
 
@@ -396,11 +551,28 @@ export const sync = fn(z.object({ userId: z.string() }), async ({ userId }) =>
 export const submitVote = fn(
 	z.object({
 		gameId: isULID(),
-		voterNumber: z.number().int().positive(),
-		targetNumber: z.number().int().positive(),
+		voterActorId: z.string(),
+		targetActorId: z.string(),
 	}),
-	async ({ gameId, voterNumber, targetNumber }) =>
+	async ({ gameId, voterActorId, targetActorId }) =>
 		useTransaction(async (tx) => {
+			// Votes may only be cast/toggled during the poll phase.
+			const [game] = await tx
+				.select({ phase: gameTable.phase })
+				.from(gameTable)
+				.where(eq(gameTable.id, gameId));
+
+			if (!game) {
+				throw new InputError(Errors.GameNotFound, 'Game not found');
+			}
+
+			if (game.phase !== 'poll') {
+				throw new InputError(
+					Errors.NotVotingPhase,
+					'Voting is only allowed during the poll phase',
+				);
+			}
+
 			// Get the voter's current state
 			const [voter] = await tx
 				.select()
@@ -408,12 +580,16 @@ export const submitVote = fn(
 				.where(
 					and(
 						eq(gamePlayerTable.gameId, gameId),
-						eq(gamePlayerTable.number, String(voterNumber)),
+						eq(gamePlayerTable.actorId, voterActorId),
 					),
 				);
 
 			if (!voter) {
 				throw new InputError(Errors.PlayerNotFound, 'Voter not found');
+			}
+
+			if (!voter.alive) {
+				throw new InputError(Errors.PlayerNotAlive, 'Player is not alive');
 			}
 
 			// Verify target exists
@@ -423,7 +599,7 @@ export const submitVote = fn(
 				.where(
 					and(
 						eq(gamePlayerTable.gameId, gameId),
-						eq(gamePlayerTable.number, String(targetNumber)),
+						eq(gamePlayerTable.actorId, targetActorId),
 					),
 				);
 
@@ -432,19 +608,35 @@ export const submitVote = fn(
 			}
 
 			// Cannot vote for yourself
-			if (voterNumber === targetNumber) {
+			if (voterActorId === targetActorId) {
 				throw new InputError(Errors.CannotVoteSelf, 'Cannot vote for yourself');
 			}
 
 			// If already voting for this target, remove the vote (toggle)
-			const newVote = voter.vote === targetNumber ? null : targetNumber;
+			const voteTargetActorId =
+				voter.voteTargetActorId === targetActorId ? null : targetActorId;
 
 			await tx
 				.update(gamePlayerTable)
-				.set({ vote: newVote })
+				.set({ voteTargetActorId })
 				.where(eq(gamePlayerTable.id, voter.id));
 
-			return { vote: newVote };
+			void afterTx(() => {
+				if (voteTargetActorId === null) {
+					void realtime.publish(Resource.Realtime, RealtimeEvents.VoteCancel, {
+						gameId,
+						voterActorNumber: voter.number,
+					});
+				} else {
+					void realtime.publish(Resource.Realtime, RealtimeEvents.Vote, {
+						gameId,
+						voterActorNumber: voter.number,
+						targetActorNumber: target.number,
+					});
+				}
+			});
+
+			return { voteTargetActorId };
 		}),
 );
 
@@ -454,26 +646,50 @@ export const submitVote = fn(
 export const cancelVote = fn(
 	z.object({
 		gameId: isULID(),
-		voterNumber: z.number().int().positive(),
+		voterActorId: z.string(),
 	}),
-	async ({ gameId, voterNumber }) =>
+	async ({ gameId, voterActorId }) =>
 		useTransaction(async (tx) => {
+			// Votes may only be cancelled during the poll phase.
+			const [game] = await tx
+				.select({ phase: gameTable.phase })
+				.from(gameTable)
+				.where(eq(gameTable.id, gameId));
+
+			if (!game) {
+				throw new InputError(Errors.GameNotFound, 'Game not found');
+			}
+
+			if (game.phase !== 'poll') {
+				throw new InputError(
+					Errors.NotVotingPhase,
+					'Voting is only allowed during the poll phase',
+				);
+			}
+
 			const [updated] = await tx
 				.update(gamePlayerTable)
-				.set({ vote: null })
+				.set({ voteTargetActorId: null })
 				.where(
 					and(
 						eq(gamePlayerTable.gameId, gameId),
-						eq(gamePlayerTable.number, String(voterNumber)),
+						eq(gamePlayerTable.actorId, voterActorId),
 					),
 				)
-				.returning({ id: gamePlayerTable.id });
+				.returning({ id: gamePlayerTable.id, number: gamePlayerTable.number });
 
 			if (!updated) {
 				throw new InputError(Errors.PlayerNotFound, 'Player not found');
 			}
 
-			return { voterNumber };
+			void afterTx(() => {
+				void realtime.publish(Resource.Realtime, RealtimeEvents.VoteCancel, {
+					gameId,
+					voterActorNumber: updated.number,
+				});
+			});
+
+			return { voterActorId };
 		}),
 );
 
@@ -488,7 +704,7 @@ export const clearVotes = fn(
 		useTransaction(async (tx) => {
 			await tx
 				.update(gamePlayerTable)
-				.set({ vote: null })
+				.set({ voteTargetActorId: null })
 				.where(eq(gamePlayerTable.gameId, gameId));
 
 			return { gameId };
@@ -497,55 +713,55 @@ export const clearVotes = fn(
 
 /**
  * Tally votes and determine if there's a majority.
- * Returns the player number with majority (>50% of alive players) or null.
+ * Returns the target actor id with majority (>50% of alive actors) or null.
  */
 export const tallyVotes = fn(
 	z.object({
 		gameId: isULID(),
-		alivePlayers: z.array(z.number().int().positive()),
+		aliveActorIds: z.array(z.string()),
 	}),
-	async ({ gameId, alivePlayers }) =>
+	async ({ gameId, aliveActorIds }) =>
 		useTransaction(async (tx) => {
 			// Get all votes from alive players
 			const players = await tx
 				.select({
-					number: gamePlayerTable.number,
-					vote: gamePlayerTable.vote,
+					actorId: gamePlayerTable.actorId,
+					voteTargetActorId: gamePlayerTable.voteTargetActorId,
 				})
 				.from(gamePlayerTable)
 				.where(eq(gamePlayerTable.gameId, gameId));
 
 			// Count votes only from alive players
-			const alivePlayerSet = new Set(alivePlayers.map(String));
-			const votes: Record<number, number> = {};
+			const aliveActorIdSet = new Set(aliveActorIds);
+			const votes: Record<string, number> = {};
 
 			for (const player of players) {
-				if (alivePlayerSet.has(player.number) && player.vote !== null) {
-					votes[player.vote] = (votes[player.vote] || 0) + 1;
+				if (aliveActorIdSet.has(player.actorId) && player.voteTargetActorId !== null) {
+					votes[player.voteTargetActorId] = (votes[player.voteTargetActorId] || 0) + 1;
 				}
 			}
 
 			// Find the player with the most votes
 			let maxVotes = 0;
-			let maxVotedPlayer: number | null = null;
+			let maxVotedActorId: string | null = null;
 
 			for (const [target, count] of Object.entries(votes)) {
 				if (count > maxVotes) {
 					maxVotes = count;
-					maxVotedPlayer = Number(target);
+					maxVotedActorId = target;
 				}
 			}
 
 			// Check for majority (> 50% of alive players)
-			const majorityThreshold = Math.floor(alivePlayers.length / 2);
+			const majorityThreshold = Math.floor(aliveActorIds.length / 2);
 			const hasMajority = maxVotes > majorityThreshold;
 
 			return {
 				votes,
-				winner: hasMajority ? maxVotedPlayer : null,
+				winner: hasMajority ? maxVotedActorId : null,
 				hasMajority,
 				totalVotes: Object.values(votes).reduce((sum, count) => sum + count, 0),
-				aliveCount: alivePlayers.length,
+				aliveCount: aliveActorIds.length,
 			};
 		}),
 );
@@ -555,32 +771,86 @@ export const tallyVotes = fn(
 // ---------------------
 
 /**
- * Submit a player's trial verdict (guilty/innocent).
+ * Submit a player's trial verdict (guilty/innocent/abstain).
  */
 export const submitVerdict = fn(
 	z.object({
 		gameId: isULID(),
-		voterNumber: z.number().int().positive(),
+		voterActorId: z.string(),
 		verdict: VerdictSchema,
 	}),
-	async ({ gameId, voterNumber, verdict }) =>
+	async ({ gameId, voterActorId, verdict }) =>
 		useTransaction(async (tx) => {
-			const [updated] = await tx
-				.update(gamePlayerTable)
-				.set({ verdict })
+			const [game] = await tx
+				.select({ phase: gameTable.phase, actors: gameTable.actors })
+				.from(gameTable)
+				.where(eq(gameTable.id, gameId));
+
+			if (!game) {
+				throw new InputError(Errors.GameNotFound, 'Game not found');
+			}
+
+			if (game.phase !== 'trial') {
+				throw new InputError(
+					Errors.NotTrialPhase,
+					'Verdicts are only allowed during the trial phase',
+				);
+			}
+
+			const actors = ActorStateSchema.array().parse(game.actors);
+			const voterActor = actors.find((actor) => actor.id === voterActorId);
+			if (!voterActor) {
+				throw new InputError(Errors.PlayerNotFound, 'Player not found');
+			}
+
+			if (!voterActor.alive) {
+				throw new InputError(Errors.PlayerNotAlive, 'Player is not alive');
+			}
+
+			const [player] = await tx
+				.select({
+					id: gamePlayerTable.id,
+					number: gamePlayerTable.number,
+					onTrial: gamePlayerTable.onTrial,
+				})
+				.from(gamePlayerTable)
 				.where(
 					and(
 						eq(gamePlayerTable.gameId, gameId),
-						eq(gamePlayerTable.number, String(voterNumber)),
+						eq(gamePlayerTable.actorId, voterActorId),
 					),
-				)
-				.returning({ id: gamePlayerTable.id });
+				);
+
+			if (!player) {
+				throw new InputError(Errors.PlayerNotFound, 'Player not found');
+			}
+
+			if (player.onTrial) {
+				throw new InputError(
+					Errors.GameInvalidState,
+					'Player on trial cannot submit verdict',
+				);
+			}
+
+			const [updated] = await tx
+				.update(gamePlayerTable)
+				.set({ verdict })
+				.where(eq(gamePlayerTable.id, player.id))
+				.returning({ id: gamePlayerTable.id, number: gamePlayerTable.number });
 
 			if (!updated) {
 				throw new InputError(Errors.PlayerNotFound, 'Player not found');
 			}
 
-			return { voterNumber, verdict };
+			void afterTx(() => {
+				void realtime.publish(Resource.Realtime, RealtimeEvents.Verdict, {
+					gameId,
+					voterActorNumber: updated.number,
+					verdict,
+				});
+			});
+
+			return { voterActorId, verdict };
 		}),
 );
 
@@ -609,34 +879,38 @@ export const clearVerdicts = fn(
 export const tallyVerdicts = fn(
 	z.object({
 		gameId: isULID(),
-		alivePlayers: z.array(z.number().int().positive()),
+		aliveActorIds: z.array(z.string()),
 	}),
-	async ({ gameId, alivePlayers }) =>
+	async ({ gameId, aliveActorIds }) =>
 		useTransaction(async (tx) => {
 			const players = await tx
 				.select({
-					number: gamePlayerTable.number,
+					actorId: gamePlayerTable.actorId,
 					verdict: gamePlayerTable.verdict,
 					onTrial: gamePlayerTable.onTrial,
 				})
 				.from(gamePlayerTable)
 				.where(eq(gamePlayerTable.gameId, gameId));
 
-			// Count verdicts only from alive players who are not on trial
-			const alivePlayerSet = new Set(alivePlayers.map(String));
+			// Count only guilty/innocent verdicts from alive players who are not on trial.
+			// Null (no submission) defaults to abstain.
+			const aliveActorIdSet = new Set(aliveActorIds);
 			let guiltyCount = 0;
+			let abstainCount = 0;
 			let innocentCount = 0;
 
 			for (const player of players) {
 				// Skip players on trial (they can't vote)
 				if (player.onTrial) continue;
 
-				if (alivePlayerSet.has(player.number) && player.verdict !== null) {
-					if (player.verdict === 'guilty') {
-						guiltyCount++;
-					} else {
-						innocentCount++;
-					}
+				if (!aliveActorIdSet.has(player.actorId)) continue;
+
+				if (player.verdict === 'guilty') {
+					guiltyCount++;
+				} else if (player.verdict === 'innocent') {
+					innocentCount++;
+				} else {
+					abstainCount++;
 				}
 			}
 
@@ -645,6 +919,7 @@ export const tallyVerdicts = fn(
 
 			return {
 				guiltyCount,
+				abstainCount,
 				innocentCount,
 				isGuilty,
 				outcome: isGuilty ? ('guilty' as const) : ('innocent' as const),
@@ -662,9 +937,9 @@ export const tallyVerdicts = fn(
 export const setOnTrial = fn(
 	z.object({
 		gameId: isULID(),
-		playerNumber: z.number().int().positive(),
+		actorId: z.string(),
 	}),
-	async ({ gameId, playerNumber }) =>
+	async ({ gameId, actorId }) =>
 		useTransaction(async (tx) => {
 			// First clear any existing on trial status
 			await tx
@@ -677,18 +952,22 @@ export const setOnTrial = fn(
 				.update(gamePlayerTable)
 				.set({ onTrial: true })
 				.where(
-					and(
-						eq(gamePlayerTable.gameId, gameId),
-						eq(gamePlayerTable.number, String(playerNumber)),
-					),
+					and(eq(gamePlayerTable.gameId, gameId), eq(gamePlayerTable.actorId, actorId)),
 				)
-				.returning({ id: gamePlayerTable.id });
+				.returning({ id: gamePlayerTable.id, number: gamePlayerTable.number });
 
 			if (!updated) {
 				throw new InputError(Errors.PlayerNotFound, 'Player not found');
 			}
 
-			return { playerNumber };
+			void afterTx(() => {
+				void realtime.publish(Resource.Realtime, RealtimeEvents.Trial, {
+					gameId,
+					actorNumber: updated.number,
+				});
+			});
+
+			return { actorId };
 		}),
 );
 
@@ -816,6 +1095,27 @@ export const updateState = fn(
 		}),
 );
 
+export const setGameLoopExecutionArn = fn(
+	z.object({
+		gameId: isULID(),
+		executionArn: z.string().min(1),
+	}),
+	async ({ gameId, executionArn }) =>
+		useTransaction(async (tx) => {
+			const [updated] = await tx
+				.update(gameTable)
+				.set({ gameLoopExecutionArn: executionArn })
+				.where(eq(gameTable.id, gameId))
+				.returning({ id: gameTable.id });
+
+			if (!updated) {
+				throw new InputError(Errors.GameNotFound, 'Game not found');
+			}
+
+			return { gameId };
+		}),
+);
+
 export const list = () =>
 	useTransaction(async (tx) =>
 		tx
@@ -858,7 +1158,10 @@ export const terminate = fn(
 	async ({ gameId }) =>
 		useTransaction(async (tx) => {
 			const [game] = await tx
-				.select({ id: gameTable.id })
+				.select({
+					id: gameTable.id,
+					gameLoopExecutionArn: gameTable.gameLoopExecutionArn,
+				})
 				.from(gameTable)
 				.where(eq(gameTable.id, gameId))
 				.limit(1);
@@ -876,6 +1179,405 @@ export const terminate = fn(
 				throw new InputError(Errors.GameNotFound, 'Game not found');
 			}
 
+			if (game.gameLoopExecutionArn) {
+				void afterTx(async () => {
+					const sfnClient = new SFNClient({});
+
+					try {
+						await sfnClient.send(
+							new StopExecutionCommand({
+								executionArn: game.gameLoopExecutionArn,
+							}),
+						);
+					} catch (error) {
+						console.error('Failed to stop game loop execution', { gameId, error });
+					}
+				});
+			}
+
 			return { gameId };
+		}),
+);
+
+type AdvancePhaseResult = {
+	waitSeconds: number;
+	nextPhase: GamePhase;
+	continue: boolean;
+	status?: GameStatus;
+	pollCount?: number;
+	engineState?: GameState;
+	actors?: ActorState[];
+	events?: GameEventGroupDump | null;
+	deaths?: StateGraveyardRecord[];
+	winners?: WinnerSummary[];
+	lynchResult?: {
+		actorId: string;
+		guiltyCount: number;
+		abstainCount: number;
+		innocentCount: number;
+		isGuilty: boolean;
+	};
+	trialActorNumber?: number;
+	trialOver?: boolean;
+};
+
+const PHASE_INFO: Record<GamePhase, { duration: number }> = {
+	pregame: { duration: 15 },
+	day: { duration: 15 }, // 120 really, but test with shorter time for my sanity
+	evening: { duration: 15 }, // 60 really, but test with shorter time for my sanity
+	night: { duration: 0 },
+	morning: { duration: 0 },
+	poll: { duration: 20 },
+	defense: { duration: 20 },
+	trial: { duration: 20 },
+	lynch: { duration: 10 },
+};
+
+const MAX_POLLS = 3;
+const BASE_MORNING_DURATION = 5;
+const TIME_PER_DEATH = 5;
+
+const enterPhase = (
+	nextPhase: GamePhase,
+	overrides: Partial<AdvancePhaseResult> = {},
+): AdvancePhaseResult => ({
+	nextPhase,
+	waitSeconds: PHASE_INFO[nextPhase].duration,
+	continue: true,
+	...overrides,
+});
+
+const getAliveActorIds = (actors: ActorState[]) =>
+	actors.filter((actor) => actor.alive).map((actor) => actor.id);
+
+const getNightDeaths = (game: GameInfo) =>
+	game.engineState.graveyard.filter((death) => death.dod === game.engineState.day);
+
+const tallyVotesForPlayers = (players: GamePlayer[], aliveActorIds: string[]) => {
+	const aliveActorIdSet = new Set(aliveActorIds);
+	const votes: Record<string, number> = {};
+
+	for (const player of players) {
+		if (!aliveActorIdSet.has(player.actorId) || player.voteTargetActorId === null) continue;
+		votes[player.voteTargetActorId] = (votes[player.voteTargetActorId] ?? 0) + 1;
+	}
+
+	let maxVotes = 0;
+	let winner: string | null = null;
+	for (const [actorId, count] of Object.entries(votes)) {
+		if (count <= maxVotes) continue;
+		maxVotes = count;
+		winner = actorId;
+	}
+
+	return {
+		votes,
+		winner: maxVotes > Math.floor(aliveActorIds.length / 2) ? winner : null,
+	};
+};
+
+const tallyVerdictsForPlayers = (players: GamePlayer[], aliveActorIds: string[]) => {
+	const aliveActorIdSet = new Set(aliveActorIds);
+	let guiltyCount = 0;
+	let abstainCount = 0;
+	let innocentCount = 0;
+
+	for (const player of players) {
+		if (player.onTrial || !aliveActorIdSet.has(player.actorId)) continue;
+		if (player.verdict === 'guilty') guiltyCount++;
+		else if (player.verdict === 'innocent') innocentCount++;
+		else abstainCount++;
+	}
+
+	return { guiltyCount, abstainCount, innocentCount, isGuilty: guiltyCount > innocentCount };
+};
+
+const nextPollOrEvening = (pollCount: number, overrides: Partial<AdvancePhaseResult> = {}) => {
+	if (pollCount < MAX_POLLS) return enterPhase('poll', { pollCount, ...overrides });
+	return enterPhase('evening', { pollCount: 0, ...overrides });
+};
+
+const titleCasePhase = (phase: GamePhase) => phase.charAt(0).toUpperCase() + phase.slice(1);
+
+const getPhaseLabel = (phase: GamePhase, pollCount: number) => {
+	if (phase === 'poll') return `Poll ${pollCount + 1}`;
+	return titleCasePhase(phase);
+};
+
+const getPhaseSequence = (phase: GamePhase, pollCount: number) => {
+	if (phase === 'poll') return pollCount;
+	return 0;
+};
+
+const processEvening = (game: GameInfo): AdvancePhaseResult => {
+	const resolved = resolveGame({
+		state: game.engineState,
+		config: game.engineConfig,
+		actors: buildEngineActors(game.actors, game.players),
+	});
+
+	// TODO: Fan out resolved.events to RealtimeEvents.Event once event target/topic mapping is finalized.
+	return enterPhase('night', {
+		waitSeconds: resolved.events.duration,
+		engineState: resolved.state,
+		actors: resolved.actors,
+		events: resolved.events,
+	});
+};
+
+const processNight = (game: GameInfo): AdvancePhaseResult => {
+	const engineResult = loadGame({
+		state: game.engineState,
+		config: game.engineConfig,
+		actors: buildEngineActors(game.actors, game.players),
+	});
+	const deaths = getNightDeaths(game);
+	const waitSeconds = BASE_MORNING_DURATION + deaths.length * TIME_PER_DEATH;
+
+	if (engineResult.winners && engineResult.winners.length > 0) {
+		return enterPhase('morning', {
+			waitSeconds,
+			continue: false,
+			status: 'completed',
+			deaths,
+			winners: engineResult.winners,
+		});
+	}
+
+	return enterPhase('morning', { waitSeconds, deaths });
+};
+
+export const advancePhase = fn(
+	z.object({
+		gameId: isULID(),
+	}),
+	async ({ gameId }) =>
+		useTransaction(async (tx) => {
+			const [gameRow] = await tx.select().from(gameTable).where(eq(gameTable.id, gameId));
+
+			if (!gameRow) {
+				throw new InputError(Errors.GameNotFound, 'Game not found');
+			}
+
+			const players = await tx
+				.select()
+				.from(gamePlayerTable)
+				.where(eq(gamePlayerTable.gameId, gameId));
+			const game = GameInfoSchema.parse({ ...gameRow, players });
+
+			if (game.status !== 'active') {
+				return {
+					gameId,
+					continue: false,
+					waitSeconds: 0,
+					phase: game.phase,
+					pollCount: game.pollCount,
+				};
+			}
+
+			const clearVotes = () =>
+				tx
+					.update(gamePlayerTable)
+					.set({ voteTargetActorId: null })
+					.where(eq(gamePlayerTable.gameId, gameId));
+			const clearVerdicts = () =>
+				tx
+					.update(gamePlayerTable)
+					.set({ verdict: null })
+					.where(eq(gamePlayerTable.gameId, gameId));
+			const clearOnTrial = () =>
+				tx
+					.update(gamePlayerTable)
+					.set({ onTrial: false })
+					.where(eq(gamePlayerTable.gameId, gameId));
+
+			const aliveActorIds = getAliveActorIds(game.actors);
+			let result: AdvancePhaseResult;
+
+			switch (game.phase) {
+				case 'pregame':
+					result = enterPhase('evening');
+					break;
+
+				case 'day':
+					await clearVotes();
+					await clearVerdicts();
+					await clearOnTrial();
+					result = enterPhase('poll', { pollCount: 0 });
+					break;
+
+				case 'poll': {
+					const nextPollCount = game.pollCount + 1;
+					const voteTally = tallyVotesForPlayers(game.players, aliveActorIds);
+					await clearVotes();
+
+					if (voteTally.winner) {
+						const [trialPlayer] = await tx
+							.update(gamePlayerTable)
+							.set({ onTrial: true })
+							.where(
+								and(
+									eq(gamePlayerTable.gameId, gameId),
+									eq(gamePlayerTable.actorId, voteTally.winner),
+								),
+							)
+							.returning({ number: gamePlayerTable.number });
+
+						if (!trialPlayer) {
+							throw new InputError(Errors.PlayerNotFound, 'Player not found');
+						}
+
+						result = enterPhase('defense', {
+							pollCount: nextPollCount,
+							trialActorNumber: trialPlayer.number,
+						});
+						break;
+					}
+
+					result = nextPollOrEvening(nextPollCount);
+					break;
+				}
+
+				case 'defense':
+					result = enterPhase('trial');
+					break;
+
+				case 'trial': {
+					const trialPlayer = game.players.find((player) => player.onTrial);
+					if (!trialPlayer) {
+						throw new InputError(Errors.GameInvalidState, 'No player on trial');
+					}
+
+					const verdictTally = tallyVerdictsForPlayers(game.players, aliveActorIds);
+					await clearVerdicts();
+					const lynchResult = { actorId: trialPlayer.actorId, ...verdictTally };
+
+					if (verdictTally.isGuilty) {
+						result = enterPhase('lynch', { lynchResult });
+						break;
+					}
+
+					await clearOnTrial();
+					result = nextPollOrEvening(game.pollCount, { lynchResult, trialOver: true });
+					break;
+				}
+
+				case 'lynch': {
+					const trialPlayer = game.players.find((player) => player.onTrial);
+					if (!trialPlayer) {
+						throw new InputError(Errors.GameInvalidState, 'No player on trial');
+					}
+
+					const lynched = lynchGame({
+						state: game.engineState,
+						config: game.engineConfig,
+						actors: buildEngineActors(game.actors, game.players),
+						actorNumber: trialPlayer.number,
+					});
+					await clearOnTrial();
+					await clearVerdicts();
+					result = nextPollOrEvening(game.pollCount, {
+						engineState: lynched.state,
+						actors: lynched.actors,
+						trialOver: true,
+					});
+					break;
+				}
+
+				case 'evening':
+					result = processEvening(game);
+					await tx
+						.update(gamePlayerTable)
+						.set({ targetActorIds: [] })
+						.where(eq(gamePlayerTable.gameId, gameId));
+					break;
+
+				case 'night':
+					result = processNight(game);
+					break;
+
+				case 'morning':
+					result = enterPhase('day');
+					break;
+
+				default:
+					throw new InputError(Errors.GameInvalidState, 'Invalid game phase');
+			}
+
+			const updates: Record<string, unknown> = { phase: result.nextPhase };
+			if (result.status) updates.status = result.status;
+			if (result.pollCount !== undefined) updates.pollCount = result.pollCount;
+			if (result.engineState) updates.engineState = result.engineState;
+			if (result.actors) updates.actors = result.actors;
+			if (result.events !== undefined) updates.events = result.events;
+
+			const [updated] = await tx
+				.update(gameTable)
+				.set(updates)
+				.where(eq(gameTable.id, gameId))
+				.returning({ id: gameTable.id });
+
+			if (!updated) {
+				throw new InputError(Errors.GameNotFound, 'Game not found');
+			}
+
+			void afterTx(() => {
+				const nextPollCount = result.pollCount ?? game.pollCount;
+
+				void realtime.publish(Resource.Realtime, RealtimeEvents.PhaseChange, {
+					gameId,
+					phase: result.nextPhase,
+					duration: result.waitSeconds,
+					label: getPhaseLabel(result.nextPhase, nextPollCount),
+					sequence: getPhaseSequence(result.nextPhase, nextPollCount),
+				});
+
+				if (result.trialActorNumber !== undefined) {
+					void realtime.publish(Resource.Realtime, RealtimeEvents.Trial, {
+						gameId,
+						actorNumber: result.trialActorNumber,
+					});
+				}
+
+				if (result.trialOver) {
+					void realtime.publish(Resource.Realtime, RealtimeEvents.TrialOver, { gameId });
+				}
+
+				if (result.lynchResult) {
+					void realtime.publish(Resource.Realtime, RealtimeEvents.LynchResult, {
+						gameId,
+						...result.lynchResult,
+					});
+				}
+
+				if (result.engineState) {
+					void realtime.publish(Resource.Realtime, RealtimeEvents.State, {
+						gameId,
+						state: result.engineState,
+					});
+				}
+
+				if (result.deaths && result.deaths.length > 0) {
+					void realtime.publish(Resource.Realtime, RealtimeEvents.Deaths, {
+						gameId,
+						deaths: result.deaths,
+					});
+				}
+
+				if (result.winners && result.winners.length > 0) {
+					void realtime.publish(Resource.Realtime, RealtimeEvents.GameOver, {
+						gameId,
+						winners: result.winners,
+					});
+				}
+			});
+
+			return {
+				gameId,
+				continue: result.continue,
+				waitSeconds: result.waitSeconds,
+				phase: result.nextPhase,
+				pollCount: result.pollCount ?? game.pollCount,
+			};
 		}),
 );

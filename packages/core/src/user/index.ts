@@ -4,12 +4,13 @@ import { z } from 'zod';
 import { createTransaction, useTransaction } from '../db/transaction';
 import { InputError, isULID } from '../error';
 import { fn } from '../util/fn';
+import * as ApiKey from './apikey';
 import { UserErrors as Errors, UserInfoSchema } from './schema';
 import { userTable } from './user.sql';
 
 export * as User from './';
 export { getPresence } from './presence';
-export { Errors, UserInfoSchema };
+export { ApiKey, Errors, UserInfoSchema };
 export type { UserInfo } from './schema';
 
 export const createOrUpdateFromDiscordProfile = fn(

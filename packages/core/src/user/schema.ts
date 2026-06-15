@@ -13,6 +13,7 @@ import { isULID } from '../error/schema';
 export enum UserErrors {
 	UserExists = 'user.exists',
 	UserNotFound = 'user.not_found',
+	ApiKeyInvalid = 'user.api_key_invalid',
 }
 
 // ---------------------------------------------------------------------------

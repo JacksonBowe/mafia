@@ -10,7 +10,7 @@
 			track-color="grey-9"
 		>
 			<div class="absolute-full row items-center justify-between q-px-sm">
-				<span class="text-caption text-white text-weight-medium">{{ label }}</span>
+				<span class="text-caption text-white text-weight-medium text-capitalize">{{ label }}</span>
 				<span class="text-caption text-white text-weight-bold">{{ displayTime }}</span>
 			</div>
 		</q-linear-progress>
@@ -28,10 +28,13 @@ const props = withDefaults(
 		label?: string;
 		/** Pause the countdown */
 		paused?: boolean;
+		/** Reset countdown when this identity changes, even if duration stays same. */
+		resetKey?: string | number;
 	}>(),
 	{
 		label: '',
 		paused: false,
+		resetKey: '',
 	},
 );
 
@@ -94,10 +97,10 @@ watch(
 	{ immediate: true },
 );
 
-// Reset when duration changes
+// Reset when duration or phase occurrence changes.
 watch(
-	() => props.duration,
-	(dur) => {
+	() => [props.duration, props.resetKey] as const,
+	([dur]) => {
 		remaining.value = dur * 1000;
 		if (!props.paused) {
 			startInterval();

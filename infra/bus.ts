@@ -16,5 +16,5 @@ export const disconnectSubscriber = realtime.subscribe({
     handler: "packages/functions/src/realtime/disconnect.handler",
     link: [NeonDatabaseUrl, realtime, bus]
 }, {
-    filter: `${topicPrefix}/$disconnect`
+    filter: `${topicPrefix}/menu/$disconnect`
 })
