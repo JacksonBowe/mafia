@@ -37,7 +37,7 @@ export enum GameErrors {
 
 export const GameTopics = {
 	/** Public game channel - all players receive these events */
-	public: (gameId: string) => `game/${gameId}`,
+	public: (gameId: string) => `game/${gameId}/events`,
 	/** Private actor channel - only the specific player receives these events */
 	actor: (gameId: string, actorId: string) => `game/${gameId}/actor/${actorId}`,
 	/** Public chat channel */

@@ -1,9 +1,25 @@
 import { createClient } from '@openauthjs/openauth/client';
-import { topicPrefix } from '@mafia/core/realtime';
-import { User } from '@mafia/core/user/index';
 import { Resource } from 'sst';
 import { realtime } from 'sst/aws/realtime';
+import { z } from 'zod';
+import { isULID } from '@mafia/core/error';
+import { resolveGameChatSubscriptionTopics } from '@mafia/core/game/chat';
+import { Game } from '@mafia/core/game/index';
+import { topicPrefix } from '@mafia/core/realtime';
+import { User } from '@mafia/core/user/index';
 import { subjects } from '../subjects';
+
+const RealtimeCredentialSchema = z.discriminatedUnion('scope', [
+	z.object({ scope: z.literal('menu'), token: z.string().min(1), userId: z.string().min(1) }),
+	z.object({
+		scope: z.literal('game'),
+		token: z.string().min(1),
+		userId: z.string().min(1),
+		gameId: isULID(),
+	}),
+]);
+
+type RealtimeCredential = z.infer<typeof RealtimeCredentialSchema>;
 
 const client = createClient({
 	clientID: 'web-app',
@@ -35,6 +51,57 @@ async function resolveUserId(token: string): Promise<string | null> {
 	}
 }
 
+function parseCredential(token: string): RealtimeCredential | null {
+	try {
+		return RealtimeCredentialSchema.parse(JSON.parse(token));
+	} catch {
+		return null;
+	}
+}
+
+function authorizeMenu(prefix: string, userId: string) {
+	return {
+		principalId: userId,
+		publish: [`${prefix}/menu/$disconnect`],
+		subscribe: [
+			`${prefix}/menu/chat/global`,
+			`${prefix}/menu/chat/lobby/*`,
+			`${prefix}/menu/chat/private/${userId}`,
+			`${prefix}/menu/lobby/*`,
+		],
+	};
+}
+
+async function authorizeGame(prefix: string, userId: string, gameId: string) {
+	const game = await Game.get({ gameId });
+	if (game.status !== 'active') {
+		console.warn('Realtime authorizer: game connection requested for inactive game', { gameId, userId });
+		return { publish: [], subscribe: [] };
+	}
+
+	const player = game.players.find((p) => p.userId === userId);
+	if (!player) {
+		console.warn('Realtime authorizer: user is not a player in requested game', { gameId, userId });
+		return { publish: [], subscribe: [] };
+	}
+
+	const actor = game.actors.find((a) => a.id === player.actorId) ?? null;
+	if (!actor) {
+		console.warn('Realtime authorizer: player actor missing in requested game', { gameId, userId });
+		return { publish: [], subscribe: [] };
+	}
+
+	return {
+		principalId: userId,
+		publish: [`${prefix}/game/${gameId}/$disconnect`],
+		subscribe: [
+			`${prefix}/game/${gameId}/events`,
+			`${prefix}/game/${gameId}/actor/${actor.id}`,
+			...resolveGameChatSubscriptionTopics({ gameId, actor }).map((topic) => `${prefix}/${topic}`),
+		],
+	};
+}
+
 export const handler = realtime.authorizer(async (token) => {
 	const prefix = topicPrefix();
 
@@ -43,28 +110,33 @@ export const handler = realtime.authorizer(async (token) => {
 	}
 
 	try {
-		const userId = await resolveUserId(token);
+		const credential = parseCredential(token);
+
+		if (!credential) {
+			console.warn('Realtime authorizer: credential payload was invalid');
+			return { publish: [], subscribe: [] };
+		}
+
+		const userId = await resolveUserId(credential.token);
 
 		if (!userId) {
 			console.warn('Realtime authorizer: credential did not resolve to a user');
 			return { publish: [], subscribe: [] };
 		}
 
+		if (credential.userId !== userId) {
+			console.warn('Realtime authorizer: credential user did not match token subject');
+			return { publish: [], subscribe: [] };
+		}
+
 		// TODO: Revisit strictness vs reconnects
 		// docs/realtime/reconnect-grace-period.md
 
-		const subscribe = new Set<string>();
-		subscribe.add(`${prefix}/chat/menu/global`);
-		subscribe.add(`${prefix}/chat/menu/lobby/*`);
-		subscribe.add(`${prefix}/chat/menu/private/${userId}`);
-		subscribe.add(`${prefix}/chat/game/*`);
-		subscribe.add(`${prefix}/lobby/*`);
-		subscribe.add(`${prefix}/game/*`);
+		if (credential.scope === 'game') {
+			return authorizeGame(prefix, userId, credential.gameId);
+		}
 
-		return {
-			publish: [`${prefix}/$disconnect`],
-			subscribe: [...subscribe],
-		};
+		return authorizeMenu(prefix, userId);
 	} catch (err) {
 		console.error('Realtime authorizer error', err);
 		return { publish: [], subscribe: [] };

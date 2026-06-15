@@ -22,7 +22,7 @@ export const RealtimeEvents = {
 		z.object({
 			lobbyId: isULID(),
 		}),
-		(p) => `lobby/${p.lobbyId}`,
+		(p) => `menu/lobby/${p.lobbyId}`,
 	),
 	LobbyStarted: defineRealtimeEvent(
 		'lobby.started',
@@ -30,7 +30,7 @@ export const RealtimeEvents = {
 			lobbyId: isULID(),
 			gameId: isULID(),
 		}),
-		(p) => `lobby/${p.lobbyId}`,
+		(p) => `menu/lobby/${p.lobbyId}`,
 	),
 };
 

@@ -21,6 +21,9 @@ export type BotRealtimeOptions = {
 	authorizer: string;
 	prefix: string;
 	apiKey: string;
+	userId: string;
+	scope: 'menu' | 'game';
+	gameId?: string;
 	clientId: string;
 	label: string;
 	onMessage: (msg: RealtimeMessage, topic: string) => void;
@@ -59,9 +62,12 @@ export class BotRealtime {
 
 	/** Connect and resolve once the first CONNACK arrives (rejects on first error). */
 	connect(): Promise<void> {
-		const { endpoint, authorizer, apiKey, clientId } = this.opts;
+		const { endpoint, authorizer, apiKey, userId, scope, gameId, clientId } = this.opts;
 		const authorizerName = encodeURIComponent(authorizer);
 		const url = `wss://${endpoint}/mqtt?x-amz-customauthorizer-name=${authorizerName}`;
+		if (scope === 'game' && !gameId) throw new Error('Game realtime connection requires gameId');
+		const credential =
+			scope === 'game' ? { scope, token: apiKey, userId, gameId } : { scope, token: apiKey, userId };
 
 		const options: IClientOptions = {
 			protocolVersion: 5,
@@ -71,14 +77,14 @@ export class BotRealtime {
 			forceNativeWebSocket: true,
 			clientId,
 			username: '',
-			password: apiKey,
+			password: JSON.stringify(credential),
 			reconnectPeriod: 2000,
 			keepalive: 60,
 			connectTimeout: 10_000,
 			clean: true,
 			will: {
-				topic: this.full('$disconnect'),
-				payload: JSON.stringify({ clientId }),
+				topic: this.full(scope === 'game' ? `game/${gameId}/$disconnect` : 'menu/$disconnect'),
+				payload: JSON.stringify({ clientId, userId }),
 				qos: 1,
 				retain: false,
 			},

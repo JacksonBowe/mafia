@@ -38,17 +38,17 @@ export function resolveGameChatSubscriptionTopics(input: {
 	actor: ActorState | null;
 }): string[] {
 	const { gameId, actor } = input;
-	const topics = [`chat/game/${gameId}/global`];
+	const topics = [`game/${gameId}/chat/global`];
 
 	if (!actor) return topics;
 
 	if (!actor.alive) {
-		return [...topics, `chat/game/${gameId}/dead`];
+		return [...topics, `game/${gameId}/chat/dead`];
 	}
 
 	const teamId = teamIdForActor(actor);
 	if (teamId) {
-		topics.push(`chat/game/${gameId}/team/${teamId}`);
+		topics.push(`game/${gameId}/chat/team/${teamId}`);
 	}
 
 	return topics;

@@ -36,6 +36,7 @@ export class BotSession {
 	private readonly cfg: BotSessionConfig;
 	private readonly client: ApiClient;
 	private realtime: BotRealtime | null = null;
+	private gameRealtime: BotRealtime | null = null;
 	private status: BotStatus = 'idle';
 	private user: BotSnapshot['user'] = null;
 	private lobby: LobbyInfo | null = null;
@@ -82,6 +83,8 @@ export class BotSession {
 			authorizer: this.cfg.realtime.authorizer,
 			prefix: this.cfg.realtime.prefix,
 			apiKey: this.cfg.apiKey,
+			userId: this.user.id,
+			scope: 'menu',
 			clientId: `bot_${this.user.id}_${Date.now()}`,
 			label: this.cfg.label,
 			onStatus: (message) => this.log(message),
@@ -92,7 +95,7 @@ export class BotSession {
 		});
 
 		await this.realtime.connect();
-		if (this.lobbyId) this.realtime.subscribe(`lobby/${this.lobbyId}`);
+		if (this.lobbyId) this.realtime.subscribe(`menu/lobby/${this.lobbyId}`);
 		this.setStatus('connected');
 	}
 
@@ -106,7 +109,7 @@ export class BotSession {
 		if (!lobbyId) throw new Error('No lobby selected');
 		this.lobbyId = lobbyId;
 		await this.connect();
-		this.realtime?.subscribe(`lobby/${lobbyId}`);
+		this.realtime?.subscribe(`menu/lobby/${lobbyId}`);
 		this.setStatus('joining_lobby');
 		await this.client.joinLobby({ lobbyId });
 		await this.refresh();
@@ -138,7 +141,7 @@ export class BotSession {
 		this.game = await this.client.getGame();
 		if (!this.game) this.isDead = false;
 		else this.updateDeadState(!this.game.actor.alive);
-		if (this.game) this.subscribeGame(this.game.info.id, this.game.actor.id);
+		if (this.game) await this.subscribeGame(this.game.info.id, this.game.actor.id);
 		this.setStatus(
 			this.game ? 'in_game' : this.lobby ? 'in_lobby' : this.realtime ? 'connected' : 'idle',
 		);
@@ -148,6 +151,8 @@ export class BotSession {
 		this.clearActionTimer();
 		this.realtime?.disconnect();
 		this.realtime = null;
+		this.gameRealtime?.disconnect();
+		this.gameRealtime = null;
 		this.subscribedGames.clear();
 		this.setStatus('disconnected');
 		this.log('disconnected');
@@ -163,6 +168,8 @@ export class BotSession {
 		if (msg.type === 'game.over' || msg.type === 'game.terminated') {
 			this.clearActionTimer();
 			this.pendingActionKey = null;
+			this.gameRealtime?.disconnect();
+			this.gameRealtime = null;
 			return;
 		}
 
@@ -183,7 +190,7 @@ export class BotSession {
 		}
 
 		this.game = game;
-		this.subscribeGame(game.info.id, game.actor.id);
+		await this.subscribeGame(game.info.id, game.actor.id);
 		this.setStatus('in_game');
 		this.log(`joined game ${game.info.id} as actor ${game.actor.id} (#${game.actor.number})`);
 		this.scheduleAutoAction(game.info.id, game.info.phase, String(game.info.syncTs));
@@ -331,11 +338,31 @@ export class BotSession {
 		}
 	}
 
-	private subscribeGame(gameId: string, actorId: string): void {
+	private async subscribeGame(gameId: string, actorId: string): Promise<void> {
 		if (this.subscribedGames.has(gameId)) return;
+		if (!this.user) throw new Error('Bot did not authenticate');
+		this.gameRealtime?.disconnect();
+		const gameRealtime = new BotRealtime({
+			endpoint: this.cfg.realtime.endpoint,
+			authorizer: this.cfg.realtime.authorizer,
+			prefix: this.cfg.realtime.prefix,
+			apiKey: this.cfg.apiKey,
+			userId: this.user.id,
+			scope: 'game',
+			gameId,
+			clientId: `bot_game_${this.user.id}_${gameId}_${Date.now()}`,
+			label: `${this.cfg.label}:game`,
+			onStatus: (message) => this.log(message),
+			onError: (err) => this.setError(err),
+			onMessage: (msg) => {
+				this.handleMessage(msg).catch((err: unknown) => this.setError(err));
+			},
+		});
+		this.gameRealtime = gameRealtime;
+		await gameRealtime.connect();
+		gameRealtime.subscribe(GameTopics.public(gameId));
+		gameRealtime.subscribe(GameTopics.actor(gameId, actorId));
 		this.subscribedGames.add(gameId);
-		this.realtime?.subscribe(GameTopics.public(gameId));
-		this.realtime?.subscribe(GameTopics.actor(gameId, actorId));
 	}
 
 	private setStatus(status: BotStatus): void {

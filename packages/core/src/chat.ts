@@ -8,49 +8,49 @@ export const ChatMessageSchema = z.object({
 
 function topicForMessage(message: z.infer<typeof MessageSchema>) {
 	if (message.scope === 'menu' && message.channel === 'GLOBAL') {
-		return 'chat/menu/global';
+		return 'menu/chat/global';
 	}
 
 	if (message.scope === 'menu' && message.channel === 'LOBBY') {
 		if (!message.lobbyId) {
 			throw new Error('Menu lobby messages require lobbyId');
 		}
-		return `chat/menu/lobby/${message.lobbyId}`;
+		return `menu/chat/lobby/${message.lobbyId}`;
 	}
 
 	if (message.scope === 'menu' && message.channel === 'PRIVATE') {
 		if (!message.targetUserId) {
 			throw new Error('Menu private messages require targetUserId');
 		}
-		return `chat/menu/private/${message.targetUserId}`;
+		return `menu/chat/private/${message.targetUserId}`;
 	}
 
 	if (message.scope === 'game' && message.channel === 'GLOBAL') {
 		if (!message.gameId) {
 			throw new Error('Game global messages require gameId');
 		}
-		return `chat/game/${message.gameId}/global`;
+		return `game/${message.gameId}/chat/global`;
 	}
 
 	if (message.scope === 'game' && message.channel === 'TEAM') {
 		if (!message.gameId || !message.teamId) {
 			throw new Error('Game team messages require gameId and teamId');
 		}
-		return `chat/game/${message.gameId}/team/${message.teamId}`;
+		return `game/${message.gameId}/chat/team/${message.teamId}`;
 	}
 
 	if (message.scope === 'game' && message.channel === 'PRIVATE') {
 		if (!message.gameId || !message.targetUserId) {
 			throw new Error('Game private messages require gameId and targetUserId');
 		}
-		return `chat/game/${message.gameId}/private/${message.targetUserId}`;
+		return `game/${message.gameId}/chat/private/${message.targetUserId}`;
 	}
 
 	if (message.scope === 'game' && message.channel === 'DEAD') {
 		if (!message.gameId) {
 			throw new Error('Game dead messages require gameId');
 		}
-		return `chat/game/${message.gameId}/dead`;
+		return `game/${message.gameId}/chat/dead`;
 	}
 
 	throw new Error(`Unsupported chat topic for scope=${message.scope} channel=${message.channel}`);

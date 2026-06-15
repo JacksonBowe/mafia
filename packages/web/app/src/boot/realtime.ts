@@ -12,11 +12,11 @@ export default defineBoot(() => {
 		() => ({ token: auth.session?.accessToken ?? null, userId: auth.userId ?? null }),
 		({ token, userId }) => {
 			if (!token || !userId) {
-				rt.disconnect();
+				rt.disconnectAll();
 				return;
 			}
-			if (!rt.isConnected && rt.status !== 'connecting') {
-				rt.connect({ token, userId });
+			if (!rt.isConnected('menu') && rt.status('menu') !== 'connecting') {
+				rt.connect({ scope: 'menu', token, userId });
 			}
 		},
 		{ immediate: true },

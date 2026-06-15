@@ -28,7 +28,7 @@ export const useHostLobby = () => {
 			console.log(data);
 			// cStore.newInfoMessage('You have created a Lobby');
 			mStore.system('You have created a Lobby', { scope: 'app', channel: 'FEEDBACK' }); // TODO
-			rt.subscribe(`lobby/${data.id}`);
+			rt.subscribe('menu', `menu/lobby/${data.id}`);
 		},
 		onError: (e) => {
 			console.error('Host error', e);
@@ -89,7 +89,7 @@ export const useJoinLobby = () => {
 			await queryClient.invalidateQueries({ queryKey: ['presence'] });
 			await queryClient.invalidateQueries({ queryKey: ['actor'] });
 
-			rt.subscribe(`lobby/${lobbyId}`);
+			rt.subscribe('menu', `menu/lobby/${lobbyId}`);
 		},
 		onError: (e) => {
 			console.error('Join Error', e);
@@ -152,7 +152,7 @@ export const useLeaveLobby = () => {
 			await queryClient.invalidateQueries({ queryKey: ['presence'] });
 			await queryClient.invalidateQueries({ queryKey: ['lobbies'] });
 
-			rt.unsubscribe(lStore.selectedLobbyId);
+			rt.unsubscribe('menu', `menu/lobby/${lStore.selectedLobbyId}`);
 			lStore.clearSelectedLobbyId();
 		},
 

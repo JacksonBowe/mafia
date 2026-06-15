@@ -588,6 +588,10 @@ export const submitVote = fn(
 				throw new InputError(Errors.PlayerNotFound, 'Voter not found');
 			}
 
+			if (!voter.alive) {
+				throw new InputError(Errors.PlayerNotAlive, 'Player is not alive');
+			}
+
 			// Verify target exists
 			const [target] = await tx
 				.select()

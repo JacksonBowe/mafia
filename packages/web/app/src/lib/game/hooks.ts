@@ -39,6 +39,9 @@ export const useSubmitGameVote = () => {
 	return useMutation({
 		mutationFn: (input: SubmitGameVoteInput) => {
 			const actorNumber = gameStore.actor?.number;
+			if (gameStore.actor && !gameStore.actor.alive) {
+				return Promise.reject(new Error('Dead players cannot submit votes.'));
+			}
 			if (gameStore.isSandbox && actorNumber) {
 				if (gameStore.votes[actorNumber] === input.targetActorNumber) {
 					gameStore.applyVoteCancel(actorNumber);
@@ -79,6 +82,9 @@ export const useSubmitGameVerdict = () => {
 	return useMutation({
 		mutationFn: (input: SubmitGameVerdictInput) => {
 			const actorNumber = gameStore.actor?.number;
+			if (gameStore.actor && !gameStore.actor.alive) {
+				return Promise.reject(new Error('Dead players cannot submit verdicts.'));
+			}
 			if (gameStore.isSandbox && actorNumber) {
 				gameStore.applyVerdict(actorNumber, input.verdict);
 				return Promise.resolve({ verdict: input.verdict });

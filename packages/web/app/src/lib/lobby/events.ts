@@ -93,7 +93,7 @@ export function useLobbyEvents() {
 				);
 				void queryClient.invalidateQueries({ queryKey: ['lobbies'] });
 				void queryClient.invalidateQueries({ queryKey: ['actor', 'presence'] });
-				useRealtime().unsubscribe(`lobby/${p.lobbyId}`);
+				useRealtime().unsubscribe('menu', `menu/lobby/${p.lobbyId}`);
 			}),
 
 			bus.on('realtime.lobby.started', (p) => {

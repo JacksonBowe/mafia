@@ -1,5 +1,10 @@
 <template>
-	<q-item v-if="props.actor && props.actor.alive" class="rounded-borders no-select" clickable>
+	<q-item
+		v-if="props.actor"
+		class="rounded-borders no-select"
+		:class="{ 'dead-actor': !props.actor.alive }"
+		clickable
+	>
 		<q-item-section side class="q-pr-sm">
 			<q-avatar
 				class="no-select"
@@ -11,17 +16,17 @@
 		</q-item-section>
 
 		<q-item-section>
-			<q-item-label :style="{ color: playerColor }">
-				{{ props.actor.alias }}
+			<q-item-label :style="{ color: actorTextColor }">
+				{{ props.actor?.alias }}
 				<span v-if="isPlayer" class="text-caption text-grey">(me)</span>
 				<span v-if="isAlly" class="text-caption text-grey">(ally)</span>
 			</q-item-label>
 		</q-item-section>
 
-		<template v-if="actor && actor.alive">
+		<template v-if="props.actor?.alive">
 			<q-item-section
 				side
-				v-if="phase === 'poll'"
+				v-if="phase === 'poll' && gameStore.actor?.alive"
 				style="gap: 8px"
 				:class="{ 'reserve-space-hidden': isPlayer }"
 			>
@@ -89,6 +94,8 @@ const playerColor = computed(() => {
 	return getCssVar(`--player-${props.actor?.number}`) || 'grey';
 });
 
+const actorTextColor = computed(() => (props.actor?.alive ? playerColor.value : 'grey'));
+
 /** Number of votes this actor has received (from realtime vote events). */
 const voteCount = computed(
 	() => Object.values(gameStore.votes).filter((target) => target === props.actor?.number).length,
@@ -103,8 +110,8 @@ const isActorVotedByPlayer = computed(() => {
 /** Voting */
 const { mutateAsync: submitVote } = useSubmitGameVote();
 
-const voteTarget = (actor: GameActor) => {
-	if (!gameStore.info) return;
+const voteTarget = (actor: GameActor | undefined) => {
+	if (!gameStore.info || !gameStore.actor?.alive || !actor) return;
 	const targetActorNumber = actor.number;
 	if (!targetActorNumber) return;
 	void submitVote({ gameId: gameStore.info.id, targetActorNumber });
@@ -115,17 +122,22 @@ const { mutateAsync: setTargets } = useSetGameTargets();
 
 const targetSlotLabel = (slot: number) => String.fromCharCode(65 + slot);
 
-const canTargetSlot = (actor: GameActor, slot: number) => {
+
+const canTargetSlot = (actor: GameActor | undefined, slot: number) => {
+	if (!actor) return false;
 	if (slot > 0 && gameStore.actor?.targets[slot - 1] === undefined) return false;
 	return gameStore.actor?.possibleTargets[slot]?.includes(actor.number) ?? false;
 };
 
-const isSelectedTarget = (actor: GameActor, slot: number) => {
+
+const isSelectedTarget = (actor: GameActor | undefined, slot: number) => {
+	if (!actor) return false;
 	return gameStore.actor?.targets[slot] === actor.number;
 };
 
-const setTarget = (actor: GameActor, slot: number) => {
+const setTarget = (actor: GameActor | undefined, slot: number) => {
 	if (!gameStore.info || !gameStore.actor || !canTargetSlot(actor, slot)) return;
+	if (!actor) return;
 
 	const targetActorNumbers = gameStore.actor.targets.slice(0, slot);
 	if (!isSelectedTarget(actor, slot)) {
@@ -138,3 +150,13 @@ const setTarget = (actor: GameActor, slot: number) => {
 	});
 };
 </script>
+
+<style scoped lang="scss">
+.dead-actor {
+	opacity: 0.6;
+}
+
+.dead-actor :deep(.q-item__label) {
+	text-decoration: line-through;
+}
+</style>
