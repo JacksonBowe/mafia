@@ -558,7 +558,7 @@ export const submitVote = fn(
 		useTransaction(async (tx) => {
 			// Votes may only be cast/toggled during the poll phase.
 			const [game] = await tx
-				.select({ phase: gameTable.phase })
+				.select({ phase: gameTable.phase, actors: gameTable.actors })
 				.from(gameTable)
 				.where(eq(gameTable.id, gameId));
 
@@ -571,6 +571,17 @@ export const submitVote = fn(
 					Errors.NotVotingPhase,
 					'Voting is only allowed during the poll phase',
 				);
+			}
+
+			const actors = ActorStateSchema.array().parse(game.actors);
+			const voterActor = actors.find((actor) => actor.id === voterActorId);
+
+			if (!voterActor) {
+				throw new InputError(Errors.PlayerNotFound, 'Voter not found');
+			}
+
+			if (!voterActor.alive) {
+				throw new InputError(Errors.PlayerNotAlive, 'Player is not alive');
 			}
 
 			// Get the voter's current state
@@ -586,10 +597,6 @@ export const submitVote = fn(
 
 			if (!voter) {
 				throw new InputError(Errors.PlayerNotFound, 'Voter not found');
-			}
-
-			if (!voter.alive) {
-				throw new InputError(Errors.PlayerNotAlive, 'Player is not alive');
 			}
 
 			// Verify target exists
