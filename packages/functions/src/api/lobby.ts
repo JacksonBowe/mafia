@@ -9,10 +9,7 @@ import { User } from '@mafia/core/user/index';
 import { DEFAULT_CONFIG, newGame, type ActorState } from '@mafia/engine';
 import { Hono } from 'hono';
 import { Resource } from 'sst';
-import {
-	CreateLobbyJsonSchema,
-	LobbyIdPathParamsSchema,
-} from './schemas/lobby.schemas';
+import { CreateLobbyJsonSchema, LobbyIdPathParamsSchema } from './schemas/lobby.schemas';
 
 type Bindings = Record<string, never>;
 
@@ -162,8 +159,8 @@ lobbyRoutes.post('/:lobbyId/start', zValidator('param', LobbyIdPathParamsSchema)
 		});
 
 		// Publish realtime event after commit
-		void afterTx(async () => {
-			void realtime.publish(Resource.Realtime, Lobby.RealtimeEvents.LobbyStarted, {
+		await afterTx(async () => {
+			await realtime.publish(Resource.Realtime, Lobby.RealtimeEvents.LobbyStarted, {
 				lobbyId,
 				gameId,
 			});

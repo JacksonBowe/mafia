@@ -270,8 +270,8 @@ export const terminate = fn(
 				);
 			}
 
-			void afterTx(() => {
-				void realtime.publish(Resource.Realtime, RealtimeEvents.LobbyTerminated, {
+			await afterTx(async () => {
+				await realtime.publish(Resource.Realtime, RealtimeEvents.LobbyTerminated, {
 					lobbyId,
 				});
 			});

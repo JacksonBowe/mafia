@@ -628,19 +628,20 @@ export const submitVote = fn(
 				.set({ voteTargetActorId })
 				.where(eq(gamePlayerTable.id, voter.id));
 
-			void afterTx(() => {
+			await afterTx(async () => {
 				if (voteTargetActorId === null) {
-					void realtime.publish(Resource.Realtime, RealtimeEvents.VoteCancel, {
+					await realtime.publish(Resource.Realtime, RealtimeEvents.VoteCancel, {
 						gameId,
 						voterActorNumber: voter.number,
 					});
-				} else {
-					void realtime.publish(Resource.Realtime, RealtimeEvents.Vote, {
-						gameId,
-						voterActorNumber: voter.number,
-						targetActorNumber: target.number,
-					});
+					return;
 				}
+
+				await realtime.publish(Resource.Realtime, RealtimeEvents.Vote, {
+					gameId,
+					voterActorNumber: voter.number,
+					targetActorNumber: target.number,
+				});
 			});
 
 			return { voteTargetActorId };
@@ -689,8 +690,8 @@ export const cancelVote = fn(
 				throw new InputError(Errors.PlayerNotFound, 'Player not found');
 			}
 
-			void afterTx(() => {
-				void realtime.publish(Resource.Realtime, RealtimeEvents.VoteCancel, {
+			await afterTx(async () => {
+				await realtime.publish(Resource.Realtime, RealtimeEvents.VoteCancel, {
 					gameId,
 					voterActorNumber: updated.number,
 				});
@@ -849,8 +850,8 @@ export const submitVerdict = fn(
 				throw new InputError(Errors.PlayerNotFound, 'Player not found');
 			}
 
-			void afterTx(() => {
-				void realtime.publish(Resource.Realtime, RealtimeEvents.Verdict, {
+			await afterTx(async () => {
+				await realtime.publish(Resource.Realtime, RealtimeEvents.Verdict, {
 					gameId,
 					voterActorNumber: updated.number,
 					verdict,
@@ -967,8 +968,8 @@ export const setOnTrial = fn(
 				throw new InputError(Errors.PlayerNotFound, 'Player not found');
 			}
 
-			void afterTx(() => {
-				void realtime.publish(Resource.Realtime, RealtimeEvents.Trial, {
+			await afterTx(async () => {
+				await realtime.publish(Resource.Realtime, RealtimeEvents.Trial, {
 					gameId,
 					actorNumber: updated.number,
 				});
@@ -1187,13 +1188,13 @@ export const terminate = fn(
 			}
 
 			if (game.gameLoopExecutionArn) {
-				void afterTx(async () => {
+				await afterTx(async () => {
 					const sfnClient = new SFNClient({});
 
 					try {
 						await sfnClient.send(
 							new StopExecutionCommand({
-								executionArn: game.gameLoopExecutionArn,
+								executionArn: game.gameLoopExecutionArn!,
 							}),
 						);
 					} catch (error) {
@@ -1528,10 +1529,10 @@ export const advancePhase = fn(
 				throw new InputError(Errors.GameNotFound, 'Game not found');
 			}
 
-			void afterTx(() => {
+			await afterTx(async () => {
 				const nextPollCount = result.pollCount ?? game.pollCount;
 
-				void realtime.publish(Resource.Realtime, RealtimeEvents.PhaseChange, {
+				await realtime.publish(Resource.Realtime, RealtimeEvents.PhaseChange, {
 					gameId,
 					phase: result.nextPhase,
 					duration: result.waitSeconds,
@@ -1540,39 +1541,39 @@ export const advancePhase = fn(
 				});
 
 				if (result.trialActorNumber !== undefined) {
-					void realtime.publish(Resource.Realtime, RealtimeEvents.Trial, {
+					await realtime.publish(Resource.Realtime, RealtimeEvents.Trial, {
 						gameId,
 						actorNumber: result.trialActorNumber,
 					});
 				}
 
 				if (result.trialOver) {
-					void realtime.publish(Resource.Realtime, RealtimeEvents.TrialOver, { gameId });
+					await realtime.publish(Resource.Realtime, RealtimeEvents.TrialOver, { gameId });
 				}
 
 				if (result.lynchResult) {
-					void realtime.publish(Resource.Realtime, RealtimeEvents.LynchResult, {
+					await realtime.publish(Resource.Realtime, RealtimeEvents.LynchResult, {
 						gameId,
 						...result.lynchResult,
 					});
 				}
 
 				if (result.engineState) {
-					void realtime.publish(Resource.Realtime, RealtimeEvents.State, {
+					await realtime.publish(Resource.Realtime, RealtimeEvents.State, {
 						gameId,
 						state: result.engineState,
 					});
 				}
 
 				if (result.deaths && result.deaths.length > 0) {
-					void realtime.publish(Resource.Realtime, RealtimeEvents.Deaths, {
+					await realtime.publish(Resource.Realtime, RealtimeEvents.Deaths, {
 						gameId,
 						deaths: result.deaths,
 					});
 				}
 
 				if (result.winners && result.winners.length > 0) {
-					void realtime.publish(Resource.Realtime, RealtimeEvents.GameOver, {
+					await realtime.publish(Resource.Realtime, RealtimeEvents.GameOver, {
 						gameId,
 						winners: result.winners,
 					});

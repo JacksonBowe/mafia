@@ -121,11 +121,27 @@ export namespace realtime {
 		input: z.input<E['schema']>,
 	) {
 		const built = event.build(input);
-		return publishRaw({
+		const startedAt = Date.now();
+		console.log('Publishing realtime event', {
+			type: built.payload.type,
+			topic: built.topic,
+			at: new Date(startedAt).toISOString(),
+		});
+
+		const result = await publishRaw({
 			resource,
 			topic: built.topic,
 			type: built.payload.type,
 			properties: built.payload.properties,
 		});
+
+		console.log('Published realtime event', {
+			type: built.payload.type,
+			topic: result.topic,
+			at: new Date().toISOString(),
+			durationMs: Date.now() - startedAt,
+		});
+
+		return result;
 	}
 }
