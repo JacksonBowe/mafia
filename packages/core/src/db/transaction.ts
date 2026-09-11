@@ -8,7 +8,7 @@ import { createContext } from '../context'; // Context management for transactio
 export type Transaction = PgTransaction<any, any, any>;
 
 // Type alias for either the Transaction or the DB instance
-type TxOrDb = Transaction | typeof db;
+export type TxOrDb = Transaction | typeof db;
 
 // Create a context to manage transaction state
 const TransactionContext = createContext<{

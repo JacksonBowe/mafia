@@ -47,7 +47,11 @@ adminRoutes.post('/terminate-games', async (c) => {
 	await Promise.all(
 		games.map(async (game) => {
 			console.log(`Terminating game ${game.id} by admin ${actor.properties.userId}`);
-			await Game.terminate({ gameId: game.id });
+			await Game.terminate({
+				gameId: game.id,
+				terminatedByUserId: actor.properties.userId,
+				reason: 'admin.terminate_all_games',
+			});
 			console.log(`Game ${game.id} terminated.`);
 		}),
 	);

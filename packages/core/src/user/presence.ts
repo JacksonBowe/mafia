@@ -1,5 +1,5 @@
 // src/user/presence.ts
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { useTransaction } from '../db/transaction';
 import { isULID } from '../error';
@@ -35,7 +35,7 @@ export const getPresence = fn(
 				})
 				.from(gamePlayerTable)
 				.innerJoin(gameTable, eq(gameTable.id, gamePlayerTable.gameId))
-				.where(eq(gamePlayerTable.userId, userId))
+				.where(and(eq(gamePlayerTable.userId, userId), eq(gameTable.status, 'active')))
 				.limit(1);
 
 			return PresenceSchema.parse({

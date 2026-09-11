@@ -48,6 +48,9 @@ export const gameTable = pgTable(
 
 		// Poll count - tracks voting rounds (max 3 before moving to evening)
 		pollCount: integer('poll_count').notNull().default(0),
+
+		// Incremented transactionally for a stable, per-game audit timeline.
+		auditLogSequence: integer('audit_log_sequence').notNull().default(0),
 	},
 	(t) => [index('game_status_idx').on(t.status), index('game_created_at_idx').on(t.createdAt)],
 );
@@ -87,4 +90,52 @@ export const gamePlayerTable = pgTable(
 		index('game_player_user_idx').on(t.userId),
 		uniqueIndex('game_player_game_actor_uq').on(t.gameId, t.actorId),
 	],
+);
+
+// Append-only, server-only audit timeline. Game deletion is intentionally
+// restricted: termination preserves records for review.
+export const gameLogTable = pgTable(
+	'game_log',
+	{
+		...id,
+		gameId: text('game_id')
+			.notNull()
+			.references(() => gameTable.id, { onDelete: 'restrict' }),
+		createdAt: pgTimestamp('created_at', {
+			precision: 3,
+			withTimezone: true,
+			mode: 'date',
+		})
+			.notNull()
+			.defaultNow(),
+		type: text('type').notNull(),
+		phase: text('phase'),
+		actorId: text('actor_id'),
+		sequence: integer('sequence').notNull(),
+		data: jsonb('data').notNull(),
+	},
+	(t) => [uniqueIndex('game_log_game_sequence_uq').on(t.gameId, t.sequence)],
+);
+
+// Raw engine diagnostics are separate from the player-behaviour audit trail.
+export const engineLogTable = pgTable(
+	'engine_log',
+	{
+		...id,
+		gameId: text('game_id')
+			.notNull()
+			.references(() => gameTable.id, { onDelete: 'restrict' }),
+		createdAt: pgTimestamp('created_at', {
+			precision: 3,
+			withTimezone: true,
+			mode: 'date',
+		})
+			.notNull()
+			.defaultNow(),
+		operation: text('operation').notNull(),
+		phase: text('phase'),
+		data: jsonb('data').notNull(),
+		lines: jsonb('lines').$type<string[]>().notNull(),
+	},
+	(t) => [index('engine_log_game_created_idx').on(t.gameId, t.createdAt, t.id)],
 );

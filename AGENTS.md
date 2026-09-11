@@ -69,3 +69,4 @@ When creating GitHub issues:
 - Include acceptance criteria when needed; keep each issue to one coherent unit of work.
 - Use `gh` for GitHub operations.
 - Add appropriate labels
+- Add every newly created issue to the Mafia GitHub Project.

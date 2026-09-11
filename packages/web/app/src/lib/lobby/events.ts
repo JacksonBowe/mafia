@@ -57,7 +57,7 @@ export function useLobbyEvents() {
 		queryClient.setQueryData(['lobbies'], (old: LobbyInfo[] | undefined) =>
 			old?.map((lobby) => (lobby.id === lobbyId ? update(lobby) : lobby)),
 		);
-		queryClient.setQueryData(['lobbies', lobbyId], (old: LobbyInfo | undefined) =>
+		queryClient.setQueryData(['lobby', lobbyId], (old: LobbyInfo | undefined) =>
 			old ? update(old) : old,
 		);
 	};
@@ -88,7 +88,7 @@ export function useLobbyEvents() {
 
 			bus.on('realtime.lobby.terminated', (p) => {
 				console.log('lobby terminated', p);
-				queryClient.setQueryData(['presence'], (old: Presence) =>
+				queryClient.setQueryData(['actor', 'presence'], (old: Presence) =>
 					old ? { ...old, lobby: null } : old,
 				);
 				void queryClient.invalidateQueries({ queryKey: ['lobbies'] });
@@ -99,6 +99,10 @@ export function useLobbyEvents() {
 			bus.on('realtime.lobby.started', (p) => {
 				console.log('lobby started', p);
 				gameStore.startTransition();
+				queryClient.setQueryData(['actor', 'presence'], (old: Presence | undefined) =>
+					old ? { ...old, lobby: null, gameId: p.gameId } : old,
+				);
+				void queryClient.invalidateQueries({ queryKey: ['lobbies'] });
 				Loading.show({
 					spinner: QSpinnerGears,
 					message: 'Starting game…',

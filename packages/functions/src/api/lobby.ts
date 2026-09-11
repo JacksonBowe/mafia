@@ -151,6 +151,7 @@ lobbyRoutes.post('/:lobbyId/start', zValidator('param', LobbyIdPathParamsSchema)
 			engineState: engineResult.state,
 			engineConfig: config,
 			actors: engineResult.actors,
+			engineLog: engineResult.log,
 			players: engineResult.actors.map((actor) => ({
 				userId: userIdByActorId.get(actor.id) ?? actor.id,
 				actorId: actor.id,
@@ -181,8 +182,8 @@ lobbyRoutes.post('/:lobbyId/start', zValidator('param', LobbyIdPathParamsSchema)
 			console.log('Started game loop execution', { response });
 		});
 
-		// Delete the lobby (cascades to members)
-		await Lobby.terminate({ lobbyId });
+		// Delete the lobby (cascades to members) without emitting lobby.terminated.
+		await Lobby.deleteLobby({ lobbyId });
 
 		return { gameId };
 	});
