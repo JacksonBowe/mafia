@@ -20,11 +20,13 @@ import { and, eq, sql } from 'drizzle-orm';
 import { Resource } from 'sst';
 import { ulid } from 'ulid';
 import { z } from 'zod';
-import { afterTx, useTransaction } from '../db/transaction';
+import { afterTx, createTransaction, useTransaction } from '../db/transaction';
 import { InputError, isULID } from '../error';
+import { MessageSchema } from '../message';
 import { defineRealtimeEvent, realtime } from '../realtime';
 import { fn } from '../util/fn';
 import { gamePlayerTable, gameTable } from './game.sql';
+import { appendEngineLog, appendGameLog, type GameLogInput, type EngineLogInput } from './log';
 import {
 	ClientGameInfoSchema,
 	GameErrors as Errors,
@@ -298,6 +300,7 @@ export const create = fn(
 		engineState: z.unknown(),
 		engineConfig: z.unknown(),
 		actors: z.unknown(),
+		engineLog: z.array(z.string()),
 		players: z.array(
 			z.object({
 				userId: z.string(),
@@ -307,7 +310,7 @@ export const create = fn(
 		),
 	}),
 	async (input) =>
-		useTransaction(async (tx) => {
+		createTransaction(async (tx) => {
 			const gameId = ulid();
 
 			// Insert game record
@@ -337,6 +340,23 @@ export const create = fn(
 					})),
 				);
 			}
+
+			await appendGameLog(tx, {
+				gameId,
+				type: 'game.started',
+				phase: 'pregame',
+				data: {
+					players: input.players,
+					config: input.engineConfig,
+				},
+			});
+			await appendEngineLog(tx, {
+				gameId,
+				operation: 'new-game',
+				phase: 'pregame',
+				data: { actorCount: input.players.length },
+				lines: input.engineLog,
+			});
 
 			return { gameId };
 		}),
@@ -391,9 +411,9 @@ export const setTargets = fn(
 		targetActorIds: ActorIdTargetsSchema,
 	}),
 	async ({ gameId, userId, targetActorIds }) =>
-		useTransaction(async (tx) => {
+		createTransaction(async (tx) => {
 			const [row] = await tx
-				.select({ actors: gameTable.actors })
+				.select({ actors: gameTable.actors, phase: gameTable.phase })
 				.from(gameTable)
 				.where(eq(gameTable.id, gameId))
 				.limit(1);
@@ -439,6 +459,20 @@ export const setTargets = fn(
 				throw new InputError(Errors.PlayerNotFound, 'Player not found');
 			}
 
+			await appendGameLog(tx, {
+				gameId,
+				type: 'game.targets.set',
+				phase: GamePhaseSchema.parse(row.phase),
+				actorId: player.actorId,
+				data: {
+					actorNumber: actor.number ?? null,
+					targetActorIds,
+					targetActorNumbers: targetActorIds.map(
+						(id) => numbersByActorId.get(id) ?? null,
+					),
+				},
+			});
+
 			return { gameId, userId, targetActorIds };
 		}),
 );
@@ -455,6 +489,34 @@ export const clearTargets = fn(
 				.where(eq(gamePlayerTable.gameId, gameId));
 
 			return { gameId };
+		}),
+);
+
+export const recordChatMessage = fn(
+	z.object({
+		gameId: isULID(),
+		actorId: z.string(),
+		message: MessageSchema,
+	}),
+	async ({ gameId, actorId, message }) =>
+		createTransaction(async (tx) => {
+			const [game] = await tx
+				.select({ phase: gameTable.phase })
+				.from(gameTable)
+				.where(eq(gameTable.id, gameId))
+				.limit(1);
+			if (!game) {
+				throw new InputError(Errors.GameNotFound, 'Game not found');
+			}
+
+			await appendGameLog(tx, {
+				gameId,
+				type: 'game.chat.sent',
+				phase: GamePhaseSchema.parse(game.phase),
+				actorId,
+				data: { message },
+			});
+			return { gameId, messageId: message.id };
 		}),
 );
 
@@ -555,7 +617,7 @@ export const submitVote = fn(
 		targetActorId: z.string(),
 	}),
 	async ({ gameId, voterActorId, targetActorId }) =>
-		useTransaction(async (tx) => {
+		createTransaction(async (tx) => {
 			// Votes may only be cast/toggled during the poll phase.
 			const [game] = await tx
 				.select({ phase: gameTable.phase, actors: gameTable.actors })
@@ -628,6 +690,18 @@ export const submitVote = fn(
 				.set({ voteTargetActorId })
 				.where(eq(gamePlayerTable.id, voter.id));
 
+			await appendGameLog(tx, {
+				gameId,
+				type: voteTargetActorId === null ? 'game.vote.cancelled' : 'game.vote.cast',
+				phase: 'poll',
+				actorId: voterActorId,
+				data: {
+					voterActorNumber: voter.number,
+					targetActorId: voteTargetActorId,
+					targetActorNumber: voteTargetActorId === null ? null : target.number,
+				},
+			});
+
 			await afterTx(async () => {
 				if (voteTargetActorId === null) {
 					await realtime.publish(Resource.Realtime, RealtimeEvents.VoteCancel, {
@@ -657,7 +731,7 @@ export const cancelVote = fn(
 		voterActorId: z.string(),
 	}),
 	async ({ gameId, voterActorId }) =>
-		useTransaction(async (tx) => {
+		createTransaction(async (tx) => {
 			// Votes may only be cancelled during the poll phase.
 			const [game] = await tx
 				.select({ phase: gameTable.phase })
@@ -689,6 +763,14 @@ export const cancelVote = fn(
 			if (!updated) {
 				throw new InputError(Errors.PlayerNotFound, 'Player not found');
 			}
+
+			await appendGameLog(tx, {
+				gameId,
+				type: 'game.vote.cancelled',
+				phase: 'poll',
+				actorId: voterActorId,
+				data: { voterActorNumber: updated.number },
+			});
 
 			await afterTx(async () => {
 				await realtime.publish(Resource.Realtime, RealtimeEvents.VoteCancel, {
@@ -788,7 +870,7 @@ export const submitVerdict = fn(
 		verdict: VerdictSchema,
 	}),
 	async ({ gameId, voterActorId, verdict }) =>
-		useTransaction(async (tx) => {
+		createTransaction(async (tx) => {
 			const [game] = await tx
 				.select({ phase: gameTable.phase, actors: gameTable.actors })
 				.from(gameTable)
@@ -849,6 +931,14 @@ export const submitVerdict = fn(
 			if (!updated) {
 				throw new InputError(Errors.PlayerNotFound, 'Player not found');
 			}
+
+			await appendGameLog(tx, {
+				gameId,
+				type: 'game.verdict.submitted',
+				phase: 'trial',
+				actorId: voterActorId,
+				data: { voterActorNumber: updated.number, verdict },
+			});
 
 			await afterTx(async () => {
 				await realtime.publish(Resource.Realtime, RealtimeEvents.Verdict, {
@@ -1132,7 +1222,8 @@ export const list = () =>
 				status: gameTable.status,
 				createdAt: gameTable.createdAt,
 			})
-			.from(gameTable),
+			.from(gameTable)
+			.where(eq(gameTable.status, 'active')),
 	);
 
 export const getByPlayer = fn(
@@ -1148,7 +1239,7 @@ export const getByPlayer = fn(
 				})
 				.from(gamePlayerTable)
 				.innerJoin(gameTable, eq(gameTable.id, gamePlayerTable.gameId))
-				.where(eq(gamePlayerTable.userId, userId))
+				.where(and(eq(gamePlayerTable.userId, userId), eq(gameTable.status, 'active')))
 				.limit(1);
 
 			if (!playerGame) {
@@ -1162,12 +1253,16 @@ export const getByPlayer = fn(
 export const terminate = fn(
 	z.object({
 		gameId: isULID(),
+		terminatedByUserId: z.string().optional(),
+		reason: z.string().min(1).optional(),
 	}),
-	async ({ gameId }) =>
-		useTransaction(async (tx) => {
+	async ({ gameId, terminatedByUserId, reason }) =>
+		createTransaction(async (tx) => {
 			const [game] = await tx
 				.select({
 					id: gameTable.id,
+					status: gameTable.status,
+					phase: gameTable.phase,
 					gameLoopExecutionArn: gameTable.gameLoopExecutionArn,
 				})
 				.from(gameTable)
@@ -1177,31 +1272,50 @@ export const terminate = fn(
 			if (!game) {
 				throw new InputError(Errors.GameNotFound, 'Game not found');
 			}
+			if (game.status !== 'active') {
+				throw new InputError(Errors.GameInvalidState, 'Game is not active');
+			}
 
-			const deleted = await tx
-				.delete(gameTable)
+			await appendGameLog(tx, {
+				gameId,
+				type: 'game.terminated',
+				phase: GamePhaseSchema.parse(game.phase),
+				data: {
+					reason: reason ?? 'terminated',
+					terminatedByUserId: terminatedByUserId ?? null,
+				},
+			});
+
+			const [cancelled] = await tx
+				.update(gameTable)
+				.set({ status: 'cancelled' })
 				.where(eq(gameTable.id, gameId))
 				.returning({ id: gameTable.id });
 
-			if (deleted.length === 0) {
+			if (!cancelled) {
 				throw new InputError(Errors.GameNotFound, 'Game not found');
 			}
 
-			if (game.gameLoopExecutionArn) {
-				await afterTx(async () => {
+			await afterTx(async () => {
+				if (game.gameLoopExecutionArn) {
 					const sfnClient = new SFNClient({});
 
 					try {
 						await sfnClient.send(
 							new StopExecutionCommand({
-								executionArn: game.gameLoopExecutionArn!,
+								executionArn: game.gameLoopExecutionArn,
 							}),
 						);
 					} catch (error) {
 						console.error('Failed to stop game loop execution', { gameId, error });
 					}
+				}
+
+				await realtime.publish(Resource.Realtime, RealtimeEvents.Terminated, {
+					gameId,
+					message: reason ?? 'Game terminated',
 				});
-			}
+			});
 
 			return { gameId };
 		}),
@@ -1227,6 +1341,7 @@ type AdvancePhaseResult = {
 	};
 	trialActorNumber?: number;
 	trialOver?: boolean;
+	engineLogs?: Array<Omit<EngineLogInput, 'gameId'>>;
 };
 
 const PHASE_INFO: Record<GamePhase, { duration: number }> = {
@@ -1330,6 +1445,18 @@ const processEvening = (game: GameInfo): AdvancePhaseResult => {
 		engineState: resolved.state,
 		actors: resolved.actors,
 		events: resolved.events,
+		engineLogs: [
+			{
+				operation: 'resolve',
+				phase: 'evening',
+				data: {
+					day: resolved.state.day,
+					eventDuration: resolved.events.duration,
+					winners: resolved.winners,
+				},
+				lines: resolved.log,
+			},
+		],
 	});
 };
 
@@ -1349,10 +1476,29 @@ const processNight = (game: GameInfo): AdvancePhaseResult => {
 			status: 'completed',
 			deaths,
 			winners: engineResult.winners,
+			engineLogs: [
+				{
+					operation: 'load-win-check',
+					phase: 'night',
+					data: { day: game.engineState.day, winners: engineResult.winners },
+					lines: engineResult.log,
+				},
+			],
 		});
 	}
 
-	return enterPhase('morning', { waitSeconds, deaths });
+	return enterPhase('morning', {
+		waitSeconds,
+		deaths,
+		engineLogs: [
+			{
+				operation: 'load-win-check',
+				phase: 'night',
+				data: { day: game.engineState.day, winners: null },
+				lines: engineResult.log,
+			},
+		],
+	});
 };
 
 export const advancePhase = fn(
@@ -1360,7 +1506,7 @@ export const advancePhase = fn(
 		gameId: isULID(),
 	}),
 	async ({ gameId }) =>
-		useTransaction(async (tx) => {
+		createTransaction(async (tx) => {
 			const [gameRow] = await tx.select().from(gameTable).where(eq(gameTable.id, gameId));
 
 			if (!gameRow) {
@@ -1401,6 +1547,7 @@ export const advancePhase = fn(
 
 			const aliveActorIds = getAliveActorIds(game.actors);
 			let result: AdvancePhaseResult;
+			const auditEntries: Array<Omit<GameLogInput, 'gameId'>> = [];
 
 			switch (game.phase) {
 				case 'pregame':
@@ -1418,6 +1565,11 @@ export const advancePhase = fn(
 					const nextPollCount = game.pollCount + 1;
 					const voteTally = tallyVotesForPlayers(game.players, aliveActorIds);
 					await clearVotes();
+					auditEntries.push({
+						type: 'game.poll.tallied',
+						phase: 'poll',
+						data: { ...voteTally, pollCount: nextPollCount },
+					});
 
 					if (voteTally.winner) {
 						const [trialPlayer] = await tx
@@ -1459,6 +1611,12 @@ export const advancePhase = fn(
 					const verdictTally = tallyVerdictsForPlayers(game.players, aliveActorIds);
 					await clearVerdicts();
 					const lynchResult = { actorId: trialPlayer.actorId, ...verdictTally };
+					auditEntries.push({
+						type: 'game.verdict.tallied',
+						phase: 'trial',
+						actorId: trialPlayer.actorId,
+						data: lynchResult,
+					});
 
 					if (verdictTally.isGuilty) {
 						result = enterPhase('lynch', { lynchResult });
@@ -1488,6 +1646,17 @@ export const advancePhase = fn(
 						engineState: lynched.state,
 						actors: lynched.actors,
 						trialOver: true,
+						engineLogs: [
+							{
+								operation: 'lynch',
+								phase: 'lynch',
+								data: {
+									actorNumber: trialPlayer.number,
+									actorId: trialPlayer.actorId,
+								},
+								lines: lynched.log,
+							},
+						],
 					});
 					break;
 				}
@@ -1527,6 +1696,67 @@ export const advancePhase = fn(
 
 			if (!updated) {
 				throw new InputError(Errors.GameNotFound, 'Game not found');
+			}
+
+			await appendGameLog(tx, {
+				gameId,
+				type: 'game.phase.entered',
+				phase: result.nextPhase,
+				data: {
+					fromPhase: game.phase,
+					waitSeconds: result.waitSeconds,
+					pollCount: result.pollCount ?? game.pollCount,
+				},
+			});
+			for (const entry of auditEntries) {
+				await appendGameLog(tx, { gameId, ...entry });
+			}
+			if (result.trialActorNumber !== undefined) {
+				await appendGameLog(tx, {
+					gameId,
+					type: 'game.trial.started',
+					phase: result.nextPhase,
+					data: { actorNumber: result.trialActorNumber },
+				});
+			}
+			if (result.trialOver) {
+				await appendGameLog(tx, {
+					gameId,
+					type: 'game.trial.ended',
+					phase: game.phase,
+					data: { nextPhase: result.nextPhase },
+				});
+			}
+			if (result.deaths && result.deaths.length > 0) {
+				await appendGameLog(tx, {
+					gameId,
+					type: 'game.deaths.announced',
+					phase: result.nextPhase,
+					data: { deaths: result.deaths },
+				});
+			}
+			if (result.winners && result.winners.length > 0) {
+				await appendGameLog(tx, {
+					gameId,
+					type: 'game.over',
+					phase: result.nextPhase,
+					data: { winners: result.winners },
+				});
+			}
+			for (const engineLog of result.engineLogs ?? []) {
+				const engineLogId = await appendEngineLog(tx, { gameId, ...engineLog });
+				const type =
+					engineLog.operation === 'resolve'
+						? 'game.engine.resolved'
+						: engineLog.operation === 'lynch'
+							? 'game.lynch.resolved'
+							: 'game.engine.win_checked';
+				await appendGameLog(tx, {
+					gameId,
+					type,
+					phase: engineLog.phase,
+					data: { engineLogId, operation: engineLog.operation, ...engineLog.data },
+				});
 			}
 
 			await afterTx(async () => {

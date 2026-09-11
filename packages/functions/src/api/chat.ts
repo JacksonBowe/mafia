@@ -75,6 +75,12 @@ chatRoutes.post('/message', zValidator('json', SendChatMessageJsonSchema), async
 			gameId: game.info.id,
 			...(policy.teamId ? { teamId: policy.teamId } : {}),
 		});
+
+		await Game.recordChatMessage({
+			gameId: game.info.id,
+			actorId: game.actor.id,
+			message,
+		});
 	}
 
 	console.log('Publishing chat message', message);

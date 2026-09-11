@@ -51,4 +51,17 @@ describe('createTransaction', () => {
 		finishEffect();
 		await expect(result).resolves.toBe('committed');
 	});
+
+	it('does not run post-commit effects when the transaction fails', async () => {
+		const effect = vi.fn();
+
+		await expect(
+			createTransaction(async () => {
+				await afterTx(effect);
+				throw new Error('transaction failed');
+			}),
+		).rejects.toThrow('transaction failed');
+
+		expect(effect).not.toHaveBeenCalled();
+	});
 });
