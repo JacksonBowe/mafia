@@ -9,10 +9,7 @@ import { User } from '@mafia/core/user/index';
 import { DEFAULT_CONFIG, newGame, type ActorState } from '@mafia/engine';
 import { Hono } from 'hono';
 import { Resource } from 'sst';
-import {
-	CreateLobbyJsonSchema,
-	LobbyIdPathParamsSchema,
-} from './schemas/lobby.schemas';
+import { CreateLobbyJsonSchema, LobbyIdPathParamsSchema } from './schemas/lobby.schemas';
 
 type Bindings = Record<string, never>;
 
@@ -154,6 +151,7 @@ lobbyRoutes.post('/:lobbyId/start', zValidator('param', LobbyIdPathParamsSchema)
 			engineState: engineResult.state,
 			engineConfig: config,
 			actors: engineResult.actors,
+			engineLog: engineResult.log,
 			players: engineResult.actors.map((actor) => ({
 				userId: userIdByActorId.get(actor.id) ?? actor.id,
 				actorId: actor.id,
@@ -162,8 +160,8 @@ lobbyRoutes.post('/:lobbyId/start', zValidator('param', LobbyIdPathParamsSchema)
 		});
 
 		// Publish realtime event after commit
-		void afterTx(async () => {
-			void realtime.publish(Resource.Realtime, Lobby.RealtimeEvents.LobbyStarted, {
+		await afterTx(async () => {
+			await realtime.publish(Resource.Realtime, Lobby.RealtimeEvents.LobbyStarted, {
 				lobbyId,
 				gameId,
 			});
@@ -184,8 +182,8 @@ lobbyRoutes.post('/:lobbyId/start', zValidator('param', LobbyIdPathParamsSchema)
 			console.log('Started game loop execution', { response });
 		});
 
-		// Delete the lobby (cascades to members)
-		await Lobby.terminate({ lobbyId });
+		// Delete the lobby (cascades to members) without emitting lobby.terminated.
+		await Lobby.deleteLobby({ lobbyId });
 
 		return { gameId };
 	});

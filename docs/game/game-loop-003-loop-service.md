@@ -71,7 +71,9 @@ Inside loop service, useful helpers:
 
 ```ts
 const aliveNumbers = (actors: ActorState[]) =>
-	actors.filter((actor) => actor.alive && actor.number !== undefined).map((actor) => actor.number!);
+	actors
+		.filter((actor) => actor.alive && actor.number !== undefined)
+		.map((actor) => actor.number!);
 
 const buildEngineActors = (actors: ActorState[], players: GamePlayer[]) => {
 	const actorsById = new Map(actors.map((actor) => [actor.id, actor]));
@@ -83,11 +85,18 @@ const buildEngineActors = (actors: ActorState[], players: GamePlayer[]) => {
 				.filter((number): number is number => number !== undefined),
 		]),
 	);
-	return actors.map((actor) => ({ ...actor, targets: targetNumbersByActorId.get(actor.id) ?? [] }));
+	return actors.map((actor) => ({
+		...actor,
+		targets: targetNumbersByActorId.get(actor.id) ?? [],
+	}));
 };
 
 const publishPhase = (gameId: string, phase: GamePhase, duration: number) =>
-	realtime.publish(Resource.Realtime, Game.RealtimeEvents.PhaseChange, { gameId, phase, duration });
+	realtime.publish(Resource.Realtime, Game.RealtimeEvents.PhaseChange, {
+		gameId,
+		phase,
+		duration,
+	});
 
 const publishState = (gameId: string, state: GameState) =>
 	realtime.publish(Resource.Realtime, Game.RealtimeEvents.State, { gameId, state });
@@ -112,7 +121,9 @@ export const advanceLoop = fn(z.object({ gameId: isULID() }), async ({ gameId })
 
 		if (result.continue) {
 			await persistPhase(tx, gameId, result.nextPhase, result.patch);
-			afterTx(() => publishPhase(gameId, result.nextPhase, result.duration));
+			await afterTx(async () => {
+				await publishPhase(gameId, result.nextPhase, result.duration);
+			});
 		}
 
 		return {
@@ -217,13 +228,17 @@ Behavior:
 Current engine graveyard schema uses:
 
 ```ts
-{ number, alias, cod, dod, role, will, alignment }
+{
+	(number, alias, cod, dod, role, will, alignment);
+}
 ```
 
 Current core `DeathRecordSchema` expects:
 
 ```ts
-{ playerNumber, alias, role, deathCause, deathDay }
+{
+	(playerNumber, alias, role, deathCause, deathDay);
+}
 ```
 
 Map fields:

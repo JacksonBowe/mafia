@@ -5,7 +5,8 @@
 	"private": true,
 	"scripts": {
 		"seed": "sst shell -- bun run src/seed/index.ts",
-		"create-bots": "sst shell -- bun run src/createBots.ts"
+		"create-bots": "sst shell -- bun run src/createBots.ts",
+		"create-bots:prod": "sst shell --stage prod -- bun run src/createBots.ts --out ../bots/bots.prod.json"
 	},
 	"dependencies": {
 		"sst": "4.8.0",

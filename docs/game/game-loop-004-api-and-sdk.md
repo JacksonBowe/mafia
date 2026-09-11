@@ -62,7 +62,8 @@ gameRoutes.post('/vote', zValidator('json', SubmitVoteJsonSchema), async (c) => 
 	const game = await Game.getByPlayer({ userId });
 	if (!game) throw new InputError(Game.Errors.GameNotFound, 'Game not found');
 
-	if (game.phase !== 'poll') throw new InputError(Game.Errors.GameInvalidState, 'Not in poll phase');
+	if (game.phase !== 'poll')
+		throw new InputError(Game.Errors.GameInvalidState, 'Not in poll phase');
 
 	const player = game.players.find((p) => p.userId === userId);
 	if (!player) throw new InputError(Game.Errors.PlayerNotFound, 'Player not found');
@@ -128,7 +129,7 @@ Important: do not start Step Function inside DB transaction unless the start hap
 Recommended:
 
 ```ts
-void afterTx(async () => {
+await afterTx(async () => {
 	await realtime.publish(...LobbyStarted...);
 	await startGameLoop(gameId);
 });
@@ -141,11 +142,13 @@ Idempotent start helper:
 ```ts
 async function startGameLoop(gameId: string) {
 	try {
-		await client.send(new StartExecutionCommand({
-			stateMachineArn: Resource.GameLoopMachine.arn,
-			name: gameId,
-			input: JSON.stringify({ gameId }),
-		}));
+		await client.send(
+			new StartExecutionCommand({
+				stateMachineArn: Resource.GameLoopMachine.arn,
+				name: gameId,
+				input: JSON.stringify({ gameId }),
+			}),
+		);
 	} catch (error) {
 		if (isExecutionAlreadyExists(error)) return;
 		throw error;

@@ -234,7 +234,7 @@ export const prepareForStart = fn(
 		}),
 );
 
-export const terminate = fn(
+export const deleteLobby = fn(
 	z.object({
 		lobbyId: isULID(),
 	}),
@@ -270,12 +270,23 @@ export const terminate = fn(
 				);
 			}
 
-			void afterTx(() => {
-				void realtime.publish(Resource.Realtime, RealtimeEvents.LobbyTerminated, {
-					lobbyId,
-				});
-			});
-
 			return { lobbyId };
 		}),
+);
+
+export const terminate = fn(
+	z.object({
+		lobbyId: isULID(),
+	}),
+	async ({ lobbyId }) => {
+		await deleteLobby({ lobbyId });
+
+		await afterTx(async () => {
+			await realtime.publish(Resource.Realtime, RealtimeEvents.LobbyTerminated, {
+				lobbyId,
+			});
+		});
+
+		return { lobbyId };
+	},
 );

@@ -6,6 +6,7 @@
 	"scripts": {
 		"start": "sst shell -- bun run src/index.ts",
 		"panel": "sst shell -- bun run src/panel.ts",
+		"panel:prod": "MAFIA_BOTS_CONFIG=prod sst shell --stage prod -- bun run src/panel.ts",
 		"format": "prettier --write . --config ../../.prettierrc.json",
 		"lint": "eslint ."
 	},

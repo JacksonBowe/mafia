@@ -73,7 +73,20 @@ function authorizeMenu(prefix: string, userId: string) {
 }
 
 async function authorizeGame(prefix: string, userId: string, gameId: string) {
-	const game = await Game.get({ gameId });
+	console.log('Realtime authorizer: game connection requested', { gameId, userId });
+
+	let game: Awaited<ReturnType<typeof Game.get>>;
+	try {
+		game = await Game.get({ gameId });
+	} catch (err) {
+		console.warn('Realtime authorizer: game lookup failed', {
+			gameId,
+			userId,
+			error: err instanceof Error ? err.message : String(err),
+		});
+		return { publish: [], subscribe: [] };
+	}
+
 	if (game.status !== 'active') {
 		console.warn('Realtime authorizer: game connection requested for inactive game', { gameId, userId });
 		return { publish: [], subscribe: [] };

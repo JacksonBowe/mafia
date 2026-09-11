@@ -9,7 +9,8 @@ export default $config({
 			home: "aws",
 			providers: {
 				aws: {
-					profile: input?.stage === "prod" ? "mafia-prod" : "mafia-dev",
+					// profile: input?.stage === "prod" ? "mafia-prod" : "mafia-dev",
+					profile: "mafia-dev",
 					region: "ap-southeast-2"
 				},
 				neon: "0.9.0"

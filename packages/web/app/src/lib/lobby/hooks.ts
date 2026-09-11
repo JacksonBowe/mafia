@@ -19,7 +19,7 @@ export const useHostLobby = () => {
 		onSuccess: async (data) => {
 			console.log('Host Success');
 			await queryClient.invalidateQueries({ queryKey: ['lobbies'] });
-			await queryClient.invalidateQueries({ queryKey: ['presence'] });
+			await queryClient.invalidateQueries({ queryKey: ['actor', 'presence'] });
 
 			console.log('Lobby', data);
 
@@ -55,7 +55,7 @@ export const useLobby = (
 	const idRef = computed(() => unref(id));
 
 	return useQuery({
-		queryKey: computed(() => ['lobbies', idRef.value ?? ''] as const),
+		queryKey: computed(() => ['lobby', idRef.value ?? ''] as const),
 		queryFn: () => api.getLobby({ lobbyId: idRef.value! }),
 		enabled: computed(() => !!idRef.value),
 		...options,
@@ -86,7 +86,7 @@ export const useJoinLobby = () => {
 		onSuccess: async (_data, lobbyId) => {
 			console.log('Join Success');
 			await queryClient.invalidateQueries({ queryKey: ['lobbies'] });
-			await queryClient.invalidateQueries({ queryKey: ['presence'] });
+			await queryClient.invalidateQueries({ queryKey: ['actor', 'presence'] });
 			await queryClient.invalidateQueries({ queryKey: ['actor'] });
 
 			rt.subscribe('menu', `menu/lobby/${lobbyId}`);
@@ -120,7 +120,7 @@ export const useLeaveLobby = () => {
 			const presence = queryClient.getQueryData<{
 				lobby?: { id: string } | null;
 				user?: { id: string };
-			}>(['presence']);
+			}>(['actor', 'presence']);
 
 			return {
 				lobbyId: presence?.lobby?.id ?? null,
@@ -130,7 +130,7 @@ export const useLeaveLobby = () => {
 
 		onSuccess: async (_data, _vars, ctx) => {
 			// Make UI correct immediately
-			queryClient.setQueryData(['presence'], (old: Presence) =>
+			queryClient.setQueryData(['actor', 'presence'], (old: Presence) =>
 				old ? { ...old, lobby: null } : old,
 			);
 
@@ -149,7 +149,7 @@ export const useLeaveLobby = () => {
 			}
 
 			// Reconcile with server (no timeout needed)
-			await queryClient.invalidateQueries({ queryKey: ['presence'] });
+			await queryClient.invalidateQueries({ queryKey: ['actor', 'presence'] });
 			await queryClient.invalidateQueries({ queryKey: ['lobbies'] });
 
 			rt.unsubscribe('menu', `menu/lobby/${lStore.selectedLobbyId}`);
@@ -173,7 +173,7 @@ export const useStartLobby = () => {
 		mutationFn: (lobbyId: string) => api.startLobby({ lobbyId }),
 		onSuccess: async () => {
 			await queryClient.invalidateQueries({ queryKey: ['lobbies'] });
-			await queryClient.invalidateQueries({ queryKey: ['presence'] });
+			await queryClient.invalidateQueries({ queryKey: ['actor', 'presence'] });
 		},
 		onError: (e) => {
 			console.error('Start Lobby Error', e);

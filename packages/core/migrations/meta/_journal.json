@@ -64,6 +64,20 @@
       "when": 1781399940126,
       "tag": "0008_eminent_blackheart",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1789101227353,
+      "tag": "0009_bouncy_scrambler",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1789168602950,
+      "tag": "0010_equal_zeigeist",
+      "breakpoints": true
     }
   ]
 }
