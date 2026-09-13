@@ -346,6 +346,7 @@ export const create = fn(
 				type: 'game.started',
 				phase: 'pregame',
 				data: {
+					// TODO: Store immutable player name and alias snapshots for direct audit review.
 					players: input.players,
 					config: input.engineConfig,
 				},
@@ -1518,6 +1519,7 @@ const serializeLifecycleError = (error: unknown, depth = 0): Record<string, unkn
 };
 
 const recordAdvancePhaseError = async (gameId: string, error: unknown) => {
+	// TODO: Record lifecycle failures from game creation, termination, and loop startup too.
 	if (error instanceof InputError && error.code === Errors.GameNotFound) return;
 
 	try {

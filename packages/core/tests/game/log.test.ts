@@ -17,6 +17,7 @@ const gameLogInput = {
 };
 
 describe('game log contracts', () => {
+	// TODO: Add Neon-backed tests for action/phase/completion log commits and transaction rollback.
 	it('allows audit event types only', () => {
 		expect(GameLogTypeSchema.parse('game.chat.sent')).toBe('game.chat.sent');
 		expect(GameLogTypeSchema.parse('game.over')).toBe('game.over');
