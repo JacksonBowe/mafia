@@ -19,17 +19,17 @@ import { isULID } from '../error/schema';
 // Error codes
 // ---------------------------------------------------------------------------
 
-export enum GameErrors {
-	GameNotFound = 'game.not_found',
-	GameInvalidState = 'game.invalid_state',
-	PlayerNotFound = 'game.player_not_found',
-	InvalidVoteTarget = 'game.invalid_vote_target',
-	InvalidTarget = 'game.invalid_target',
-	CannotVoteSelf = 'game.cannot_vote_self',
-	PlayerNotAlive = 'game.player_not_alive',
-	NotVotingPhase = 'game.not_voting_phase',
-	NotTrialPhase = 'game.not_trial_phase',
-}
+export const GameErrors = {
+	GameNotFound: 'game.not_found',
+	GameInvalidState: 'game.invalid_state',
+	PlayerNotFound: 'game.player_not_found',
+	InvalidVoteTarget: 'game.invalid_vote_target',
+	InvalidTarget: 'game.invalid_target',
+	CannotVoteSelf: 'game.cannot_vote_self',
+	PlayerNotAlive: 'game.player_not_alive',
+	NotVotingPhase: 'game.not_voting_phase',
+	NotTrialPhase: 'game.not_trial_phase',
+} as const;
 
 // ---------------------------------------------------------------------------
 // Topic helpers (pure string builders — safe in browser)

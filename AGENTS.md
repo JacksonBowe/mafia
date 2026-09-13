@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Keep OpenCode replies concise. Use ultra caveman mode.
+Load `caveman`; use ultra mode unless clarity or safety requires normal prose.
 Prefer Quasar components and Quasar utility classes over custom CSS.
 
 TypeScript monorepo using SST (AWS), Hono (API), Drizzle (DB), and Quasar/Vue 3 (frontend).
@@ -61,12 +61,13 @@ bun vitest run --config vitest.config.mts -t "test name pattern"
 7. Publish realtime events (dot-delimited names) via `afterTx` to avoid emitting on rollback.
 8. Do not implement backwards-compatibility safeguards. Never export old names as wrappers or aliases.
 
-## GitHub Issues
+## Skills
 
-When creating GitHub issues:
+Load the relevant skill before work in these areas:
 
-- Inspect relevant code first; include a clear description and useful implementation context.
-- Include acceptance criteria when needed; keep each issue to one coherent unit of work.
-- Use `gh` for GitHub operations.
-- Add appropriate labels
-- Add every newly created issue to the Mafia GitHub Project.
+- `api-change`: HTTP endpoints, API shapes, API errors, or realtime events.
+- `db-schema-change`: Drizzle tables, relations, persisted data shapes, or schema migrations. Do not generate or apply migrations.
+- `engine-test`: game rules, phases, roles, actions, win conditions, or engine bugs.
+- `github-issue`: creating, filing, or refining GitHub issues.
+- `sst-infra`: AWS resources, SST bindings, IAM, queues, schedules, or deployment configuration.
+- `quasar`: Quasar/Vue frontend work.

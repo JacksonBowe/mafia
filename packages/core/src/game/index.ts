@@ -1501,6 +1501,49 @@ const processNight = (game: GameInfo): AdvancePhaseResult => {
 	});
 };
 
+const serializeLifecycleError = (error: unknown, depth = 0): Record<string, unknown> => {
+	if (!(error instanceof Error)) {
+		return { name: 'NonError', message: String(error), stack: null, cause: null };
+	}
+
+	return {
+		name: error.name,
+		message: error.message,
+		stack: error.stack ?? null,
+		cause:
+			error.cause instanceof Error && depth < 3
+				? serializeLifecycleError(error.cause, depth + 1)
+				: null,
+	};
+};
+
+const recordAdvancePhaseError = async (gameId: string, error: unknown) => {
+	if (error instanceof InputError && error.code === Errors.GameNotFound) return;
+
+	try {
+		await createTransaction(async (tx) => {
+			const [game] = await tx
+				.select({ phase: gameTable.phase })
+				.from(gameTable)
+				.where(eq(gameTable.id, gameId))
+				.limit(1);
+			if (!game) return;
+
+			await appendGameLog(tx, {
+				gameId,
+				type: 'game.error',
+				phase: GamePhaseSchema.parse(game.phase),
+				data: {
+					operation: 'advance-phase',
+					...serializeLifecycleError(error),
+				},
+			});
+		});
+	} catch (logError) {
+		console.error('Failed to record game lifecycle error', { gameId, error: logError });
+	}
+};
+
 export const advancePhase = fn(
 	z.object({
 		gameId: isULID(),
@@ -1609,7 +1652,6 @@ export const advancePhase = fn(
 					}
 
 					const verdictTally = tallyVerdictsForPlayers(game.players, aliveActorIds);
-					await clearVerdicts();
 					const lynchResult = { actorId: trialPlayer.actorId, ...verdictTally };
 					auditEntries.push({
 						type: 'game.verdict.tallied',
@@ -1623,6 +1665,7 @@ export const advancePhase = fn(
 						break;
 					}
 
+					await clearVerdicts();
 					await clearOnTrial();
 					result = nextPollOrEvening(game.pollCount, { lynchResult, trialOver: true });
 					break;
@@ -1633,6 +1676,7 @@ export const advancePhase = fn(
 					if (!trialPlayer) {
 						throw new InputError(Errors.GameInvalidState, 'No player on trial');
 					}
+					const verdictTally = tallyVerdictsForPlayers(game.players, aliveActorIds);
 
 					const lynched = lynchGame({
 						state: game.engineState,
@@ -1653,6 +1697,8 @@ export const advancePhase = fn(
 								data: {
 									actorNumber: trialPlayer.number,
 									actorId: trialPlayer.actorId,
+									...verdictTally,
+									outcome: 'lynched',
 								},
 								lines: lynched.log,
 							},
@@ -1817,5 +1863,8 @@ export const advancePhase = fn(
 				phase: result.nextPhase,
 				pollCount: result.pollCount ?? game.pollCount,
 			};
+		}).catch(async (error) => {
+			await recordAdvancePhaseError(gameId, error);
+			throw error;
 		}),
 );
