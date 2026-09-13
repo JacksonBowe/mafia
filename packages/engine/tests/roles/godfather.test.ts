@@ -101,6 +101,35 @@ describe('godfather', () => {
 		expect(doctor.alive).toBe(true);
 	});
 
+	it('kills directly when only Mafioso proxy is dead', () => {
+		const context = createContext();
+		const citizen = new Citizen(
+			makeActor({ name: 'A', alias: 'test_citizen', number: 1, id: '1' }),
+			{},
+			context,
+		);
+		const godfather = new Godfather(
+			makeActor({ name: 'B', alias: 'test_godfather', number: 2, id: '2' }),
+			{},
+			context,
+		);
+		const mafioso = new Mafioso(
+			makeActor({
+				name: 'C', alias: 'test_mafioso', number: 3, id: '3', alive: false,
+			}),
+			{},
+			context,
+		);
+
+		godfather.findAllies([citizen, godfather, mafioso]);
+		godfather.setTargets([citizen]);
+		godfather.doAction();
+
+		expect(godfather.visiting).toBe(citizen);
+		expect(mafioso.targets).toEqual([]);
+		expect(citizen.alive).toBe(false);
+	});
+
 	it('fails to kill a night-immune target', () => {
 		const context = createContext();
 		const citizen = new Citizen(

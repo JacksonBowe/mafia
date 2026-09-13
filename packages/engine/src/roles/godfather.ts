@@ -56,7 +56,9 @@ export class Godfather extends Mafia {
 		const target = this.targets[0];
 		if (!target) return;
 
-		const proxies = this.allies.filter((ally): ally is Mafioso => ally instanceof Mafioso);
+		const proxies = this.allies.filter(
+			(ally): ally is Mafioso => ally instanceof Mafioso && ally.alive,
+		);
 		if (proxies.length === 0) {
 			this.mafiaKill(target, 'godfather');
 			return;
