@@ -64,4 +64,18 @@ describe('createTransaction', () => {
 
 		expect(effect).not.toHaveBeenCalled();
 	});
+
+	it('reuses the outer transaction for nested mutations', async () => {
+		const tx = {};
+		db.transaction.mockImplementation(async (callback: TransactionCallback) => callback(tx));
+
+		await createTransaction(async (outerTx) => {
+			await createTransaction((innerTx) => {
+				expect(innerTx).toBe(outerTx);
+				return Promise.resolve();
+			});
+		});
+
+		expect(db.transaction).toHaveBeenCalledOnce();
+	});
 });

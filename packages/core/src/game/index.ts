@@ -390,7 +390,7 @@ export const updateEvents = fn(
 		events: GameEventGroupDumpSchema.nullable(),
 	}),
 	async ({ gameId, events }) =>
-		useTransaction(async (tx) => {
+		createTransaction(async (tx) => {
 			const [updated] = await tx
 				.update(gameTable)
 				.set({ events })
@@ -483,7 +483,7 @@ export const clearTargets = fn(
 		gameId: isULID(),
 	}),
 	async ({ gameId }) =>
-		useTransaction(async (tx) => {
+		createTransaction(async (tx) => {
 			await tx
 				.update(gamePlayerTable)
 				.set({ targetActorIds: [] })
@@ -792,7 +792,7 @@ export const clearVotes = fn(
 		gameId: isULID(),
 	}),
 	async ({ gameId }) =>
-		useTransaction(async (tx) => {
+		createTransaction(async (tx) => {
 			await tx
 				.update(gamePlayerTable)
 				.set({ voteTargetActorId: null })
@@ -961,7 +961,7 @@ export const clearVerdicts = fn(
 		gameId: isULID(),
 	}),
 	async ({ gameId }) =>
-		useTransaction(async (tx) => {
+		createTransaction(async (tx) => {
 			await tx
 				.update(gamePlayerTable)
 				.set({ verdict: null })
@@ -1039,7 +1039,7 @@ export const setOnTrial = fn(
 		actorId: z.string(),
 	}),
 	async ({ gameId, actorId }) =>
-		useTransaction(async (tx) => {
+		createTransaction(async (tx) => {
 			// First clear any existing on trial status
 			await tx
 				.update(gamePlayerTable)
@@ -1078,7 +1078,7 @@ export const clearOnTrial = fn(
 		gameId: isULID(),
 	}),
 	async ({ gameId }) =>
-		useTransaction(async (tx) => {
+		createTransaction(async (tx) => {
 			await tx
 				.update(gamePlayerTable)
 				.set({ onTrial: false })
@@ -1100,7 +1100,7 @@ export const incrementPollCount = fn(
 		gameId: isULID(),
 	}),
 	async ({ gameId }) =>
-		useTransaction(async (tx) => {
+		createTransaction(async (tx) => {
 			const [updated] = await tx
 				.update(gameTable)
 				.set({ pollCount: sql`${gameTable.pollCount} + 1` })
@@ -1123,7 +1123,7 @@ export const resetPollCount = fn(
 		gameId: isULID(),
 	}),
 	async ({ gameId }) =>
-		useTransaction(async (tx) => {
+		createTransaction(async (tx) => {
 			const [updated] = await tx
 				.update(gameTable)
 				.set({ pollCount: 0 })
@@ -1171,7 +1171,7 @@ export const updateState = fn(
 		status: GameStatusSchema.optional(),
 	}),
 	async ({ gameId, engineState, actors, phase, status }) =>
-		useTransaction(async (tx) => {
+		createTransaction(async (tx) => {
 			const updates: Record<string, unknown> = {
 				engineState,
 				actors,
@@ -1200,7 +1200,7 @@ export const setGameLoopExecutionArn = fn(
 		executionArn: z.string().min(1),
 	}),
 	async ({ gameId, executionArn }) =>
-		useTransaction(async (tx) => {
+		createTransaction(async (tx) => {
 			const [updated] = await tx
 				.update(gameTable)
 				.set({ gameLoopExecutionArn: executionArn })

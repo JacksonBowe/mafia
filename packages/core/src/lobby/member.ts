@@ -3,7 +3,7 @@ import { Resource } from 'sst';
 import { bus } from 'sst/aws/bus';
 import { ulid } from 'ulid';
 import { z } from 'zod';
-import { afterTx, useTransaction } from '../db/transaction';
+import { afterTx, createTransaction } from '../db/transaction';
 import { InputError, isULID } from '../error';
 import { defineEvent } from '../event';
 import { defineRealtimeEvent, realtime } from '../realtime';
@@ -67,7 +67,7 @@ export const add = fn(
 		userId: isULID(),
 	}),
 	async ({ lobbyId, userId }) =>
-		useTransaction(async (tx) => {
+		createTransaction(async (tx) => {
 			await tx.insert(lobbyMemberTable).values({
 				id: ulid(),
 				lobbyId,
@@ -89,7 +89,7 @@ export const remove = fn(
 		userId: isULID(),
 	}),
 	async ({ lobbyId, userId }) =>
-		useTransaction(async (tx) => {
+		createTransaction(async (tx) => {
 			const [deleted] = await tx
 				.delete(lobbyMemberTable)
 				.where(
@@ -122,7 +122,7 @@ export const promote = fn(
 		userId: isULID(),
 	}),
 	async ({ lobbyId, userId }) =>
-		useTransaction(async (tx) => {
+		createTransaction(async (tx) => {
 			const [member] = await tx
 				.select({ userId: lobbyMemberTable.userId })
 				.from(lobbyMemberTable)

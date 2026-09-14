@@ -80,7 +80,7 @@ export const update = fn(
 		attributes: UserInfoSchema.pick({}),
 	}),
 	async ({ userId, attributes }) => {
-		return useTransaction(async (tx) => {
+		return createTransaction(async (tx) => {
 			const [existing] = await tx
 				.select()
 				.from(userTable)

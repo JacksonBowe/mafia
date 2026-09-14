@@ -239,7 +239,7 @@ export const deleteLobby = fn(
 		lobbyId: isULID(),
 	}),
 	async ({ lobbyId }) =>
-		useTransaction(async (tx) => {
+		createTransaction(async (tx) => {
 			const [lobby] = await tx
 				.select({ id: lobbyTable.id })
 				.from(lobbyTable)
