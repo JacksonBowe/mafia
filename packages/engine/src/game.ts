@@ -12,6 +12,7 @@ import {
 	type RoleName,
 } from './roles';
 import { type Actor, type ActorState } from './roles/actor';
+import { Godfather } from './roles/godfather';
 import { type GameConfig, type GameState } from './types';
 import { toSnakeCase, type Rng } from './utils';
 
@@ -304,10 +305,11 @@ class Game {
 		}
 
 		// Phase 3 — execute: each living actor with targets performs its action.
+		// Godfather also resolves Mafioso votes when it has no submitted target.
 		// Action events are collected into the scratch group, then (if any) cloned
 		// as a nested group under the root event tree.
 		for (const actor of this.actors) {
-			if (actor.targets.length === 0 || !actor.alive) continue;
+			if (!actor.alive || (actor.targets.length === 0 && !(actor instanceof Godfather))) continue;
 			this.context.logger.info(
 				`${actor.toString()} is targetting ${actor.targets.map((t) => t.toString()).join(', ')}`,
 			);

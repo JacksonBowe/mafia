@@ -48,15 +48,42 @@ export class Godfather extends Mafia {
 	override findPossibleTargets(actors: Actor[] = []) {
 		return this.setSingleTarget(
 			actors,
-			(actor) => actor.alive && actor.alignment !== this.alignment && actor !== this,
+			(actor) => actor.alive && (actor === this || actor.alignment !== this.alignment),
 		);
 	}
 
 	override action() {
-		const target = this.targets[0];
-		if (!target) return;
+		const mafiosi = this.allies.filter(
+			(ally): ally is Mafioso => ally instanceof Mafioso,
+		);
+		let target = this.targets[0];
+		if (!target) {
+			const votes = mafiosi
+				.filter((mafioso) => mafioso.alive)
+				.map((mafioso) => mafioso.targets[0])
+				.filter((vote): vote is Actor => vote !== undefined);
+			if (votes.length === 0) return;
 
-		const proxies = this.allies.filter((ally): ally is Mafioso => ally instanceof Mafioso);
+			const counts = new Map<Actor, number>();
+			for (const vote of votes) {
+				counts.set(vote, (counts.get(vote) ?? 0) + 1);
+			}
+			const highestCount = Math.max(...counts.values());
+			const winners = [...counts].flatMap(([candidate, count]) =>
+				count === highestCount ? [candidate] : [],
+			);
+			const [winner] = winners;
+			if (!winner) return;
+			target = winners.length === 1 ? winner : this.rng.choice(winners);
+			this.setTargets([target]);
+		}
+
+		for (const mafioso of mafiosi) {
+			mafioso.clearTargets();
+		}
+		if (target === this) return;
+
+		const proxies = mafiosi.filter((mafioso) => mafioso.alive);
 		if (proxies.length === 0) {
 			this.mafiaKill(target, 'godfather');
 			return;
