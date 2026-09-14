@@ -180,6 +180,171 @@ describe('engine', () => {
 		expect(resolved.winners).toBeNull();
 	});
 
+	it('uses Godfather target instead of submitted Mafioso targets', () => {
+		const actors = [
+			{
+				id: 'actor-1',
+				name: 'Godfather',
+				alias: 'Godfather',
+				role: 'Godfather' as const,
+				number: 1,
+				alive: true,
+				possibleTargets: [],
+				targets: [5],
+				allies: [],
+				roleActions: {},
+				alignment: null,
+			},
+			{
+				id: 'actor-2',
+				name: 'Mafioso 1',
+				alias: 'Mafioso 1',
+				role: 'Mafioso' as const,
+				number: 2,
+				alive: true,
+				possibleTargets: [],
+				targets: [4],
+				allies: [],
+				roleActions: {},
+				alignment: null,
+			},
+			{
+				id: 'actor-3',
+				name: 'Mafioso 2',
+				alias: 'Mafioso 2',
+				role: 'Mafioso' as const,
+				number: 3,
+				alive: true,
+				possibleTargets: [],
+				targets: [4],
+				allies: [],
+				roleActions: {},
+				alignment: null,
+			},
+			{
+				id: 'actor-4',
+				name: 'P1',
+				alias: 'P1',
+				role: 'Citizen' as const,
+				number: 4,
+				alive: true,
+				possibleTargets: [],
+				targets: [],
+				allies: [],
+				roleActions: { remainingVests: 0 },
+				alignment: null,
+			},
+			{
+				id: 'actor-5',
+				name: 'P2',
+				alias: 'P2',
+				role: 'Citizen' as const,
+				number: 5,
+				alive: true,
+				possibleTargets: [],
+				targets: [],
+				allies: [],
+				roleActions: { remainingVests: 0 },
+				alignment: null,
+			},
+		];
+		const config: GameConfig = {
+			tags: ['mafia_killing', 'mafia_killing', 'mafia_killing', 'town_random', 'town_random'],
+			settings: {},
+			roles: {
+				Godfather: { max: 1, weight: 1, settings: {} },
+				Mafioso: { max: 2, weight: 1, settings: {} },
+				Citizen: { max: 2, weight: 1, settings: { maxVests: 0 } },
+			},
+		};
+		const state = {
+			day: 1,
+			actors: actors.map(({ number, alias, alive }) => ({ number, alias, alive })),
+			graveyard: [],
+		};
+
+		const resolved = resolveGame({ actors, config, state, options: { seed: DEFAULT_SEED } });
+
+		expect(resolved.actors.find((actor) => actor.number === 4)?.alive).toBe(true);
+		expect(resolved.actors.find((actor) => actor.number === 5)?.alive).toBe(false);
+	});
+
+	it('uses the most-voted Mafioso target when Godfather has no target', () => {
+		const actors = [
+			{
+				id: 'actor-1',
+				name: 'Godfather',
+				alias: 'Godfather',
+				role: 'Godfather' as const,
+				number: 1,
+				alive: true,
+				possibleTargets: [],
+				targets: [],
+				allies: [],
+				roleActions: {},
+				alignment: null,
+			},
+			{
+				id: 'actor-2',
+				name: 'Mafioso 1',
+				alias: 'Mafioso 1',
+				role: 'Mafioso' as const,
+				number: 2,
+				alive: true,
+				possibleTargets: [],
+				targets: [4],
+				allies: [],
+				roleActions: {},
+				alignment: null,
+			},
+			{
+				id: 'actor-3',
+				name: 'Mafioso 2',
+				alias: 'Mafioso 2',
+				role: 'Mafioso' as const,
+				number: 3,
+				alive: true,
+				possibleTargets: [],
+				targets: [4],
+				allies: [],
+				roleActions: {},
+				alignment: null,
+			},
+			{
+				id: 'actor-4',
+				name: 'Target',
+				alias: 'Target',
+				role: 'Citizen' as const,
+				number: 4,
+				alive: true,
+				possibleTargets: [],
+				targets: [],
+				allies: [],
+				roleActions: { remainingVests: 0 },
+				alignment: null,
+			},
+		];
+		const config: GameConfig = {
+			tags: ['mafia_killing', 'mafia_killing', 'mafia_killing', 'town_random'],
+			settings: {},
+			roles: {
+				Godfather: { max: 1, weight: 1, settings: {} },
+				Mafioso: { max: 2, weight: 1, settings: {} },
+				Citizen: { max: 1, weight: 1, settings: { maxVests: 0 } },
+			},
+		};
+		const state = {
+			day: 1,
+			actors: actors.map(({ number, alias, alive }) => ({ number, alias, alive })),
+			graveyard: [],
+		};
+
+		const resolved = resolveGame({ actors, config, state, options: { seed: DEFAULT_SEED } });
+
+		expect(resolved.actors.find((actor) => actor.number === 1)?.targets).toEqual([4]);
+		expect(resolved.actors.find((actor) => actor.number === 4)?.alive).toBe(false);
+	});
+
 	it('resolves actions with a town win', () => {
 		const actors = [
 			{

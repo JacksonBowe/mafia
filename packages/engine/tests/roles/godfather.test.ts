@@ -32,7 +32,8 @@ describe('godfather', () => {
 		godfather.findPossibleTargets([citizen, godfather, mafioso, doctor]);
 
 		expect(godfather.possibleTargets).toHaveLength(1);
-		expect(godfather.possibleTargets[0]).toHaveLength(2);
+		expect(godfather.possibleTargets[0]).toHaveLength(3);
+		expect(godfather.possibleTargets[0]).toContain(godfather);
 		expect(godfather.possibleTargets[0]).toContain(citizen);
 		expect(godfather.possibleTargets[0]).toContain(doctor);
 	});
@@ -101,6 +102,34 @@ describe('godfather', () => {
 		expect(doctor.alive).toBe(true);
 	});
 
+	it('enforces no kill when targeting self', () => {
+		const context = createContext();
+		const citizen = new Citizen(
+			makeActor({ name: 'A', alias: 'test_citizen', number: 1, id: '1' }),
+			{},
+			context,
+		);
+		const godfather = new Godfather(
+			makeActor({ name: 'B', alias: 'test_godfather', number: 2, id: '2' }),
+			{},
+			context,
+		);
+		const mafioso = new Mafioso(
+			makeActor({ name: 'C', alias: 'test_mafioso', number: 3, id: '3' }),
+			{},
+			context,
+		);
+
+		godfather.findAllies([citizen, godfather, mafioso]);
+		godfather.setTargets([godfather]);
+		mafioso.setTargets([citizen]);
+		godfather.doAction();
+
+		expect(godfather.visiting).toBeNull();
+		expect(mafioso.targets).toEqual([]);
+		expect(citizen.alive).toBe(true);
+	});
+
 	it('kills directly when only Mafioso proxy is dead', () => {
 		const context = createContext();
 		const citizen = new Citizen(
@@ -115,7 +144,11 @@ describe('godfather', () => {
 		);
 		const mafioso = new Mafioso(
 			makeActor({
-				name: 'C', alias: 'test_mafioso', number: 3, id: '3', alive: false,
+				name: 'C',
+				alias: 'test_mafioso',
+				number: 3,
+				id: '3',
+				alive: false,
 			}),
 			{},
 			context,
