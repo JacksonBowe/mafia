@@ -68,6 +68,6 @@ Load the relevant skill before work in these areas:
 - `api-change`: HTTP endpoints, API shapes, API errors, or realtime events.
 - `db-schema-change`: Drizzle tables, relations, persisted data shapes, or schema migrations. Do not generate or apply migrations.
 - `engine-test`: game rules, phases, roles, actions, win conditions, or engine bugs.
-- `github-issue`: creating, filing, or refining GitHub issues.
+- `github-issue`: creating, filing, checking-out, or refining GitHub issues.
 - `sst-infra`: AWS resources, SST bindings, IAM, queues, schedules, or deployment configuration.
 - `quasar`: Quasar/Vue frontend work.
