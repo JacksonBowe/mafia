@@ -1711,14 +1711,14 @@ export const advancePhase = fn(
 
 				case 'evening':
 					result = processEvening(game);
-					await tx
-						.update(gamePlayerTable)
-						.set({ targetActorIds: [] })
-						.where(eq(gamePlayerTable.gameId, gameId));
 					break;
 
 				case 'night':
 					result = processNight(game);
+					await tx
+						.update(gamePlayerTable)
+						.set({ targetActorIds: [] })
+						.where(eq(gamePlayerTable.gameId, gameId));
 					break;
 
 				case 'morning':
