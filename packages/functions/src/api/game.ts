@@ -1,7 +1,7 @@
 import { assertActor } from '@mafia/core/actor';
 import { InputError, zValidator } from '@mafia/core/error';
 import { Game } from '@mafia/core/game/index';
-import { GameErrors } from '@mafia/core/game/schema';
+import { GameSessionErrors } from '@mafia/core/game/session/schema';
 import { Hono } from 'hono';
 import {
 	GameIdPathParamsSchema,
@@ -18,12 +18,12 @@ const gameRoutes = new Hono<{ Bindings: Bindings }>();
 // Clients reference other players only by their public number; actor ids stay
 // server-side.
 async function resolvePlayers(gameId: string, userId: string) {
-	const game = await Game.get({ gameId });
+	const game = await Game.Session.get({ gameId });
 	const players = game.players;
 
 	const self = players.find((p) => p.userId === userId);
 	if (!self) {
-		throw new InputError(GameErrors.PlayerNotFound, 'Player not found in game');
+		throw new InputError(GameSessionErrors.PlayerNotFound, 'Player not found in game');
 	}
 
 	const actorIdByNumber = new Map(players.map((p) => [p.number, p.actorId]));
@@ -37,7 +37,7 @@ gameRoutes.get('/', async (c) => {
 	const actor = assertActor('user');
 	const userId = actor.properties.userId;
 
-	const data = await Game.sync({ userId });
+	const data = await Game.Session.sync({ userId });
 
 	if (!data) {
 		return c.json(null);
@@ -62,12 +62,12 @@ gameRoutes.post(
 		const targetActorIds = targetActorNumbers.map((number) => {
 			const actorId = actorIdByNumber.get(number);
 			if (!actorId) {
-				throw new InputError(GameErrors.InvalidTarget, 'Invalid target');
+				throw new InputError(GameSessionErrors.InvalidTarget, 'Invalid target');
 			}
 			return actorId;
 		});
 
-		await Game.setTargets({ gameId, userId, targetActorIds });
+		await Game.Session.State.setTargets({ gameId, userId, targetActorIds });
 
 		return c.json({ gameId, targetActorNumbers });
 	},
@@ -90,10 +90,10 @@ gameRoutes.post(
 
 		const targetActorId = actorIdByNumber.get(targetActorNumber);
 		if (!targetActorId) {
-			throw new InputError(GameErrors.InvalidVoteTarget, 'Invalid vote target');
+			throw new InputError(GameSessionErrors.InvalidVoteTarget, 'Invalid vote target');
 		}
 
-		const { voteTargetActorId } = await Game.submitVote({
+		const { voteTargetActorId } = await Game.Session.Vote.submitVote({
 			gameId,
 			voterActorId: self.actorId,
 			targetActorId,
@@ -116,7 +116,7 @@ gameRoutes.post(
 
 		const { self } = await resolvePlayers(gameId, actor.properties.userId);
 
-		await Game.cancelVote({ gameId, voterActorId: self.actorId });
+		await Game.Session.Vote.cancelVote({ gameId, voterActorId: self.actorId });
 
 		return c.json({ success: true });
 	},
@@ -134,7 +134,7 @@ gameRoutes.post(
 
 		const { self } = await resolvePlayers(gameId, actor.properties.userId);
 
-		await Game.submitVerdict({ gameId, voterActorId: self.actorId, verdict });
+		await Game.Session.Verdict.submitVerdict({ gameId, voterActorId: self.actorId, verdict });
 
 		return c.json({ verdict });
 	},

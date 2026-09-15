@@ -11,5 +11,5 @@ export const handler = async (event: unknown) => {
 	const input = GameLoopInputSchema.parse(event);
 	console.log('Advance game loop', { event, gameId: input.gameId });
 
-	return Game.advancePhase({ gameId: input.gameId });
+	return Game.Session.Phase.advancePhase({ gameId: input.gameId });
 };

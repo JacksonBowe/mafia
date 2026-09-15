@@ -1,14 +1,14 @@
 import { ActorStateSchema, StateGraveyardRecordSchema, WinnerSummarySchema } from '@mafia/engine';
 import { z } from 'zod';
-import { isULID } from '../error';
-import { defineRealtimeEvent } from '../realtime';
+import { isULID } from '../../error';
+import { defineRealtimeEvent } from '../../realtime';
 import { GameTopics, VerdictSchema } from './schema';
 
 // ---------------------
 // Realtime events (server-only — depend on defineRealtimeEvent / IoT)
 // ---------------------
 
-export const RealtimeEvents = {
+export const Realtime = {
 	// ==================
 	// Public Events (broadcast to all players)
 	// ==================
@@ -223,4 +223,3 @@ export const RealtimeEvents = {
 		(p) => GameTopics.actor(p.gameId, p.actorId),
 	),
 };
-

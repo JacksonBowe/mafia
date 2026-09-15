@@ -1,18 +1,7 @@
-export * from './game';
 export * as Game from './game';
+export * from './game';
 
 // Re-export pure contracts for backend convenience.
-export {
-	ClientGameInfoSchema,
-	GameErrors as Errors,
-	GameInfoSchema,
-	GamePhaseSchema,
-	GamePlayerSchema,
-	GameStatusSchema,
-	GameSyncResponseSchema,
-	GameTopics,
-	VerdictSchema
-} from './schema';
 export type {
 	ActorState,
 	ClientGameInfo,
@@ -20,8 +9,21 @@ export type {
 	GameInfo,
 	GamePhase,
 	GamePlayer,
+	GameSessionInfo,
 	GameState,
 	GameStatus,
 	GameSyncResponse,
-	Verdict
+	Verdict,
+} from './schema';
+export {
+	ClientGameInfoSchema,
+	GameErrors as Errors,
+	GameInfoSchema,
+	GamePhaseSchema,
+	GamePlayerSchema,
+	GameSessionInfoSchema,
+	GameStatusSchema,
+	GameSyncResponseSchema,
+	GameTopics,
+	VerdictSchema,
 } from './schema';
