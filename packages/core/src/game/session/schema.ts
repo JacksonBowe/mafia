@@ -79,6 +79,7 @@ export const GameSessionInfoSchema = GameInfoSchema.extend({
 	events: GameEventGroupDumpSchema.nullable().optional(),
 	players: z.array(GamePlayerSchema),
 	pollCount: z.number().int(),
+	phaseVersion: z.number().int().nonnegative(),
 });
 
 export type GameSessionInfo = z.infer<typeof GameSessionInfoSchema>;

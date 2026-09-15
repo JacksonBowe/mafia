@@ -51,6 +51,8 @@ const stateMachine = new aws.sfn.StateMachine('GameLoopMachineStateMachine', {
 				Type: 'Pass',
 				Output: {
 					gameId: '{% $states.input.gameId %}',
+					executionId: '{% $states.context.Execution.Id %}',
+					expectedPhaseVersion: 0,
 					continue: true,
 					waitSeconds: 0,
 				},

@@ -98,13 +98,22 @@ export const setTargets = fn(
 	async ({ gameId, userId, targetActorIds }) =>
 		createTransaction(async (tx) => {
 			const [row] = await tx
-				.select({ actors: gameTable.actors, phase: gameTable.phase })
+				.select({ actors: gameTable.actors, phase: gameTable.phase, status: gameTable.status })
 				.from(gameTable)
 				.where(eq(gameTable.id, gameId))
 				.limit(1);
 
 			if (!row) {
 				throw new InputError(GameErrors.GameNotFound, 'Game not found');
+			}
+			if (row.status !== 'active') {
+				throw new InputError(SessionErrors.GameInvalidState, 'Game is not active');
+			}
+			if (row.phase !== 'evening') {
+				throw new InputError(
+					SessionErrors.GameInvalidState,
+					'Targets can only be set during the evening phase',
+				);
 			}
 
 			const [player] = await tx
@@ -122,6 +131,12 @@ export const setTargets = fn(
 
 			if (!actor) {
 				throw new InputError(SessionErrors.PlayerNotFound, 'Player not found');
+			}
+			if (!actor.alive) {
+				throw new InputError(SessionErrors.PlayerNotAlive, 'Player is not alive');
+			}
+			if (targetActorIds.length !== actor.possibleTargets.length) {
+				throw new InputError(SessionErrors.InvalidTarget, 'Invalid target count');
 			}
 
 			const numbersByActorId = new Map(actors.map((item) => [item.id, item.number]));

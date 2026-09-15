@@ -49,6 +49,9 @@ export const gameTable = pgTable(
 		// Poll count - tracks voting rounds (max 3 before moving to evening)
 		pollCount: integer('poll_count').notNull().default(0),
 
+		// Monotonic optimistic-concurrency token for phase-transition commands.
+		phaseVersion: integer('phase_version').notNull().default(0),
+
 		// Incremented transactionally for a stable, per-game audit timeline.
 		auditLogSequence: integer('audit_log_sequence').notNull().default(0),
 	},
@@ -89,6 +92,25 @@ export const gamePlayerTable = pgTable(
 		index('game_player_game_idx').on(t.gameId),
 		index('game_player_user_idx').on(t.userId),
 		uniqueIndex('game_player_game_actor_uq').on(t.gameId, t.actorId),
+	],
+);
+
+// Durable idempotency records for Step Functions phase commands. A repeated
+// command returns its committed result instead of advancing another phase.
+export const gamePhaseTransitionTable = pgTable(
+	'game_phase_transition',
+	{
+		...id,
+		gameId: text('game_id')
+			.notNull()
+			.references(() => gameTable.id, { onDelete: 'restrict' }),
+		idempotencyKey: text('idempotency_key').notNull(),
+		expectedPhaseVersion: integer('expected_phase_version').notNull(),
+		result: jsonb('result').notNull(),
+	},
+	(t) => [
+		uniqueIndex('game_phase_transition_game_key_uq').on(t.gameId, t.idempotencyKey),
+		index('game_phase_transition_game_idx').on(t.gameId),
 	],
 );
 

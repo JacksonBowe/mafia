@@ -1,13 +1,14 @@
 import { lynchGame, loadGame, resolveGame, type ActorState, type GameEventGroupDump, type GameState, type StateGraveyardRecord, type WinnerSummary } from '@mafia/engine';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { Resource } from 'sst';
+import { ulid } from 'ulid';
 import { z } from 'zod';
 import { afterTx, createTransaction } from '../../db/transaction';
 import { InputError, isULID } from '../../error';
 import { GameErrors } from '../schema';
 import { realtime } from '../../realtime';
 import { fn } from '../../util/fn';
-import { gamePlayerTable, gameTable } from '../game.sql';
+import { gamePhaseTransitionTable, gamePlayerTable, gameTable } from '../game.sql';
 import type { GameStatus } from '../schema';
 import { Realtime } from './events';
 import { appendEngineLog, appendGameLog, type EngineLogInput, type GameLogInput } from './log';
@@ -43,6 +44,15 @@ type AdvancePhaseResult = {
 	trialOver?: boolean;
 	engineLogs?: Array<Omit<EngineLogInput, 'gameId'>>;
 };
+
+const AdvancePhaseResponseSchema = z.object({
+	gameId: isULID(),
+	continue: z.boolean(),
+	waitSeconds: z.number().int().nonnegative(),
+	phase: GamePhaseSchema,
+	pollCount: z.number().int().nonnegative(),
+	phaseVersion: z.number().int().nonnegative(),
+});
 
 const PHASE_INFO: Record<GamePhase, { duration: number }> = {
 	pregame: { duration: 15 },
@@ -81,7 +91,12 @@ const tallyVotesForPlayers = (players: GamePlayer[], aliveActorIds: string[]) =>
 	const votes: Record<string, number> = {};
 
 	for (const player of players) {
-		if (!aliveActorIdSet.has(player.actorId) || player.voteTargetActorId === null) continue;
+		if (
+			!aliveActorIdSet.has(player.actorId) ||
+			player.voteTargetActorId === null ||
+			!aliveActorIdSet.has(player.voteTargetActorId)
+		)
+			continue;
 		votes[player.voteTargetActorId] = (votes[player.voteTargetActorId] ?? 0) + 1;
 	}
 
@@ -248,14 +263,49 @@ const recordAdvancePhaseError = async (gameId: string, error: unknown) => {
 export const advancePhase = fn(
 	z.object({
 		gameId: isULID(),
+		expectedPhaseVersion: z.number().int().nonnegative(),
+		idempotencyKey: z.string().min(1),
 	}),
-	async ({ gameId }) =>
+	async ({ gameId, expectedPhaseVersion, idempotencyKey }) =>
 		createTransaction(async (tx) => {
-			const [gameRow] = await tx.select().from(gameTable).where(eq(gameTable.id, gameId));
+			const [gameRow] = await tx
+				.select()
+				.from(gameTable)
+				.where(eq(gameTable.id, gameId))
+				.for('update');
 
 			if (!gameRow) {
 				throw new InputError(GameErrors.GameNotFound, 'Game not found');
 			}
+
+			const [previous] = await tx
+				.select({ result: gamePhaseTransitionTable.result })
+				.from(gamePhaseTransitionTable)
+				.where(
+					and(
+						eq(gamePhaseTransitionTable.gameId, gameId),
+						eq(gamePhaseTransitionTable.idempotencyKey, idempotencyKey),
+					),
+				)
+				.limit(1);
+			if (previous) {
+				return AdvancePhaseResponseSchema.parse(previous.result);
+			}
+
+			if (gameRow.phaseVersion !== expectedPhaseVersion) {
+				throw new InputError(SessionErrors.GameInvalidState, 'Stale phase transition command');
+			}
+
+			const persistResult = async (result: z.output<typeof AdvancePhaseResponseSchema>) => {
+				await tx.insert(gamePhaseTransitionTable).values({
+					id: ulid(),
+					gameId,
+					idempotencyKey,
+					expectedPhaseVersion,
+					result,
+				});
+				return result;
+			};
 
 			const players = await tx
 				.select()
@@ -264,13 +314,14 @@ export const advancePhase = fn(
 			const game = GameSessionInfoSchema.parse({ ...gameRow, players });
 
 			if (game.status !== 'active') {
-				return {
+				return persistResult({
 					gameId,
 					continue: false,
 					waitSeconds: 0,
 					phase: game.phase,
 					pollCount: game.pollCount,
-				};
+					phaseVersion: game.phaseVersion,
+				});
 			}
 
 			const clearVotes = () =>
@@ -428,7 +479,10 @@ export const advancePhase = fn(
 					throw new InputError(SessionErrors.GameInvalidState, 'Invalid game phase');
 			}
 
-			const updates: Record<string, unknown> = { phase: result.nextPhase };
+			const updates: Record<string, unknown> = {
+				phase: result.nextPhase,
+				phaseVersion: sql`${gameTable.phaseVersion} + 1`,
+			};
 			if (result.status) updates.status = result.status;
 			if (result.pollCount !== undefined) updates.pollCount = result.pollCount;
 			if (result.engineState) updates.engineState = result.engineState;
@@ -439,7 +493,7 @@ export const advancePhase = fn(
 				.update(gameTable)
 				.set(updates)
 				.where(eq(gameTable.id, gameId))
-				.returning({ id: gameTable.id });
+				.returning({ id: gameTable.id, phaseVersion: gameTable.phaseVersion });
 
 			if (!updated) {
 				throw new InputError(GameErrors.GameNotFound, 'Game not found');
@@ -557,13 +611,14 @@ export const advancePhase = fn(
 				}
 			});
 
-			return {
+			return persistResult({
 				gameId,
 				continue: result.continue,
 				waitSeconds: result.waitSeconds,
 				phase: result.nextPhase,
 				pollCount: result.pollCount ?? game.pollCount,
-			};
+				phaseVersion: updated.phaseVersion,
+			});
 		}).catch(async (error) => {
 			await recordAdvancePhaseError(gameId, error);
 			throw error;

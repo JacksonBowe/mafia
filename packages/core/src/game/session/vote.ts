@@ -48,6 +48,11 @@ export const submitVote = fn(
 				throw new InputError(SessionErrors.PlayerNotAlive, 'Player is not alive');
 			}
 
+			const targetActor = actors.find((actor) => actor.id === targetActorId);
+			if (!targetActor || !targetActor.alive) {
+				throw new InputError(SessionErrors.InvalidVoteTarget, 'Invalid vote target');
+			}
+
 			// Get the voter's current state
 			const [voter] = await tx
 				.select()
@@ -63,7 +68,7 @@ export const submitVote = fn(
 				throw new InputError(SessionErrors.PlayerNotFound, 'Voter not found');
 			}
 
-			// Verify target exists
+			// Verify target belongs to this game.
 			const [target] = await tx
 				.select()
 				.from(gamePlayerTable)
