@@ -42,19 +42,22 @@ adminRoutes.post('/terminate-games', async (c) => {
 	const actor = assertActor('user');
 	console.log(actor);
 
-	const games = await Game.list();
-
-	await Promise.all(
-		games.map(async (game) => {
-			console.log(`Terminating game ${game.id} by admin ${actor.properties.userId}`);
-			await Game.terminate({
-				gameId: game.id,
-				terminatedByUserId: actor.properties.userId,
-				reason: 'admin.terminate_all_games',
-			});
-			console.log(`Game ${game.id} terminated.`);
-		}),
-	);
+	let cursor: string | undefined;
+	do {
+		const page = await Game.list({ status: 'active', limit: 100, cursor });
+		await Promise.all(
+			page.items.map(async (game) => {
+				console.log(`Terminating game ${game.id} by admin ${actor.properties.userId}`);
+				await Game.terminate({
+					gameId: game.id,
+					terminatedByUserId: actor.properties.userId,
+					reason: 'admin.terminate_all_games',
+				});
+				console.log(`Game ${game.id} terminated.`);
+			}),
+		);
+		cursor = page.meta.nextCursor ?? undefined;
+	} while (cursor);
 
 	return c.json({ message: 'All games terminated.' });
 });

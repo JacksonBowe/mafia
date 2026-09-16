@@ -28,6 +28,7 @@ export const GameSessionErrors = {
 	PlayerNotAlive: 'game.player_not_alive',
 	NotVotingPhase: 'game.not_voting_phase',
 	NotTrialPhase: 'game.not_trial_phase',
+	InvalidLogCursor: 'game.invalid_log_cursor',
 } as const;
 
 export const GameStatusSchema = z.enum(['active', 'completed', 'cancelled']);

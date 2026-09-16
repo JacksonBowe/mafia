@@ -1,30 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 
+// ballot.ts imports persistence commands alongside pure tally helpers. Keep DB inactive here.
 vi.mock('../../src/db/transaction', () => ({
 	afterTx: vi.fn(),
 	createTransaction: vi.fn(),
 	useTransaction: vi.fn(),
 }));
-
-vi.mock('../../src/game/schema', () => ({
-	GameErrors: { GameNotFound: 'game.not_found' },
-}));
-
-vi.mock('../../src/game/session/schema', async () => {
-	const { z } = await import('zod');
-	return {
-		GameSessionErrors: {
-			CannotVoteSelf: 'game.cannot_vote_self',
-			GameInvalidState: 'game.invalid_state',
-			InvalidVoteTarget: 'game.invalid_vote_target',
-			NotTrialPhase: 'game.not_trial_phase',
-			NotVotingPhase: 'game.not_voting_phase',
-			PlayerNotAlive: 'game.player_not_alive',
-			PlayerNotFound: 'game.player_not_found',
-		},
-		VerdictSchema: z.enum(['guilty', 'innocent', 'abstain']),
-	};
-});
 
 import { tallyVerdicts, tallyVotes } from '../../src/game/session/ballot';
 import type { GamePlayer } from '../../src/game/session/schema';
