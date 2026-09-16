@@ -6,13 +6,16 @@
 	"scripts": {
 		"seed": "sst shell -- bun run src/seed/index.ts",
 		"create-bots": "sst shell -- bun run src/createBots.ts",
-		"create-bots:prod": "sst shell --stage prod -- bun run src/createBots.ts --out ../bots/bots.prod.json"
+		"create-bots:prod": "sst shell --stage prod -- bun run src/createBots.ts --out ../bots/bots.prod.json",
+		"query-game-logs": "sst shell -- bun run src/queryGameLogs.ts",
+		"list-games": "sst shell -- bun run src/listGames.ts"
 	},
 	"dependencies": {
-		"sst": "4.8.0",
 		"@mafia/core": "workspace:*",
 		"@mafia/functions": "workspace:*",
-		"ulid": "^3.0.2"
+		"sst": "4.8.0",
+		"ulid": "^3.0.2",
+		"zod": "4.3.6"
 	},
 	"devDependencies": {
 		"@types/bun": "latest"

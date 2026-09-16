@@ -1,9 +1,17 @@
 import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('../../src/db/transaction', () => ({
+	useTransaction: vi.fn(),
+}));
+
+import { useTransaction } from '../../src/db/transaction';
 import {
 	appendEngineLog,
 	appendGameLog,
 	EngineLogOperationSchema,
 	GameLogTypeSchema,
+	listEngineLogs,
+	listGameLogs,
 } from '../../src/game/session/log';
 
 const GAME_ID = '01J00000000000000000000000';
@@ -15,6 +23,31 @@ const gameLogInput = {
 	actorId: 'actor-1',
 	data: { targetActorId: 'actor-2' },
 };
+
+const logRow = {
+	id: '01J00000000000000000000001',
+	gameId: GAME_ID,
+	createdAt: new Date('2026-01-01T00:00:00.000Z'),
+	type: 'game.vote.cast' as const,
+	phase: 'poll' as const,
+	actorId: 'actor-1',
+	sequence: 1,
+	data: { targetActorId: 'actor-2' },
+};
+
+function selectQuery(rows: unknown[]) {
+	const limit = vi.fn().mockResolvedValue(rows);
+	const orderBy = vi.fn().mockReturnValue({ limit });
+	const where = vi.fn().mockReturnValue({ limit, orderBy });
+	return { from: vi.fn().mockReturnValue({ where }) };
+}
+
+function mockLogRead(...rows: unknown[][]) {
+	const tx = {
+		select: vi.fn().mockImplementation(() => selectQuery(rows.shift() ?? [])),
+	};
+	vi.mocked(useTransaction).mockImplementation((callback) => callback(tx as never));
+}
 
 describe('game log contracts', () => {
 	// TODO: Add Neon-backed tests for action/phase/completion log commits and transaction rollback.
@@ -91,5 +124,48 @@ describe('game log contracts', () => {
 		expect(values).toHaveBeenCalledWith(
 			expect.objectContaining({ lines: ['Resolving targets'] }),
 		);
+	});
+
+	it('reads audit logs in immutable sequence order', async () => {
+		mockLogRead(
+			[{ id: GAME_ID }],
+			[logRow, { ...logRow, id: '01J00000000000000000000002', sequence: 2 }],
+		);
+
+		const page = await listGameLogs({ gameId: GAME_ID, limit: 2 });
+
+		expect(page).toEqual({
+			items: [logRow, { ...logRow, id: '01J00000000000000000000002', sequence: 2 }],
+			meta: { limit: 2, hasMore: false, nextCursor: null },
+		});
+	});
+
+	it('uses the last engine-log ULID as the page cursor', async () => {
+		const engineRows = [
+			{
+				id: '01J00000000000000000000003',
+				gameId: GAME_ID,
+				createdAt: new Date('2026-01-01T00:00:00.000Z'),
+				operation: 'resolve' as const,
+				phase: 'evening' as const,
+				data: { day: 1 },
+				lines: ['first'],
+			},
+			{
+				id: '01J00000000000000000000004',
+				gameId: GAME_ID,
+				createdAt: new Date('2026-01-01T00:00:00.000Z'),
+				operation: 'resolve' as const,
+				phase: 'evening' as const,
+				data: { day: 1 },
+				lines: ['second'],
+			},
+		];
+		mockLogRead([{ id: GAME_ID }], engineRows);
+
+		const page = await listEngineLogs({ gameId: GAME_ID, limit: 1 });
+
+		expect(page.items).toEqual([engineRows[0]]);
+		expect(page.meta.nextCursor).toBe(engineRows[0].id);
 	});
 });
