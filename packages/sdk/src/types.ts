@@ -44,8 +44,8 @@ export {
 	resolveGameChatSendPolicy,
 	resolveGameChatSubscriptionTopics,
 	teamIdForActor,
-} from '@mafia/core/game/session/chat';
-export type { GameChatSendPolicy } from '@mafia/core/game/session/chat';
+} from '@mafia/core/game/session/chat.policy';
+export type { GameChatSendPolicy } from '@mafia/core/game/session/chat.policy';
 
 // --- Engine types & values (canonical role/tag/alignment surface) ---
 export {

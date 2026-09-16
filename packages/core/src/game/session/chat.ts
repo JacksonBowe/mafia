@@ -1,55 +1,37 @@
-import type { ActorState, GamePhase } from './schema';
-import type { GameChannel } from '../../message';
+import { eq } from 'drizzle-orm';
+import { z } from 'zod';
+import { createTransaction } from '../../db/transaction';
+import { isULID } from '../../error';
+import { MessageSchema } from '../../message';
+import { fn } from '../../util/fn';
+import { gameTable } from '../game.sql';
+import * as Assert from './assert';
+import * as Log from './log';
+import { GamePhaseSchema } from './schema';
 
-export type GameChatSendPolicy =
-	| { canSend: true; channel: GameChannel; teamId?: string }
-	| { canSend: false; reason: string };
+/** Records a game-chat message in the audit timeline; it does not publish it. */
+export const recordChatMessage = fn(
+	z.object({
+		gameId: isULID(),
+		actorId: z.string(),
+		message: MessageSchema,
+	}),
+	async ({ gameId, actorId, message }) =>
+		createTransaction(async (tx) => {
+			const [game] = await tx
+				.select({ phase: gameTable.phase })
+				.from(gameTable)
+				.where(eq(gameTable.id, gameId))
+				.limit(1);
+			Assert.gameFound(game);
 
-export function teamIdForActor(actor: ActorState): string | null {
-	if (actor.alignment === 'Mafia') return 'mafia';
-	return null;
-}
-
-export function resolveGameChatSendPolicy(input: {
-	phase: GamePhase;
-	actor: ActorState;
-}): GameChatSendPolicy {
-	const { phase, actor } = input;
-
-	if (!actor.alive) {
-		return { canSend: true, channel: 'DEAD' };
-	}
-
-	if (phase === 'evening') {
-		const teamId = teamIdForActor(actor);
-		if (teamId) return { canSend: true, channel: 'TEAM', teamId };
-		return { canSend: false, reason: 'No team chat available during evening.' };
-	}
-
-	if (phase === 'pregame' || phase === 'night') {
-		return { canSend: false, reason: 'Chat is disabled during this phase.' };
-	}
-
-	return { canSend: true, channel: 'GLOBAL' };
-}
-
-export function resolveGameChatSubscriptionTopics(input: {
-	gameId: string;
-	actor: ActorState | null;
-}): string[] {
-	const { gameId, actor } = input;
-	const topics = [`game/${gameId}/chat/global`];
-
-	if (!actor) return topics;
-
-	if (!actor.alive) {
-		return [...topics, `game/${gameId}/chat/dead`];
-	}
-
-	const teamId = teamIdForActor(actor);
-	if (teamId) {
-		topics.push(`game/${gameId}/chat/team/${teamId}`);
-	}
-
-	return topics;
-}
+			await Log.appendGameLog(tx, {
+				gameId,
+				type: 'game.chat.sent',
+				phase: GamePhaseSchema.parse(game.phase),
+				actorId,
+				data: { message },
+			});
+			return { gameId, messageId: message.id };
+		}),
+);

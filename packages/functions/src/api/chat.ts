@@ -1,7 +1,6 @@
 import { assertActor } from '@mafia/core/actor';
 import { RealtimeEvents } from '@mafia/core/chat';
 import { InputError, zValidator } from '@mafia/core/error';
-import { resolveGameChatSendPolicy } from '@mafia/core/game/session/chat';
 import { Game } from '@mafia/core/game/index';
 import { MessageSchema, type Message } from '@mafia/core/message';
 import { realtime } from '@mafia/core/realtime';
@@ -55,7 +54,10 @@ chatRoutes.post('/message', zValidator('json', SendChatMessageJsonSchema), async
 			throw new InputError('chat.game_required', 'Must be in a game to send game messages.');
 		}
 
-		const policy = resolveGameChatSendPolicy({ phase: game.info.phase, actor: game.actor });
+		const policy = Game.Session.Chat.resolveGameChatSendPolicy({
+			phase: game.info.phase,
+			actor: game.actor,
+		});
 		if (!policy.canSend) {
 			throw new InputError('chat.disabled', policy.reason);
 		}
@@ -76,7 +78,7 @@ chatRoutes.post('/message', zValidator('json', SendChatMessageJsonSchema), async
 			...(policy.teamId ? { teamId: policy.teamId } : {}),
 		});
 
-		await Game.Session.recordChatMessage({
+		await Game.Session.Chat.recordChatMessage({
 			gameId: game.info.id,
 			actorId: game.actor.id,
 			message,

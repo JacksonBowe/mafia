@@ -3,7 +3,6 @@ import { Resource } from 'sst';
 import { realtime } from 'sst/aws/realtime';
 import { z } from 'zod';
 import { isULID } from '@mafia/core/error';
-import { resolveGameChatSubscriptionTopics } from '@mafia/core/game/session/chat';
 import { Game } from '@mafia/core/game/index';
 import { topicPrefix } from '@mafia/core/realtime';
 import { User } from '@mafia/core/user/index';
@@ -110,7 +109,9 @@ async function authorizeGame(prefix: string, userId: string, gameId: string) {
 		subscribe: [
 			`${prefix}/game/${gameId}/events`,
 			`${prefix}/game/${gameId}/actor/${actor.id}`,
-			...resolveGameChatSubscriptionTopics({ gameId, actor }).map((topic) => `${prefix}/${topic}`),
+			...Game.Session.Chat.resolveGameChatSubscriptionTopics({ gameId, actor }).map(
+				(topic) => `${prefix}/${topic}`,
+			),
 		],
 	};
 }

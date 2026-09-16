@@ -1,5 +1,5 @@
 import { SFNClient, StopExecutionCommand } from '@aws-sdk/client-sfn';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { Resource } from 'sst';
 import { ulid } from 'ulid';
 import { z } from 'zod';
@@ -8,7 +8,7 @@ import { InputError, isULID } from '../error';
 import { realtime } from '../realtime';
 import { fn } from '../util/fn';
 import { gamePlayerTable, gameTable } from './game.sql';
-import { GameErrors as Errors, GameInfoSchema } from './schema';
+import { CreateGameInputSchema, GameErrors as Errors, GameInfoSchema } from './schema';
 import * as Session from './session';
 
 export * from './session';
@@ -16,19 +16,7 @@ export { Session };
 export { Realtime } from './session/events';
 
 export const create = fn(
-	z.object({
-		engineState: z.unknown(),
-		engineConfig: z.unknown(),
-		actors: z.unknown(),
-		engineLog: z.array(z.string()),
-		players: z.array(
-			z.object({
-				userId: z.string(),
-				actorId: z.string(),
-				number: z.number().int().positive(),
-			}),
-		),
-	}),
+	CreateGameInputSchema,
 	async (input) =>
 		createTransaction(async (tx) => {
 			const gameId = ulid();
@@ -152,11 +140,11 @@ export const terminate = fn(
 			const [cancelled] = await tx
 				.update(gameTable)
 				.set({ status: 'cancelled' })
-				.where(eq(gameTable.id, gameId))
+				.where(and(eq(gameTable.id, gameId), eq(gameTable.status, 'active')))
 				.returning({ id: gameTable.id });
 
 			if (!cancelled) {
-				throw new InputError(Errors.GameNotFound, 'Game not found');
+				throw new InputError(Session.Errors.GameInvalidState, 'Game is not active');
 			}
 
 			await afterTx(async () => {

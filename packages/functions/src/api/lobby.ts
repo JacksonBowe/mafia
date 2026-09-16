@@ -176,7 +176,7 @@ lobbyRoutes.post('/:lobbyId/start', zValidator('param', LobbyIdPathParamsSchema)
 			);
 
 			if (response.executionArn) {
-				await Game.Session.State.setGameLoopExecutionArn({ gameId, executionArn: response.executionArn });
+				await Game.Session.Loop.setGameLoopExecutionArn({ gameId, executionArn: response.executionArn });
 			}
 
 			console.log('Started game loop execution', { response });

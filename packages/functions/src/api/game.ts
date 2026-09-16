@@ -67,7 +67,7 @@ gameRoutes.post(
 			return actorId;
 		});
 
-		await Game.Session.State.setTargets({ gameId, userId, targetActorIds });
+		await Game.Session.Targets.setTargets({ gameId, userId, targetActorIds });
 
 		return c.json({ gameId, targetActorNumbers });
 	},
@@ -93,7 +93,7 @@ gameRoutes.post(
 			throw new InputError(GameSessionErrors.InvalidVoteTarget, 'Invalid vote target');
 		}
 
-		const { voteTargetActorId } = await Game.Session.Vote.submitVote({
+		const { voteTargetActorId } = await Game.Session.Ballot.submitVote({
 			gameId,
 			voterActorId: self.actorId,
 			targetActorId,
@@ -116,7 +116,7 @@ gameRoutes.post(
 
 		const { self } = await resolvePlayers(gameId, actor.properties.userId);
 
-		await Game.Session.Vote.cancelVote({ gameId, voterActorId: self.actorId });
+		await Game.Session.Ballot.cancelVote({ gameId, voterActorId: self.actorId });
 
 		return c.json({ success: true });
 	},
@@ -134,7 +134,7 @@ gameRoutes.post(
 
 		const { self } = await resolvePlayers(gameId, actor.properties.userId);
 
-		await Game.Session.Verdict.submitVerdict({ gameId, voterActorId: self.actorId, verdict });
+		await Game.Session.Ballot.submitVerdict({ gameId, voterActorId: self.actorId, verdict });
 
 		return c.json({ verdict });
 	},

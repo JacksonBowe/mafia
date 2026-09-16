@@ -1,26 +1,30 @@
 import { lynchGame, loadGame, resolveGame, type ActorState, type GameEventGroupDump, type GameState, type StateGraveyardRecord, type WinnerSummary } from '@mafia/engine';
-import { and, eq, sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { Resource } from 'sst';
-import { ulid } from 'ulid';
 import { z } from 'zod';
 import { afterTx, createTransaction } from '../../db/transaction';
 import { InputError, isULID } from '../../error';
-import { GameErrors } from '../schema';
 import { realtime } from '../../realtime';
 import { fn } from '../../util/fn';
-import { gamePhaseTransitionTable, gamePlayerTable, gameTable } from '../game.sql';
-import type { GameStatus } from '../schema';
-import { Realtime } from './events';
-import { appendEngineLog, appendGameLog, type EngineLogInput, type GameLogInput } from './log';
+import { gameTable } from '../game.sql';
+import * as Assert from './assert';
+import * as Events from './events';
+import * as Log from './log';
+import * as PhaseTransition from './phase-transition';
+import type { EngineLogInput, GameLogInput } from './log';
 import {
+	GameErrors,
 	GameSessionErrors as SessionErrors,
 	GamePhaseSchema,
 	GameSessionInfoSchema,
 	type GamePhase,
-	type GamePlayer,
 	type GameSessionInfo,
+	type GameStatus,
 } from './schema';
-import { buildEngineActors } from './state';
+import * as Ballot from './ballot';
+import * as Engine from './engine';
+import * as PlayerState from './player-state';
+import * as Read from './read';
 
 type AdvancePhaseResult = {
 	waitSeconds: number;
@@ -44,15 +48,6 @@ type AdvancePhaseResult = {
 	trialOver?: boolean;
 	engineLogs?: Array<Omit<EngineLogInput, 'gameId'>>;
 };
-
-const AdvancePhaseResponseSchema = z.object({
-	gameId: isULID(),
-	continue: z.boolean(),
-	waitSeconds: z.number().int().nonnegative(),
-	phase: GamePhaseSchema,
-	pollCount: z.number().int().nonnegative(),
-	phaseVersion: z.number().int().nonnegative(),
-});
 
 const PHASE_INFO: Record<GamePhase, { duration: number }> = {
 	pregame: { duration: 15 },
@@ -86,60 +81,14 @@ const getAliveActorIds = (actors: ActorState[]) =>
 const getNightDeaths = (game: GameSessionInfo) =>
 	game.engineState.graveyard.filter((death) => death.dod === game.engineState.day);
 
-const tallyVotesForPlayers = (players: GamePlayer[], aliveActorIds: string[]) => {
-	const aliveActorIdSet = new Set(aliveActorIds);
-	const votes: Record<string, number> = {};
-
-	for (const player of players) {
-		if (
-			!aliveActorIdSet.has(player.actorId) ||
-			player.voteTargetActorId === null ||
-			!aliveActorIdSet.has(player.voteTargetActorId)
-		)
-			continue;
-		votes[player.voteTargetActorId] = (votes[player.voteTargetActorId] ?? 0) + 1;
-	}
-
-	let maxVotes = 0;
-	let winner: string | null = null;
-	for (const [actorId, count] of Object.entries(votes)) {
-		if (count <= maxVotes) continue;
-		maxVotes = count;
-		winner = actorId;
-	}
-
-	return {
-		votes,
-		winner: maxVotes > Math.floor(aliveActorIds.length / 2) ? winner : null,
-	};
-};
-
-const tallyVerdictsForPlayers = (players: GamePlayer[], aliveActorIds: string[]) => {
-	const aliveActorIdSet = new Set(aliveActorIds);
-	let guiltyCount = 0;
-	let abstainCount = 0;
-	let innocentCount = 0;
-
-	for (const player of players) {
-		if (player.onTrial || !aliveActorIdSet.has(player.actorId)) continue;
-		if (player.verdict === 'guilty') guiltyCount++;
-		else if (player.verdict === 'innocent') innocentCount++;
-		else abstainCount++;
-	}
-
-	return { guiltyCount, abstainCount, innocentCount, isGuilty: guiltyCount > innocentCount };
-};
-
 const nextPollOrEvening = (pollCount: number, overrides: Partial<AdvancePhaseResult> = {}) => {
 	if (pollCount < MAX_POLLS) return enterPhase('poll', { pollCount, ...overrides });
 	return enterPhase('evening', { pollCount: 0, ...overrides });
 };
 
-const titleCasePhase = (phase: GamePhase) => phase.charAt(0).toUpperCase() + phase.slice(1);
-
 const getPhaseLabel = (phase: GamePhase, pollCount: number) => {
 	if (phase === 'poll') return `Poll ${pollCount + 1}`;
-	return titleCasePhase(phase);
+	return `${phase.charAt(0).toUpperCase()}${phase.slice(1)}`;
 };
 
 const getPhaseSequence = (phase: GamePhase, pollCount: number) => {
@@ -147,11 +96,12 @@ const getPhaseSequence = (phase: GamePhase, pollCount: number) => {
 	return 0;
 };
 
+/** Resolves submitted evening actions and enters night with the event timeline. */
 const processEvening = (game: GameSessionInfo): AdvancePhaseResult => {
 	const resolved = resolveGame({
 		state: game.engineState,
 		config: game.engineConfig,
-		actors: buildEngineActors(game.actors, game.players),
+		actors: Engine.buildEngineActors(game.actors, game.players),
 	});
 
 	// TODO: Fan out resolved.events to Realtime.Event once event target/topic mapping is finalized.
@@ -175,11 +125,12 @@ const processEvening = (game: GameSessionInfo): AdvancePhaseResult => {
 	});
 };
 
+/** Checks resolved night state for deaths and winners before entering morning. */
 const processNight = (game: GameSessionInfo): AdvancePhaseResult => {
 	const engineResult = loadGame({
 		state: game.engineState,
 		config: game.engineConfig,
-		actors: buildEngineActors(game.actors, game.players),
+		actors: Engine.buildEngineActors(game.actors, game.players),
 	});
 	const deaths = getNightDeaths(game);
 	const waitSeconds = BASE_MORNING_DURATION + deaths.length * TIME_PER_DEATH;
@@ -216,6 +167,7 @@ const processNight = (game: GameSessionInfo): AdvancePhaseResult => {
 	});
 };
 
+/** Converts an error and up to three nested causes into JSON-safe audit data. */
 const serializeLifecycleError = (error: unknown, depth = 0): Record<string, unknown> => {
 	if (!(error instanceof Error)) {
 		return { name: 'NonError', message: String(error), stack: null, cause: null };
@@ -232,6 +184,7 @@ const serializeLifecycleError = (error: unknown, depth = 0): Record<string, unkn
 	};
 };
 
+/** Appends a lifecycle failure unless the game was already removed. */
 const recordAdvancePhaseError = async (gameId: string, error: unknown) => {
 	// TODO: Record lifecycle failures from game creation, termination, and loop startup too.
 	if (error instanceof InputError && error.code === GameErrors.GameNotFound) return;
@@ -245,7 +198,7 @@ const recordAdvancePhaseError = async (gameId: string, error: unknown) => {
 				.limit(1);
 			if (!game) return;
 
-			await appendGameLog(tx, {
+			await Log.appendGameLog(tx, {
 				gameId,
 				type: 'game.error',
 				phase: GamePhaseSchema.parse(game.phase),
@@ -260,6 +213,12 @@ const recordAdvancePhaseError = async (gameId: string, error: unknown) => {
 	}
 };
 
+/**
+ * Advances exactly one phase for a durable loop command. Locks the game row,
+ * requires `expectedPhaseVersion`, and returns a persisted result for a
+ * repeated `idempotencyKey`. Result contains loop continuation, next phase,
+ * wait duration, poll count, and resulting phase version.
+ */
 export const advancePhase = fn(
 	z.object({
 		gameId: isULID(),
@@ -274,43 +233,21 @@ export const advancePhase = fn(
 				.where(eq(gameTable.id, gameId))
 				.for('update');
 
-			if (!gameRow) {
-				throw new InputError(GameErrors.GameNotFound, 'Game not found');
-			}
+			Assert.gameFound(gameRow);
 
-			const [previous] = await tx
-				.select({ result: gamePhaseTransitionTable.result })
-				.from(gamePhaseTransitionTable)
-				.where(
-					and(
-						eq(gamePhaseTransitionTable.gameId, gameId),
-						eq(gamePhaseTransitionTable.idempotencyKey, idempotencyKey),
-					),
-				)
-				.limit(1);
+			const previous = await PhaseTransition.get(gameId, idempotencyKey);
 			if (previous) {
-				return AdvancePhaseResponseSchema.parse(previous.result);
+				return previous;
 			}
 
 			if (gameRow.phaseVersion !== expectedPhaseVersion) {
 				throw new InputError(SessionErrors.GameInvalidState, 'Stale phase transition command');
 			}
 
-			const persistResult = async (result: z.output<typeof AdvancePhaseResponseSchema>) => {
-				await tx.insert(gamePhaseTransitionTable).values({
-					id: ulid(),
-					gameId,
-					idempotencyKey,
-					expectedPhaseVersion,
-					result,
-				});
-				return result;
-			};
+			const persistResult = (result: PhaseTransition.AdvancePhaseTransition) =>
+				PhaseTransition.persist({ idempotencyKey, expectedPhaseVersion, result });
 
-			const players = await tx
-				.select()
-				.from(gamePlayerTable)
-				.where(eq(gamePlayerTable.gameId, gameId));
+			const players = await Read.getPlayers(gameId);
 			const game = GameSessionInfoSchema.parse({ ...gameRow, players });
 
 			if (game.status !== 'active') {
@@ -324,22 +261,6 @@ export const advancePhase = fn(
 				});
 			}
 
-			const clearVotes = () =>
-				tx
-					.update(gamePlayerTable)
-					.set({ voteTargetActorId: null })
-					.where(eq(gamePlayerTable.gameId, gameId));
-			const clearVerdicts = () =>
-				tx
-					.update(gamePlayerTable)
-					.set({ verdict: null })
-					.where(eq(gamePlayerTable.gameId, gameId));
-			const clearOnTrial = () =>
-				tx
-					.update(gamePlayerTable)
-					.set({ onTrial: false })
-					.where(eq(gamePlayerTable.gameId, gameId));
-
 			const aliveActorIds = getAliveActorIds(game.actors);
 			let result: AdvancePhaseResult;
 			const auditEntries: Array<Omit<GameLogInput, 'gameId'>> = [];
@@ -350,16 +271,16 @@ export const advancePhase = fn(
 					break;
 
 				case 'day':
-					await clearVotes();
-					await clearVerdicts();
-					await clearOnTrial();
+					await Ballot.clearVotes(gameId);
+					await Ballot.clearVerdicts(gameId);
+					await PlayerState.clearOnTrial(gameId);
 					result = enterPhase('poll', { pollCount: 0 });
 					break;
 
 				case 'poll': {
 					const nextPollCount = game.pollCount + 1;
-					const voteTally = tallyVotesForPlayers(game.players, aliveActorIds);
-					await clearVotes();
+					const voteTally = Ballot.tallyVotes(game.players, aliveActorIds);
+					await Ballot.clearVotes(gameId);
 					auditEntries.push({
 						type: 'game.poll.tallied',
 						phase: 'poll',
@@ -367,20 +288,7 @@ export const advancePhase = fn(
 					});
 
 					if (voteTally.winner) {
-						const [trialPlayer] = await tx
-							.update(gamePlayerTable)
-							.set({ onTrial: true })
-							.where(
-								and(
-									eq(gamePlayerTable.gameId, gameId),
-									eq(gamePlayerTable.actorId, voteTally.winner),
-								),
-							)
-							.returning({ number: gamePlayerTable.number });
-
-						if (!trialPlayer) {
-							throw new InputError(SessionErrors.PlayerNotFound, 'Player not found');
-						}
+						const trialPlayer = await PlayerState.setOnTrial(gameId, voteTally.winner);
 
 						result = enterPhase('defense', {
 							pollCount: nextPollCount,
@@ -403,7 +311,7 @@ export const advancePhase = fn(
 						throw new InputError(SessionErrors.GameInvalidState, 'No player on trial');
 					}
 
-					const verdictTally = tallyVerdictsForPlayers(game.players, aliveActorIds);
+					const verdictTally = Ballot.tallyVerdicts(game.players, aliveActorIds);
 					const lynchResult = { actorId: trialPlayer.actorId, ...verdictTally };
 					auditEntries.push({
 						type: 'game.verdict.tallied',
@@ -417,8 +325,8 @@ export const advancePhase = fn(
 						break;
 					}
 
-					await clearVerdicts();
-					await clearOnTrial();
+					await Ballot.clearVerdicts(gameId);
+					await PlayerState.clearOnTrial(gameId);
 					result = nextPollOrEvening(game.pollCount, { lynchResult, trialOver: true });
 					break;
 				}
@@ -428,16 +336,16 @@ export const advancePhase = fn(
 					if (!trialPlayer) {
 						throw new InputError(SessionErrors.GameInvalidState, 'No player on trial');
 					}
-					const verdictTally = tallyVerdictsForPlayers(game.players, aliveActorIds);
+					const verdictTally = Ballot.tallyVerdicts(game.players, aliveActorIds);
 
 					const lynched = lynchGame({
 						state: game.engineState,
 						config: game.engineConfig,
-						actors: buildEngineActors(game.actors, game.players),
+						actors: Engine.buildEngineActors(game.actors, game.players),
 						actorNumber: trialPlayer.number,
 					});
-					await clearOnTrial();
-					await clearVerdicts();
+					await PlayerState.clearOnTrial(gameId);
+					await Ballot.clearVerdicts(gameId);
 					result = nextPollOrEvening(game.pollCount, {
 						engineState: lynched.state,
 						actors: lynched.actors,
@@ -465,10 +373,7 @@ export const advancePhase = fn(
 
 				case 'night':
 					result = processNight(game);
-					await tx
-						.update(gamePlayerTable)
-						.set({ targetActorIds: [] })
-						.where(eq(gamePlayerTable.gameId, gameId));
+					await PlayerState.clearTargets(gameId);
 					break;
 
 				case 'morning':
@@ -495,11 +400,9 @@ export const advancePhase = fn(
 				.where(eq(gameTable.id, gameId))
 				.returning({ id: gameTable.id, phaseVersion: gameTable.phaseVersion });
 
-			if (!updated) {
-				throw new InputError(GameErrors.GameNotFound, 'Game not found');
-			}
+			Assert.gameFound(updated);
 
-			await appendGameLog(tx, {
+			await Log.appendGameLog(tx, {
 				gameId,
 				type: 'game.phase.entered',
 				phase: result.nextPhase,
@@ -510,10 +413,10 @@ export const advancePhase = fn(
 				},
 			});
 			for (const entry of auditEntries) {
-				await appendGameLog(tx, { gameId, ...entry });
+				await Log.appendGameLog(tx, { gameId, ...entry });
 			}
 			if (result.trialActorNumber !== undefined) {
-				await appendGameLog(tx, {
+				await Log.appendGameLog(tx, {
 					gameId,
 					type: 'game.trial.started',
 					phase: result.nextPhase,
@@ -521,7 +424,7 @@ export const advancePhase = fn(
 				});
 			}
 			if (result.trialOver) {
-				await appendGameLog(tx, {
+				await Log.appendGameLog(tx, {
 					gameId,
 					type: 'game.trial.ended',
 					phase: game.phase,
@@ -529,7 +432,7 @@ export const advancePhase = fn(
 				});
 			}
 			if (result.deaths && result.deaths.length > 0) {
-				await appendGameLog(tx, {
+				await Log.appendGameLog(tx, {
 					gameId,
 					type: 'game.deaths.announced',
 					phase: result.nextPhase,
@@ -537,7 +440,7 @@ export const advancePhase = fn(
 				});
 			}
 			if (result.winners && result.winners.length > 0) {
-				await appendGameLog(tx, {
+				await Log.appendGameLog(tx, {
 					gameId,
 					type: 'game.over',
 					phase: result.nextPhase,
@@ -545,14 +448,14 @@ export const advancePhase = fn(
 				});
 			}
 			for (const engineLog of result.engineLogs ?? []) {
-				const engineLogId = await appendEngineLog(tx, { gameId, ...engineLog });
+				const engineLogId = await Log.appendEngineLog(tx, { gameId, ...engineLog });
 				const type =
 					engineLog.operation === 'resolve'
 						? 'game.engine.resolved'
 						: engineLog.operation === 'lynch'
 							? 'game.lynch.resolved'
 							: 'game.engine.win_checked';
-				await appendGameLog(tx, {
+				await Log.appendGameLog(tx, {
 					gameId,
 					type,
 					phase: engineLog.phase,
@@ -563,7 +466,7 @@ export const advancePhase = fn(
 			await afterTx(async () => {
 				const nextPollCount = result.pollCount ?? game.pollCount;
 
-				await realtime.publish(Resource.Realtime, Realtime.PhaseChange, {
+				await realtime.publish(Resource.Realtime, Events.Realtime.PhaseChange, {
 					gameId,
 					phase: result.nextPhase,
 					duration: result.waitSeconds,
@@ -572,39 +475,39 @@ export const advancePhase = fn(
 				});
 
 				if (result.trialActorNumber !== undefined) {
-					await realtime.publish(Resource.Realtime, Realtime.Trial, {
+					await realtime.publish(Resource.Realtime, Events.Realtime.Trial, {
 						gameId,
 						actorNumber: result.trialActorNumber,
 					});
 				}
 
 				if (result.trialOver) {
-					await realtime.publish(Resource.Realtime, Realtime.TrialOver, { gameId });
+					await realtime.publish(Resource.Realtime, Events.Realtime.TrialOver, { gameId });
 				}
 
 				if (result.lynchResult) {
-					await realtime.publish(Resource.Realtime, Realtime.LynchResult, {
+					await realtime.publish(Resource.Realtime, Events.Realtime.LynchResult, {
 						gameId,
 						...result.lynchResult,
 					});
 				}
 
 				if (result.engineState) {
-					await realtime.publish(Resource.Realtime, Realtime.State, {
+					await realtime.publish(Resource.Realtime, Events.Realtime.State, {
 						gameId,
 						state: result.engineState,
 					});
 				}
 
 				if (result.deaths && result.deaths.length > 0) {
-					await realtime.publish(Resource.Realtime, Realtime.Deaths, {
+					await realtime.publish(Resource.Realtime, Events.Realtime.Deaths, {
 						gameId,
 						deaths: result.deaths,
 					});
 				}
 
 				if (result.winners && result.winners.length > 0) {
-					await realtime.publish(Resource.Realtime, Realtime.GameOver, {
+					await realtime.publish(Resource.Realtime, Events.Realtime.GameOver, {
 						gameId,
 						winners: result.winners,
 					});

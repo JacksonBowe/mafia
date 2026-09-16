@@ -1,4 +1,4 @@
-import { ActorStateSchema, StateGraveyardRecordSchema, WinnerSummarySchema } from '@mafia/engine';
+import { ActorStateSchema, GameStateSchema, StateGraveyardRecordSchema, WinnerSummarySchema } from '@mafia/engine';
 import { z } from 'zod';
 import { isULID } from '../../error';
 import { defineRealtimeEvent } from '../../realtime';
@@ -85,7 +85,7 @@ export const Realtime = {
 		'game.state',
 		z.object({
 			gameId: isULID(),
-			state: z.unknown(), // GameState from engine
+			state: GameStateSchema,
 		}),
 		(p) => GameTopics.public(p.gameId),
 	),
