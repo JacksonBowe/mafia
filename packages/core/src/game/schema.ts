@@ -1,138 +1,101 @@
-// ---------------------------------------------------------------------------
-// Pure game contracts shared with the SDK.
-// Must NOT import any infra (sst, hono, drizzle, aws, neondatabase, ws).
-// ---------------------------------------------------------------------------
-import {
-	ActorStateSchema,
-	GameEventGroupDumpSchema,
-	GameConfigSchema,
-	GameStateSchema,
-	type ActorState,
-	type GameConfig,
-	type GameState,
-} from '@mafia/engine';
+// Pure public game contracts shared with the SDK.
+import { ActorStateSchema, GameConfigSchema, GameStateSchema } from '@mafia/engine';
 import { z } from 'zod';
-import { EntityBaseSchema } from '../db/schema';
 import { isULID } from '../error/schema';
 
-// ---------------------------------------------------------------------------
-// Error codes
-// ---------------------------------------------------------------------------
-
-export const GameErrors = {
-	GameNotFound: 'game.not_found',
-	GameInvalidState: 'game.invalid_state',
-	PlayerNotFound: 'game.player_not_found',
-	InvalidVoteTarget: 'game.invalid_vote_target',
-	InvalidTarget: 'game.invalid_target',
-	CannotVoteSelf: 'game.cannot_vote_self',
-	PlayerNotAlive: 'game.player_not_alive',
-	NotVotingPhase: 'game.not_voting_phase',
-	NotTrialPhase: 'game.not_trial_phase',
-} as const;
-
-// ---------------------------------------------------------------------------
-// Topic helpers (pure string builders — safe in browser)
-// ---------------------------------------------------------------------------
-
-export const GameTopics = {
-	/** Public game channel - all players receive these events */
-	public: (gameId: string) => `game/${gameId}/events`,
-	/** Private actor channel - only the specific player receives these events */
-	actor: (gameId: string, actorId: string) => `game/${gameId}/actor/${actorId}`,
-	/** Public chat channel */
-	chatAll: (gameId: string) => `game/${gameId}/chat/all`,
-	/** Faction-specific chat channel */
-	chatFaction: (gameId: string, faction: string) => `game/${gameId}/chat/${faction}`,
-};
-
-// ---------------------------------------------------------------------------
-// Status / phase / verdict
-// ---------------------------------------------------------------------------
-
-export const GameStatusSchema = z.enum(['active', 'completed', 'cancelled']);
-export type GameStatus = z.infer<typeof GameStatusSchema>;
-
-export const GamePhaseSchema = z.enum([
-	'pregame', // Role reveal, game setup
-	'morning', // Announce deaths from previous night, check win conditions
-	'day', // Discussion time
-	'poll', // Voting to put someone on trial (up to 3 attempts)
-	'defense', // Accused player defends themselves
-	'trial', // Jury votes guilty/innocent
-	'lynch', // Execute guilty verdict
-	'evening', // Resolve day actions, prepare for night
-	'night', // Night actions executed
-]);
-export type GamePhase = z.infer<typeof GamePhaseSchema>;
-
-export const VerdictSchema = z.enum(['guilty', 'innocent', 'abstain']);
-export type Verdict = z.infer<typeof VerdictSchema>;
-
-// ---------------------------------------------------------------------------
-// Player & game info
-// ---------------------------------------------------------------------------
-
-export const GamePlayerSchema = z.object({
-	id: isULID(),
-	gameId: isULID(),
-	userId: z.string(),
-	actorId: z.string(),
+const CreateGamePlayerSchema = z.object({
+	userId: isULID(),
+	actorId: z.string().min(1),
 	number: z.number().int().positive(),
-	voteTargetActorId: z.string().nullable(),
-	verdict: VerdictSchema.nullable(),
-	onTrial: z.boolean(),
-	targetActorIds: z.array(z.string()).default([]),
 });
 
-export type GamePlayer = z.infer<typeof GamePlayerSchema>;
+/**
+ * Validates engine output before first persistence. Cross-record invariants
+ * require unique actor/user/number identities and player rows that reference
+ * engine actors with matching assigned numbers.
+ */
+export const CreateGameInputSchema = z
+	.object({
+		engineState: GameStateSchema,
+		engineConfig: GameConfigSchema,
+		actors: z.array(ActorStateSchema),
+		engineLog: z.array(z.string()),
+		players: z.array(CreateGamePlayerSchema),
+	})
+	.superRefine((input, ctx) => {
+		const actorsById = new Map<string, (typeof input.actors)[number]>();
+		for (const [index, actor] of input.actors.entries()) {
+			if (actorsById.has(actor.id)) {
+				ctx.addIssue({
+					code: 'custom',
+					path: ['actors', index, 'id'],
+					message: 'Actor IDs must be unique',
+				});
+			}
+			actorsById.set(actor.id, actor);
+		}
 
-export const GameInfoSchema = EntityBaseSchema.extend({
-	status: GameStatusSchema,
-	phase: GamePhaseSchema,
-	startedAt: z.date(),
-	engineState: GameStateSchema,
-	engineConfig: GameConfigSchema,
-	actors: z.array(ActorStateSchema),
-	events: GameEventGroupDumpSchema.nullable().optional(),
-	players: z.array(GamePlayerSchema),
-	pollCount: z.number().int(),
-});
+		const userIds = new Set<string>();
+		const actorIds = new Set<string>();
+		const playerNumbers = new Set<number>();
+		for (const [index, player] of input.players.entries()) {
+			const addUniqueIssue = (
+				values: Set<string | number>,
+				value: string | number,
+				field: 'userId' | 'actorId' | 'number',
+				message: string,
+			) => {
+				if (values.has(value)) {
+					ctx.addIssue({ code: 'custom', path: ['players', index, field], message });
+				}
+				values.add(value);
+			};
 
-export type GameInfo = z.infer<typeof GameInfoSchema>;
+			addUniqueIssue(userIds, player.userId, 'userId', 'Player user IDs must be unique');
+			addUniqueIssue(actorIds, player.actorId, 'actorId', 'Player actor IDs must be unique');
+			addUniqueIssue(playerNumbers, player.number, 'number', 'Player numbers must be unique');
 
-// ---------------------------------------------------------------------------
-// Client sync types
-// ---------------------------------------------------------------------------
+			const actor = actorsById.get(player.actorId);
+			if (!actor) {
+				ctx.addIssue({
+					code: 'custom',
+					path: ['players', index, 'actorId'],
+					message: 'Player actor ID must reference an engine actor',
+				});
+			} else if (actor.number !== player.number) {
+				ctx.addIssue({
+					code: 'custom',
+					path: ['players', index, 'number'],
+					message: 'Player number must match its engine actor number',
+				});
+			}
+		}
+	});
 
-/** Metadata about the game visible to all players */
-export const ClientGameInfoSchema = z.object({
-	id: z.string(),
-	status: GameStatusSchema,
-	phase: GamePhaseSchema,
-	pollCount: z.number().int(),
-	/** Server-authoritative timestamp (ms since epoch) for ordering sync responses */
-	syncTs: z.number(),
-});
-export type ClientGameInfo = z.infer<typeof ClientGameInfoSchema>;
-
-/** Full sync response returned by GET /game */
-export interface GameSyncResponse {
-	info: ClientGameInfo;
-	state: GameState;
-	config: GameConfig;
-	actor: ActorState;
-	/** Phase-scoped vote tally: voter number -> target number. Empty outside the poll phase. */
-	votes: Record<number, number>;
-}
-
-export const GameSyncResponseSchema = z.object({
-	info: ClientGameInfoSchema,
-	state: GameStateSchema,
-	config: GameConfigSchema,
-	actor: ActorStateSchema,
-	votes: z.record(z.string(), z.number().int()),
-});
-
-// Re-export engine types so consumers don't need to import from @mafia/engine directly.
-export type { ActorState, GameEventGroupDump, GameConfig, GameState } from '@mafia/engine';
+export {
+	ClientGameInfoSchema,
+	GameErrors,
+	GameInfoSchema,
+	GamePhaseSchema,
+	GamePlayerSchema,
+	GameSessionErrors,
+	GameSessionInfoSchema,
+	GameStatusSchema,
+	GameSyncResponseSchema,
+	GameTopics,
+	VerdictSchema,
+} from './session/schema';
+export type {
+	ActorState,
+	ClientGameInfo,
+	GameConfig,
+	GameEventGroupDump,
+	GameInfo,
+	GamePhase,
+	GamePlayer,
+	GameSessionInfo,
+	GameState,
+	GameStatus,
+	GameSyncResponse,
+	Verdict,
+} from './session/schema';

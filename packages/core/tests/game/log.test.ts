@@ -4,7 +4,7 @@ import {
 	appendGameLog,
 	EngineLogOperationSchema,
 	GameLogTypeSchema,
-} from '../../src/game/log';
+} from '../../src/game/session/log';
 
 const GAME_ID = '01J00000000000000000000000';
 

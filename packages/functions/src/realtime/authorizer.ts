@@ -3,7 +3,6 @@ import { Resource } from 'sst';
 import { realtime } from 'sst/aws/realtime';
 import { z } from 'zod';
 import { isULID } from '@mafia/core/error';
-import { resolveGameChatSubscriptionTopics } from '@mafia/core/game/chat';
 import { Game } from '@mafia/core/game/index';
 import { topicPrefix } from '@mafia/core/realtime';
 import { User } from '@mafia/core/user/index';
@@ -75,9 +74,9 @@ function authorizeMenu(prefix: string, userId: string) {
 async function authorizeGame(prefix: string, userId: string, gameId: string) {
 	console.log('Realtime authorizer: game connection requested', { gameId, userId });
 
-	let game: Awaited<ReturnType<typeof Game.get>>;
+	let game: Awaited<ReturnType<typeof Game.Session.get>>;
 	try {
-		game = await Game.get({ gameId });
+		game = await Game.Session.get({ gameId });
 	} catch (err) {
 		console.warn('Realtime authorizer: game lookup failed', {
 			gameId,
@@ -110,7 +109,9 @@ async function authorizeGame(prefix: string, userId: string, gameId: string) {
 		subscribe: [
 			`${prefix}/game/${gameId}/events`,
 			`${prefix}/game/${gameId}/actor/${actor.id}`,
-			...resolveGameChatSubscriptionTopics({ gameId, actor }).map((topic) => `${prefix}/${topic}`),
+			...Game.Session.Chat.resolveGameChatSubscriptionTopics({ gameId, actor }).map(
+				(topic) => `${prefix}/${topic}`,
+			),
 		],
 	};
 }

@@ -4,7 +4,7 @@
 //
 // IMPORTANT: only import from pure schema files (no SST/AWS/Drizzle/Hono/Neon/ws).
 // Allowed paths: @mafia/core/{message,error/schema,db/schema,lobby/schema,
-// user/schema,game/schema,game/chat} and @mafia/engine.
+// user/schema, game/schema, game/session/chat, and @mafia/engine.
 // ---------------------------------------------------------------------------
 
 // --- DB schemas & types ---
@@ -22,6 +22,7 @@ export {
 	GameInfoSchema,
 	GamePhaseSchema,
 	GamePlayerSchema,
+	GameSessionInfoSchema,
 	GameStatusSchema,
 	GameSyncResponseSchema,
 	GameTopics,
@@ -32,6 +33,7 @@ export type {
 	GameInfo,
 	GamePhase,
 	GamePlayer,
+	GameSessionInfo,
 	GameStatus,
 	GameSyncResponse,
 	Verdict,
@@ -42,8 +44,8 @@ export {
 	resolveGameChatSendPolicy,
 	resolveGameChatSubscriptionTopics,
 	teamIdForActor,
-} from '@mafia/core/game/chat';
-export type { GameChatSendPolicy } from '@mafia/core/game/chat';
+} from '@mafia/core/game/session/chat.policy';
+export type { GameChatSendPolicy } from '@mafia/core/game/session/chat.policy';
 
 // --- Engine types & values (canonical role/tag/alignment surface) ---
 export {

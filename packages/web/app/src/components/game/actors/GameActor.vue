@@ -73,7 +73,7 @@
 </template>
 
 <script setup lang="ts">
-import { type GameInfo, type GameState } from '@mafia/sdk';
+import { type GameSessionInfo, type GameState } from '@mafia/sdk';
 import { useSetGameTargets, useSubmitGameVote } from 'src/lib/game/hooks';
 import { useGameStore } from 'src/stores/game';
 import { getCssVar } from 'src/util/colors';
@@ -85,7 +85,7 @@ const props = defineProps<{
 	number: number;
 	isPlayer?: boolean;
 	isAlly?: boolean | undefined;
-	phase: GameInfo['phase'] | null;
+	phase: GameSessionInfo['phase'] | null;
 }>();
 
 const gameStore = useGameStore();

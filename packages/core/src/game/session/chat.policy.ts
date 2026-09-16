@@ -1,5 +1,5 @@
 import type { ActorState, GamePhase } from './schema';
-import type { GameChannel } from '../message';
+import type { GameChannel } from '../../message';
 
 export type GameChatSendPolicy =
 	| { canSend: true; channel: GameChannel; teamId?: string }

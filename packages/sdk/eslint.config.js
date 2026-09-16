@@ -9,12 +9,12 @@ import { nodeConfig } from '../../eslint.config.base.mjs';
 //   @mafia/core/lobby/schema
 //   @mafia/core/user/schema
 //   @mafia/core/game/schema
-//   @mafia/core/game/chat
+//   @mafia/core/game/session/chat.policy
 const CORE_IMPORT_RESTRICTION = {
 	regex:
-		'^@mafia/core(?!/(message|error/schema|db/schema|lobby/schema|user/schema|game/schema|game/chat)$)(/.*)?$',
+		'^@mafia/core(?!/(message|error/schema|db/schema|lobby/schema|user/schema|game/schema|game/session/chat.policy)$)(/.*)?$',
 	message:
-		'SDK may only import from pure @mafia/core schema paths (message, error/schema, db/schema, lobby/schema, user/schema, game/schema, game/chat).',
+		'SDK may only import from pure @mafia/core schema paths (message, error/schema, db/schema, lobby/schema, user/schema, game/schema, game/session/chat.policy).',
 };
 
 export default [
