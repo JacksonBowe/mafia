@@ -10,13 +10,22 @@ const { afterTx, appendEngineLog, appendGameLog, createTransaction } = vi.hoiste
 	createTransaction: vi.fn(),
 }));
 
+vi.mock('../../src/game/session/phase-transition', () => ({
+	get: vi.fn().mockResolvedValue(null),
+	persist: vi.fn(({ result }) => Promise.resolve(result)),
+}));
+
+vi.mock('../../src/game/session/read', () => ({
+	getPlayers: vi.fn(),
+}));
+
 vi.mock('../../src/db/transaction', () => ({
 	afterTx,
 	createTransaction,
 	useTransaction: createTransaction,
 }));
 
-vi.mock('../../src/game/log', () => ({ appendEngineLog, appendGameLog }));
+vi.mock('../../src/game/session/log', () => ({ appendEngineLog, appendGameLog }));
 
 import { advancePhase } from '../../src/game';
 
@@ -42,6 +51,7 @@ describe('advancePhase', () => {
 			status: 'active' as const,
 			phase: 'night' as const,
 			pollCount: 0,
+			phaseVersion: 0,
 			engineState: created.state,
 			engineConfig: dummyConfig(),
 			actors: created.actors,
@@ -50,6 +60,8 @@ describe('advancePhase', () => {
 		const players = created.actors.map((actor, index) => ({
 			id: index === 0 ? PLAYER_ID : `01J0000000000000000000000${index + 2}`,
 			gameId: GAME_ID,
+			createdAt: new Date(),
+			updatedAt: new Date(),
 			userId: `user-${index + 1}`,
 			actorId: actor.id,
 			number: index + 1,
@@ -58,26 +70,38 @@ describe('advancePhase', () => {
 			onTrial: false,
 			targetActorIds: index === 0 ? [created.actors[1].id] : [],
 		}));
-		const rows = [[game], players];
 		const updates: Array<{ table: unknown; values: unknown }> = [];
 		const tx = {
 			select: vi.fn(() => ({
-				from: vi.fn(() => ({ where: vi.fn(() => Promise.resolve(rows.shift())) })),
+				from: vi.fn(() => ({
+					where: vi.fn(() => ({ for: vi.fn(() => Promise.resolve([game])) })),
+				})),
 			})),
 			update: vi.fn((table) => ({
 				set: vi.fn((values) => {
 					updates.push({ table, values });
 					return {
-						where: vi.fn(() => ({ returning: vi.fn().mockResolvedValue([{ id: GAME_ID }]) })),
+						where: vi.fn(() => ({
+							returning: vi
+								.fn()
+								.mockResolvedValue([{ id: GAME_ID, phaseVersion: 1 }]),
+						})),
 					};
 				}),
 			})),
 		};
 		createTransaction.mockImplementation(
-			(callback: (transaction: typeof tx) => Promise<unknown>): Promise<unknown> => callback(tx),
+			(callback: (transaction: typeof tx) => Promise<unknown>): Promise<unknown> =>
+				callback(tx),
 		);
+		const { getPlayers } = await import('../../src/game/session/read');
+		vi.mocked(getPlayers).mockResolvedValue(players);
 
-		await advancePhase({ gameId: GAME_ID });
+		await advancePhase({
+			gameId: GAME_ID,
+			expectedPhaseVersion: 0,
+			idempotencyKey: 'test:0',
+		});
 
 		expect(updates).toContainEqual({
 			table: gamePlayerTable,
