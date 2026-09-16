@@ -180,6 +180,84 @@ describe('engine', () => {
 		expect(resolved.winners).toBeNull();
 	});
 
+	it.each([
+		['Citizen', 'citizen'],
+		['Survivor', 'survivor'],
+	] as const)('refreshes %s targets after using final vest', (role, tag) => {
+		const actors = [
+			{
+				id: 'actor-1',
+				name: role,
+				alias: role,
+				role,
+				number: 1,
+				alive: true,
+				possibleTargets: [[1]],
+				targets: [1],
+				allies: [],
+				roleActions: { remainingVests: 1 },
+				alignment: null,
+			},
+		];
+		const config: GameConfig = {
+			tags: [tag],
+			settings: {},
+			roles: {
+				[role]: { max: 1, weight: 1, settings: { maxVests: 1 } },
+			},
+		};
+		const state = {
+			day: 1,
+			actors: [{ number: 1, alias: role, alive: true }],
+			graveyard: [],
+		};
+
+		const resolved = resolveGame({ actors, config, state, options: { seed: DEFAULT_SEED } });
+		const actor = resolved.actors[0];
+
+		expect(actor?.roleActions).toEqual({ remainingVests: 0 });
+		expect(actor?.possibleTargets).toEqual([]);
+	});
+
+	it.each([
+		['Citizen', 'citizen'],
+		['Survivor', 'survivor'],
+	] as const)('retains %s targets with vests remaining', (role, tag) => {
+		const actors = [
+			{
+				id: 'actor-1',
+				name: role,
+				alias: role,
+				role,
+				number: 1,
+				alive: true,
+				possibleTargets: [[1]],
+				targets: [1],
+				allies: [],
+				roleActions: { remainingVests: 2 },
+				alignment: null,
+			},
+		];
+		const config: GameConfig = {
+			tags: [tag],
+			settings: {},
+			roles: {
+				[role]: { max: 1, weight: 1, settings: { maxVests: 2 } },
+			},
+		};
+		const state = {
+			day: 1,
+			actors: [{ number: 1, alias: role, alive: true }],
+			graveyard: [],
+		};
+
+		const resolved = resolveGame({ actors, config, state, options: { seed: DEFAULT_SEED } });
+		const actor = resolved.actors[0];
+
+		expect(actor?.roleActions).toEqual({ remainingVests: 1 });
+		expect(actor?.possibleTargets).toEqual([[1]]);
+	});
+
 	it('uses Godfather target instead of submitted Mafioso targets', () => {
 		const actors = [
 			{
@@ -267,6 +345,7 @@ describe('engine', () => {
 
 		expect(resolved.actors.find((actor) => actor.number === 4)?.alive).toBe(true);
 		expect(resolved.actors.find((actor) => actor.number === 5)?.alive).toBe(false);
+		expect(resolved.actors.find((actor) => actor.number === 2)?.possibleTargets).toEqual([[4]]);
 	});
 
 	it('uses the most-voted Mafioso target when Godfather has no target', () => {
