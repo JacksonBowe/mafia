@@ -319,6 +319,10 @@ class Game {
 				this.events.newEventGroup(this.actionEvents.clone());
 			}
 		}
+
+		// Actions can consume limited uses or kill actors, changing legal targets
+		// and allies for the persisted state used by the following night.
+		this.generateAlliesAndPossibleTargets();
 	}
 
 	checkForWin() {
