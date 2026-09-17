@@ -22,8 +22,10 @@ import { computed, onUnmounted, ref, watch } from 'vue';
 
 const props = withDefaults(
 	defineProps<{
-		/** Countdown duration in seconds */
-		duration: number;
+		/** Server-authoritative current phase start, in epoch milliseconds. */
+		phaseStartedAt: number;
+		/** Server-authoritative current phase deadline, in epoch milliseconds. */
+		phaseEndsAt: number;
 		/** Label displayed inside the progress bar */
 		label?: string;
 		/** Pause the countdown */
@@ -44,12 +46,15 @@ const emit = defineEmits<{
 
 const TICK_MS = 50;
 
-const remaining = ref(props.duration * 1000);
+const now = ref(Date.now());
 let intervalId: ReturnType<typeof setInterval> | null = null;
 
+const durationMs = computed(() => Math.max(0, props.phaseEndsAt - props.phaseStartedAt));
+const remaining = computed(() => Math.max(0, props.phaseEndsAt - now.value));
+
 const progress = computed(() => {
-	if (props.duration <= 0) return 0;
-	return Math.max(0, remaining.value / (props.duration * 1000));
+	if (durationMs.value <= 0) return 0;
+	return Math.max(0, remaining.value / durationMs.value);
 });
 
 const progressColor = computed(() => {
@@ -69,7 +74,7 @@ const displayTime = computed(() => {
 function startInterval() {
 	stopInterval();
 	intervalId = setInterval(() => {
-		remaining.value = Math.max(0, remaining.value - TICK_MS);
+		now.value = Date.now();
 		if (remaining.value <= 0) {
 			stopInterval();
 			emit('finished');
@@ -90,20 +95,21 @@ watch(
 	(paused) => {
 		if (paused) {
 			stopInterval();
-		} else if (remaining.value > 0) {
+	} else if (remaining.value > 0) {
 			startInterval();
 		}
 	},
 	{ immediate: true },
 );
 
-// Reset when duration or phase occurrence changes.
+// Reset when the authoritative phase occurrence changes.
 watch(
-	() => [props.duration, props.resetKey] as const,
-	([dur]) => {
-		remaining.value = dur * 1000;
+	() => [props.phaseStartedAt, props.phaseEndsAt, props.resetKey] as const,
+	() => {
+		now.value = Date.now();
 		if (!props.paused) {
-			startInterval();
+			if (remaining.value > 0) startInterval();
+			else stopInterval();
 		}
 	},
 );

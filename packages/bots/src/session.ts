@@ -20,12 +20,13 @@ const LobbyStartedSchema = z.object({
 const GamePhaseSchema = z.object({
 	gameId: z.string(),
 	phase: z.string(),
-	sequence: z.number().int().optional(),
+	stateVersion: z.number().int().nonnegative(),
 });
 
 const GameActorSchema = z.object({
 	gameId: z.string(),
 	actor: z.object({ alive: z.boolean() }).passthrough(),
+	stateVersion: z.number().int().nonnegative(),
 });
 
 const ACTION_PHASES = new Set<GamePhase>(['poll', 'trial', 'evening']);
@@ -201,7 +202,7 @@ export class BotSession {
 		await this.subscribeGame(game.info.id, game.actor.id);
 		this.setStatus('in_game');
 		this.log(`joined game ${game.info.id} as actor ${game.actor.id} (#${game.actor.number})`);
-		this.scheduleAutoAction(game.info.id, game.info.phase, String(game.info.syncTs));
+		this.scheduleAutoAction(game.info.id, game.info.phase, String(game.info.stateVersion));
 	}
 
 	private handlePhaseChange(properties: Record<string, unknown>): void {
@@ -212,7 +213,7 @@ export class BotSession {
 		this.scheduleAutoAction(
 			parsed.data.gameId,
 			phase,
-			String(parsed.data.sequence ?? Date.now()),
+			String(parsed.data.stateVersion),
 		);
 	}
 
@@ -335,7 +336,7 @@ export class BotSession {
 
 	private currentActionKey(): string {
 		if (!this.game) return 'none';
-		return `${this.game.info.id}:${this.game.info.phase}:${this.game.info.syncTs}`;
+		return `${this.game.info.id}:${this.game.info.phase}:${this.game.info.stateVersion}`;
 	}
 
 	private trimActionKeys(): void {

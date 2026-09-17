@@ -388,6 +388,10 @@ export const advancePhase = fn(
 				phase: result.nextPhase,
 				phaseVersion: sql`${gameTable.phaseVersion} + 1`,
 			};
+			const phaseStartedAt = new Date();
+			const phaseEndsAt = new Date(phaseStartedAt.getTime() + result.waitSeconds * 1000);
+			updates.phaseStartedAt = phaseStartedAt;
+			updates.phaseEndsAt = phaseEndsAt;
 			if (result.status) updates.status = result.status;
 			if (result.pollCount !== undefined) updates.pollCount = result.pollCount;
 			if (result.engineState) updates.engineState = result.engineState;
@@ -410,6 +414,9 @@ export const advancePhase = fn(
 					fromPhase: game.phase,
 					waitSeconds: result.waitSeconds,
 					pollCount: result.pollCount ?? game.pollCount,
+					stateVersion: updated.phaseVersion,
+					phaseStartedAt: phaseStartedAt.toISOString(),
+					phaseEndsAt: phaseEndsAt.toISOString(),
 				},
 			});
 			for (const entry of auditEntries) {
@@ -472,6 +479,9 @@ export const advancePhase = fn(
 					duration: result.waitSeconds,
 					label: getPhaseLabel(result.nextPhase, nextPollCount),
 					sequence: getPhaseSequence(result.nextPhase, nextPollCount),
+					stateVersion: updated.phaseVersion,
+					phaseStartedAt: phaseStartedAt.getTime(),
+					phaseEndsAt: phaseEndsAt.getTime(),
 				});
 
 				if (result.trialActorNumber !== undefined) {
@@ -496,7 +506,23 @@ export const advancePhase = fn(
 					await realtime.publish(Resource.Realtime, Events.Realtime.State, {
 						gameId,
 						state: result.engineState,
+						stateVersion: updated.phaseVersion,
 					});
+				}
+
+				if (result.actors) {
+					const actorsById = new Map(result.actors.map((actor) => [actor.id, actor]));
+					for (const player of game.players) {
+						const actor = actorsById.get(player.actorId);
+						if (!actor) continue;
+
+						await realtime.publish(Resource.Realtime, Events.Realtime.ActorUpdate, {
+							gameId,
+							actorId: player.actorId,
+							actor,
+							stateVersion: updated.phaseVersion,
+						});
+					}
 				}
 
 				if (result.deaths && result.deaths.length > 0) {

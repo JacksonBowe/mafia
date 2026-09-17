@@ -1,4 +1,4 @@
-import { GamePhaseSchema, VerdictSchema, type GameState } from '@mafia/sdk';
+import { GamePhaseSchema, VerdictSchema, type ActorState, type GameState } from '@mafia/sdk';
 import { useQueryClient } from '@tanstack/vue-query';
 import type { AppBus } from 'src/boot/bus';
 import { useGameStore } from 'src/stores/game';
@@ -15,10 +15,14 @@ export const GameEventSchemas = {
 		duration: z.number().int(),
 		label: z.string(),
 		sequence: z.number().int(),
+		stateVersion: z.number().int().nonnegative(),
+		phaseStartedAt: z.number().int().nonnegative(),
+		phaseEndsAt: z.number().int().nonnegative(),
 	}),
 	'realtime.game.state': z.object({
 		gameId: ULID,
 		state: z.unknown(),
+		stateVersion: z.number().int().nonnegative(),
 	}),
 	'realtime.game.vote': z.object({
 		gameId: ULID,
@@ -53,6 +57,7 @@ export const GameEventSchemas = {
 		gameId: ULID,
 		actorId: z.string(),
 		actor: z.unknown(),
+		stateVersion: z.number().int().nonnegative(),
 	}),
 	'realtime.game.event': z.object({
 		gameId: ULID,
@@ -108,19 +113,44 @@ export function useGameEvents() {
 
 	onMounted(() => {
 		off.push(
-			bus.on('realtime.game.phase', ({ gameId, phase, duration, label, sequence }) => {
+			bus.on('realtime.game.phase', ({
+				gameId,
+				phase,
+				duration,
+				label,
+				sequence,
+				stateVersion,
+				phaseStartedAt,
+				phaseEndsAt,
+			}) => {
 				if (gameStore.info?.id !== gameId) return;
-				gameStore.applyPhaseEvent(phase, duration, label, sequence);
+				if (gameStore.hasPhaseVersionGap(stateVersion)) {
+					void gameStore.syncFromServer();
+				}
+				const applied = gameStore.applyPhaseEvent({
+					phase,
+					duration,
+					label,
+					sequence,
+					stateVersion,
+					phaseStartedAt,
+					phaseEndsAt,
+				});
+				if (!applied) return;
+				if (phase === 'morning') gameStore.syncMorningPhase(stateVersion);
 				system(gameId, `${label} has begun.`);
 			}),
-			bus.on('realtime.game.state', ({ gameId, state }) => {
+			bus.on('realtime.game.state', ({ gameId, state, stateVersion }) => {
 				if (gameStore.info?.id !== gameId) return;
-				// Apply state optimistically, then re-sync to get full data (actor etc.)
 				if (state && typeof state === 'object') {
-					gameStore.applyStateEvent(state as GameState);
+					gameStore.applyStateEvent(state as GameState, stateVersion);
 				}
-				// Full re-sync to pick up actor updates, player changes, etc.
-				void gameStore.syncFromServer();
+			}),
+			bus.on('realtime.game.actor', ({ gameId, actorId, actor, stateVersion }) => {
+				if (gameStore.info?.id !== gameId) return;
+				if (actor && typeof actor === 'object') {
+					gameStore.applyActorEvent(actorId, actor as ActorState, stateVersion);
+				}
 			}),
 			bus.on('realtime.game.vote', ({ gameId, voterActorNumber, targetActorNumber }) => {
 				if (gameStore.info?.id !== gameId) return;

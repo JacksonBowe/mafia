@@ -37,7 +37,8 @@
 
 					<game-timer
 						:label="gameStore.phaseMeta?.label ?? ''"
-						:duration="gameStore.phaseMeta?.duration ?? 0"
+						:phase-started-at="gameStore.phaseMeta?.phaseStartedAt ?? 0"
+						:phase-ends-at="gameStore.phaseMeta?.phaseEndsAt ?? 0"
 						:reset-key="timerResetKey"
 					/>
 				</div>
@@ -159,7 +160,7 @@ const graveyardEntries = computed<StateGraveyardRecord[]>(() => gameStore.state?
 const timerResetKey = computed(() => {
 	const phaseMeta = gameStore.phaseMeta;
 	if (!phaseMeta) return '';
-	return `${phaseMeta.phase}:${phaseMeta.sequence}`;
+	return String(phaseMeta.stateVersion);
 });
 
 /** Find the player currently on trial */

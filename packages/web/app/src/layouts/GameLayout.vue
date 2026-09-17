@@ -19,7 +19,7 @@ import { useActor } from 'src/lib/meta/hooks';
 import { useAuthStore } from 'src/stores/auth';
 import { useGameStore } from 'src/stores/game';
 import { useRealtime, type RealtimeConnectionKey } from 'src/stores/realtime';
-import { onUnmounted, ref, watch } from 'vue';
+import { onMounted, onUnmounted, ref, watch } from 'vue';
 
 const { data: actor } = useActor();
 const auth = useAuthStore();
@@ -27,6 +27,7 @@ const gameStore = useGameStore();
 const realtime = useRealtime();
 const activeChatTopics = ref<string[]>([]);
 const activeGameKey = ref<RealtimeConnectionKey | null>(null);
+const activeActorId = ref<string | null>(null);
 
 useChatEvents();
 useGameEvents();
@@ -58,17 +59,25 @@ function clearActiveConnection(gameId: string | null) {
 	}
 	if (gameId) {
 		realtime.unsubscribe(activeGameKey.value, `game/${gameId}/events`);
+		if (activeActorId.value) {
+			realtime.unsubscribe(activeGameKey.value, `game/${gameId}/actor/${activeActorId.value}`);
+		}
 	}
 	realtime.disconnect(activeGameKey.value, true);
 	activeGameKey.value = null;
 	activeChatTopics.value = [];
+	activeActorId.value = null;
 }
 
 function connectGameRealtime(gameId: string, token: string, userId: string) {
 	const key = `game:${gameId}` as const;
 	activeGameKey.value = key;
+	activeActorId.value = gameStore.actor?.id ?? null;
 	realtime.connect({ scope: 'game', token, userId, gameId });
 	realtime.subscribe(key, `game/${gameId}/events`);
+	if (activeActorId.value) {
+		realtime.subscribe(key, `game/${gameId}/actor/${activeActorId.value}`);
+	}
 	syncChatSubscriptions(key, gameId);
 }
 
@@ -123,7 +132,28 @@ watch(
 	},
 );
 
+watch(
+	() => (activeGameKey.value ? realtime.status(activeGameKey.value) : 'idle'),
+	(status, previousStatus) => {
+		if (
+			status === 'connected' &&
+			(previousStatus === 'disconnected' || previousStatus === 'error')
+		) {
+			void gameStore.syncFromServer();
+		}
+	},
+);
+
+function syncWhenForeground() {
+	if (document.visibilityState === 'visible') void gameStore.syncFromServer();
+}
+
+onMounted(() => {
+	document.addEventListener('visibilitychange', syncWhenForeground);
+});
+
 onUnmounted(() => {
+	document.removeEventListener('visibilitychange', syncWhenForeground);
 	clearActiveConnection(gameStore.info?.id ?? null);
 });
 </script>

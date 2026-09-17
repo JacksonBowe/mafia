@@ -100,7 +100,9 @@ export const sync = fn(z.object({ userId: z.string() }), async ({ userId }) =>
 			status: game.status,
 			phase: game.phase,
 			pollCount: game.pollCount,
-			syncTs: game.updatedAt.getTime(),
+			stateVersion: game.phaseVersion,
+			phaseStartedAt: game.phaseStartedAt.getTime(),
+			phaseEndsAt: game.phaseEndsAt.getTime(),
 		});
 
 		return { info, state, config, actor: myActor, votes } satisfies GameSyncResponse;

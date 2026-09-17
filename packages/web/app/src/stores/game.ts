@@ -19,7 +19,15 @@ import { api } from 'src/boot/axios';
  * - error: sync or hydration failed
  */
 export type GameStoreStatus = 'idle' | 'transitioning' | 'syncing' | 'ready' | 'error';
-type PhaseMeta = { phase: GamePhase; duration: number; label: string; sequence: number };
+type PhaseMeta = {
+	phase: GamePhase;
+	duration: number;
+	label: string;
+	sequence: number;
+	stateVersion: number;
+	phaseStartedAt: number;
+	phaseEndsAt: number;
+};
 
 const titleCasePhase = (phase: GamePhase) => phase.charAt(0).toUpperCase() + phase.slice(1);
 
@@ -42,8 +50,12 @@ export const useGameStore = defineStore('game', {
 		actor: null as ActorState | null,
 		error: null as string | null,
 		phaseMeta: null as PhaseMeta | null,
-		/** Server-authoritative timestamp (ms) of the last applied sync */
-		lastSyncTs: 0,
+		/** Greatest server-authoritative version observed across all game slices. */
+		lastStateVersion: 0,
+		lastPhaseVersion: 0,
+		lastPublicStateVersion: 0,
+		lastActorStateVersion: 0,
+		lastMorningSyncVersion: 0,
 		/** Phase-scoped vote tally: voter number -> target number */
 		votes: {} as Record<number, number>,
 		/** Phase-scoped trial verdicts: voter number -> verdict */
@@ -142,7 +154,7 @@ export const useGameStore = defineStore('game', {
 		 * Hydrate the store from a GameSyncResponse payload (from HTTP or realtime).
 		 *
 		 * Guards:
-		 * - Rejects payloads whose `syncTs` is not newer than the last applied sync.
+		 * - Rejects payloads whose `stateVersion` is older than the applied game state.
 		 * - Rejects payloads for a different game than the current one (if set).
 		 *
 		 * Note: `config` is only set on the first sync since config is
@@ -150,7 +162,7 @@ export const useGameStore = defineStore('game', {
 		 */
 		hydrateFromSync(sync: GameSyncResponse) {
 			// Stale response — discard
-			if (sync.info.syncTs <= this.lastSyncTs) {
+			if (sync.info.stateVersion < this.lastStateVersion) {
 				return;
 			}
 
@@ -165,12 +177,19 @@ export const useGameStore = defineStore('game', {
 			this.info = sync.info;
 			this.state = sync.state;
 			this.actor = sync.actor;
-			this.lastSyncTs = sync.info.syncTs;
+			this.lastStateVersion = sync.info.stateVersion;
+			this.lastPhaseVersion = sync.info.stateVersion;
+			this.lastPublicStateVersion = sync.info.stateVersion;
+			this.lastActorStateVersion = sync.info.stateVersion;
+			if (sync.info.phase === 'morning') this.lastMorningSyncVersion = sync.info.stateVersion;
 			this.phaseMeta = {
 				phase: sync.info.phase,
 				duration: 0,
 				label: getPhaseLabel(sync.info.phase, sync.info.pollCount),
 				sequence: getPhaseSequence(sync.info.phase, sync.info.pollCount),
+				stateVersion: sync.info.stateVersion,
+				phaseStartedAt: sync.info.phaseStartedAt,
+				phaseEndsAt: sync.info.phaseEndsAt,
 			};
 			this.status = 'ready';
 			this.error = null;
@@ -196,12 +215,20 @@ export const useGameStore = defineStore('game', {
 			this.state = sync.state;
 			this.actor = sync.actor;
 			this.config = sync.config;
-			this.lastSyncTs = sync.info.syncTs;
+			this.lastStateVersion = sync.info.stateVersion;
+			this.lastPhaseVersion = sync.info.stateVersion;
+			this.lastPublicStateVersion = sync.info.stateVersion;
+			this.lastActorStateVersion = sync.info.stateVersion;
+			this.lastMorningSyncVersion =
+				sync.info.phase === 'morning' ? sync.info.stateVersion : 0;
 			this.phaseMeta = {
 				phase: sync.info.phase,
 				duration: 0,
 				label: getPhaseLabel(sync.info.phase, sync.info.pollCount),
 				sequence: getPhaseSequence(sync.info.phase, sync.info.pollCount),
+				stateVersion: sync.info.stateVersion,
+				phaseStartedAt: sync.info.phaseStartedAt,
+				phaseEndsAt: sync.info.phaseEndsAt,
 			};
 			this.status = 'ready';
 			this.error = null;
@@ -214,18 +241,37 @@ export const useGameStore = defineStore('game', {
 		/**
 		 * Update phase metadata from a realtime phase change event.
 		 */
-		applyPhaseEvent(phase: GamePhase, duration: number, label: string, sequence: number) {
-			this.phaseMeta = { phase, duration, label, sequence };
+		applyPhaseEvent(phaseMeta: PhaseMeta) {
+			if (phaseMeta.stateVersion <= this.lastPhaseVersion) return false;
+
+			this.phaseMeta = phaseMeta;
 			if (this.info) {
 				this.info = {
 					...this.info,
-					phase,
-					pollCount: phase === 'poll' ? sequence : this.info.pollCount,
+					phase: phaseMeta.phase,
+					pollCount:
+						phaseMeta.phase === 'poll' ? phaseMeta.sequence : this.info.pollCount,
+					stateVersion: phaseMeta.stateVersion,
+					phaseStartedAt: phaseMeta.phaseStartedAt,
+					phaseEndsAt: phaseMeta.phaseEndsAt,
 				};
 			}
+			this.lastPhaseVersion = phaseMeta.stateVersion;
+			this.lastStateVersion = Math.max(this.lastStateVersion, phaseMeta.stateVersion);
 			// Votes and verdicts are phase-scoped; reset on transition.
 			this.votes = {};
 			this.verdicts = {};
+			return true;
+		},
+
+		hasPhaseVersionGap(stateVersion: number) {
+			return stateVersion > this.lastPhaseVersion + 1;
+		},
+
+		syncMorningPhase(stateVersion: number) {
+			if (stateVersion <= this.lastMorningSyncVersion) return;
+			this.lastMorningSyncVersion = stateVersion;
+			void this.syncFromServer();
 		},
 
 		/**
@@ -269,26 +315,25 @@ export const useGameStore = defineStore('game', {
 		/**
 		 * Update public engine state from a realtime state event.
 		 */
-		applyStateEvent(state: GameState) {
+		applyStateEvent(state: GameState, stateVersion: number) {
+			if (stateVersion <= this.lastPublicStateVersion) return;
 			this.state = state;
+			this.lastPublicStateVersion = stateVersion;
+			this.lastStateVersion = Math.max(this.lastStateVersion, stateVersion);
 		},
 
-		/**
-		 * Legacy compat: setPhaseMeta
-		 */
-		setPhaseMeta(phaseMeta: PhaseMeta | null) {
-			this.phaseMeta = phaseMeta;
-		},
-
-		/**
-		 * Legacy compat: setCurrentGame — triggers a sync instead.
-		 */
-		setCurrentGame(game: { id: string } | null) {
-			if (!game) {
-				this.clearGame();
+		/** Update this player's private actor state from a realtime delta. */
+		applyActorEvent(actorId: string, actor: ActorState, stateVersion: number) {
+			if (
+				actorId !== this.actor?.id ||
+				stateVersion <= this.lastActorStateVersion ||
+				stateVersion < this.lastPhaseVersion
+			) {
 				return;
 			}
-			this.completeTransition(game.id);
+			this.actor = actor;
+			this.lastActorStateVersion = stateVersion;
+			this.lastStateVersion = Math.max(this.lastStateVersion, stateVersion);
 		},
 
 		/**
@@ -302,7 +347,11 @@ export const useGameStore = defineStore('game', {
 			this.actor = null;
 			this.phaseMeta = null;
 			this.error = null;
-			this.lastSyncTs = 0;
+			this.lastStateVersion = 0;
+			this.lastPhaseVersion = 0;
+			this.lastPublicStateVersion = 0;
+			this.lastActorStateVersion = 0;
+			this.lastMorningSyncVersion = 0;
 			this.votes = {};
 			this.verdicts = {};
 			this.onTrialActorNumber = null;

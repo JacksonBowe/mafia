@@ -52,6 +52,18 @@ export const gameTable = pgTable(
 		// Monotonic optimistic-concurrency token for phase-transition commands.
 		phaseVersion: integer('phase_version').notNull().default(0),
 
+		// Server-authoritative wall-clock schedule for the current phase.
+		phaseStartedAt: pgTimestamp('phase_started_at', {
+			precision: 3,
+			withTimezone: true,
+			mode: 'date',
+		}).notNull(),
+		phaseEndsAt: pgTimestamp('phase_ends_at', {
+			precision: 3,
+			withTimezone: true,
+			mode: 'date',
+		}).notNull(),
+
 		// Incremented transactionally for a stable, per-game audit timeline.
 		auditLogSequence: integer('audit_log_sequence').notNull().default(0),
 	},

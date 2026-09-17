@@ -103,6 +103,8 @@ export const GameSessionInfoSchema = GameInfoSchema.extend({
 	players: z.array(GamePlayerSchema),
 	pollCount: z.number().int(),
 	phaseVersion: z.number().int().nonnegative(),
+	phaseStartedAt: z.date(),
+	phaseEndsAt: z.date(),
 });
 
 export type GameSessionInfo = z.infer<typeof GameSessionInfoSchema>;
@@ -117,8 +119,11 @@ export const ClientGameInfoSchema = z.object({
 	status: GameStatusSchema,
 	phase: GamePhaseSchema,
 	pollCount: z.number().int(),
-	/** Server-authoritative timestamp (ms since epoch) for ordering sync responses */
-	syncTs: z.number(),
+	/** Monotonic server-authoritative game-state ordering token. */
+	stateVersion: z.number().int().nonnegative(),
+	/** Server-authoritative phase schedule, in epoch milliseconds. */
+	phaseStartedAt: z.number().int().nonnegative(),
+	phaseEndsAt: z.number().int().nonnegative(),
 });
 export type ClientGameInfo = z.infer<typeof ClientGameInfoSchema>;
 

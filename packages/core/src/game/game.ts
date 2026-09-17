@@ -24,12 +24,15 @@ export { Realtime } from './session/events';
 export const create = fn(CreateGameInputSchema, async (input) =>
 	createTransaction(async (tx) => {
 		const gameId = ulid();
+		const phaseStartedAt = new Date();
 
 		// Insert game record
 		await tx.insert(gameTable).values({
 			id: gameId,
 			status: 'active',
 			phase: 'pregame',
+			phaseStartedAt,
+			phaseEndsAt: phaseStartedAt,
 			pollCount: 0,
 			engineState: input.engineState,
 			engineConfig: input.engineConfig,
